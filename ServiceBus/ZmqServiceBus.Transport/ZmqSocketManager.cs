@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Shared;
@@ -56,6 +57,7 @@ namespace ZmqServiceBus.Transport
 
             waitForConnect.WaitOne();
         }
+
 
         public void CreateRequestSocket(BlockingCollection<ITransportMessage> sendingQueue, BlockingCollection<ITransportMessage> acknowledgementQueue, string endpoint, string senderIdentity)
         {

@@ -67,15 +67,12 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Moq">
-      <HintPath>..\..\Libraries\Moq\Moq.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework, Version=2.5.2.9222, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Libraries\Nunit\framework\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="protobuf-net">
-      <HintPath>..\..\Libraries\Protobuf\protobuf-net.dll</HintPath>
+      <HintPath>..\..\..\Libraries\Protobuf\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -95,6 +92,10 @@
     <ProjectReference Include="..\..\..\clrzmq\src\ZeroMQ\ZeroMQ.csproj">
       <Project>{6ffd872f-a4a4-4efa-9b4d-4342ba6cf250}</Project>
       <Name>ZeroMQ</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Moq\Source\Moq.csproj">
+      <Project>{1c91ac30-5977-4be5-ba67-8eb186c03514}</Project>
+      <Name>Moq</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Shared\Shared.csproj">
       <Project>{7df08a0e-d508-443a-88ca-f85568d5bf55}</Project>

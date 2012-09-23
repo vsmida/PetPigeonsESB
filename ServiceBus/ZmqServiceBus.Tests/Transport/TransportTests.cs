@@ -1,21 +1,12 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
+﻿using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
-using ZeroMQ;
 using ZmqServiceBus.Transport;
 using Serializer = Shared.Serializer;
-using SocketType = ZeroMQ.SocketType;
+using Shared.TestTools;
 
 namespace ZmqServiceBus.Tests.Transport
 {
@@ -36,7 +27,7 @@ namespace ZmqServiceBus.Tests.Transport
             {
                 Test = test;
             }
-
+            
             private FakeCommand()
             {
 
@@ -161,7 +152,7 @@ namespace ZmqServiceBus.Tests.Transport
             _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
 
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
-                                                                 It.IsAny<BlockingCollection<ITransportMessage>>(),It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(1));
+                                                                 It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(1));
         }
 
         [Test]
@@ -213,6 +204,31 @@ namespace ZmqServiceBus.Tests.Transport
             waitForEvent.WaitOne();
 
         }
+
+        [Test]
+        public void should_raise_message_received_from_receivedAck()
+        {
+            var waitForEvent = new AutoResetEvent(false);
+            BlockingCollection<ITransportMessage> messagesReceived = null;
+            _socketManagerMock.CaptureVariable(() => messagesReceived, (s, x) => s.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), x, It.IsAny<string>(), It.IsAny<string>()));
+            var transportMessage = new TransportMessage(null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
+            _transport.Initialize();
+            _transport.OnMessageReceived += (message) =>
+            {
+                Assert.AreEqual(transportMessage.Data, message.Data);
+                Assert.AreEqual(transportMessage.MessageType, message.MessageType);
+                Assert.AreEqual(transportMessage.SenderIdentity, message.SenderIdentity);
+                waitForEvent.Set();
+            };
+            string endpoint = "endpoint";
+            _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
+            messagesReceived.Add(transportMessage);
+
+            waitForEvent.WaitOne();
+
+        }
+
+
 
         [Test]
         public void should_dispose_socket_manager()

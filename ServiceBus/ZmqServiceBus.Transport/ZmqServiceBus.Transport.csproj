@@ -83,11 +83,9 @@
     <Compile Include="IZmqSocketManager.cs" />
     <Compile Include="Transport.cs" />
     <Compile Include="TransportAcknowledgementMessage.cs" />
-    <Compile Include="IBus.cs" />
     <Compile Include="ITransport.cs" />
     <Compile Include="ITransportConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Bus.cs" />
     <Compile Include="ZmqSocketManager.cs" />
   </ItemGroup>
   <ItemGroup>

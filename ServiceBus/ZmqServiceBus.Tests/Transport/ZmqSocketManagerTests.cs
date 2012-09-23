@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
@@ -126,7 +124,7 @@ namespace ZmqServiceBus.Tests.Transport
 
         private BackgroundThread StartReceivingThread(string durableSenderIdentity, string endpoint, int maxMessages)
         {
-            AutoResetEvent waitForConnect = new AutoResetEvent(false);
+            var waitForConnect = new AutoResetEvent(false);
             var receiveThread = new BackgroundThread(() =>
                                                          {
                                                              var durableSocket = CreateRequestorSocket(durableSenderIdentity,

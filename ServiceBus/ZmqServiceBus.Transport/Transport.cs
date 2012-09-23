@@ -91,6 +91,7 @@ namespace ZmqServiceBus.Transport
 
         public void Dispose()
         {
+            _running = false;
             _socketManager.Stop();
         }
 
