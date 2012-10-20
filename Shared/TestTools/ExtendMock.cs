@@ -20,8 +20,8 @@ namespace Shared.TestTools
             var parameters = new List<ParameterExpression>();
             var paramToCapture = GetParameterToCapture(body, parameters);
             var lambdaToCallCompiled = CreateCallbackLambda(closureFunc, paramToCapture, parameters);
-            var moqCallbackMethod = GetRightCallbackOverload(mock, newExpression, parameters);
-            moqCallbackMethod.Invoke(mock.Setup(newExpression), new object[] { lambdaToCallCompiled });
+            var moqCallbackMethod = GetRightCallbackOverload(mock, newExpression, parameters);         
+            moqCallbackMethod.Invoke(mock.Setup(newExpression), new object[] { lambdaToCallCompiled});
         }
 
         private static Expression<Action<T>> CreateSetupExpression<T, TCapture>(Expression<Action<T, TCapture>> argumentToCapture) where T : class

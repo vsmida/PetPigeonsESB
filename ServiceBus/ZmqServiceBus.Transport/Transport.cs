@@ -55,7 +55,7 @@ namespace ZmqServiceBus.Transport
 
         public void SendMessage<T>(T message) where T : IMessage
         {
-            _endpointsToMessageQueue[_messageTypesToEndpoints[typeof(T)]].Add(new TransportMessage(_config.Identity, typeof(T).FullName, Serializer.Serialize(message)));
+            _endpointsToMessageQueue[_messageTypesToEndpoints[typeof(T)]].Add(new TransportMessage(Guid.NewGuid(),_config.Identity, typeof(T).FullName, Serializer.Serialize(message)));
         }
 
         private string GetCommandReplierEndpoint()
@@ -70,7 +70,7 @@ namespace ZmqServiceBus.Transport
 
         public void PublishMessage<T>(T message) where T : IMessage
         {
-            _messagesToPublish.Add(new TransportMessage(null,typeof(T).FullName, Serializer.Serialize(message)));
+            _messagesToPublish.Add(new TransportMessage(Guid.NewGuid(), null,typeof(T).FullName, Serializer.Serialize(message)));
         }
 
         public void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage

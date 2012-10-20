@@ -84,7 +84,7 @@
     <Compile Include="RegisterPublisherCommand.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Shared\Shared.csproj">
+    <ProjectReference Include="..\..\Shared\Shared.csproj">
       <Project>{7df08a0e-d508-443a-88ca-f85568d5bf55}</Project>
       <Name>Shared</Name>
     </ProjectReference>

@@ -16,7 +16,16 @@ namespace Shared
             }
         }
 
-        public static T Deserialize<T>(byte[] data)
+        public static T DeserializeStruct<T>(byte[] data) where T : struct
+        {
+            using (var stream = new MemoryStream(data))
+            {
+                return ProtoBuf.Serializer.Deserialize<T>(stream);
+            }
+        }
+
+
+        public static T Deserialize<T>(byte[] data) where T:class 
         {
             using (var stream = new MemoryStream(data))
             {

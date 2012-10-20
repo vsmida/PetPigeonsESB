@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using Moq;
 using NUnit.Framework;
@@ -188,13 +189,15 @@ namespace ZmqServiceBus.Tests.Transport
             BlockingCollection<ITransportMessage> messagesReceived = null;
             _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()))
                                          .Callback<BlockingCollection<ITransportMessage>, string>((x, y) => messagesReceived = x);
-            var transportMessage = new TransportMessage(null, typeof (FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
+            var messageIdentity = Guid.NewGuid();
+            var transportMessage = new TransportMessage(messageIdentity,null, typeof (FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
             _transport.Initialize();
             _transport.OnMessageReceived += (message) =>
                                                 {
                                                     Assert.AreEqual(transportMessage.Data, message.Data);
                                                     Assert.AreEqual(transportMessage.MessageType, message.MessageType);
                                                     Assert.AreEqual(transportMessage.SenderIdentity, message.SenderIdentity);
+                                                    Assert.AreEqual(transportMessage.MessageIdentity, messageIdentity);
                                                     waitForEvent.Set();
                                                 };
             string endpoint = "endpoint";
@@ -211,13 +214,14 @@ namespace ZmqServiceBus.Tests.Transport
             var waitForEvent = new AutoResetEvent(false);
             BlockingCollection<ITransportMessage> messagesReceived = null;
             _socketManagerMock.CaptureVariable(() => messagesReceived, (s, x) => s.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), x, It.IsAny<string>(), It.IsAny<string>()));
-            var transportMessage = new TransportMessage(null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
+            var transportMessage = new TransportMessage(Guid.NewGuid(), null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
             _transport.Initialize();
             _transport.OnMessageReceived += (message) =>
             {
                 Assert.AreEqual(transportMessage.Data, message.Data);
                 Assert.AreEqual(transportMessage.MessageType, message.MessageType);
                 Assert.AreEqual(transportMessage.SenderIdentity, message.SenderIdentity);
+                Assert.AreEqual(transportMessage.MessageIdentity, message.MessageIdentity);
                 waitForEvent.Set();
             };
             string endpoint = "endpoint";
