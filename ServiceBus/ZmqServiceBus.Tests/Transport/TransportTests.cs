@@ -118,6 +118,28 @@ namespace ZmqServiceBus.Tests.Transport
             Assert.AreEqual(typeof(FakeCommand).FullName, sentTransportMessage.MessageType);
             Assert.AreEqual(2, Serializer.Deserialize<FakeCommand>(sentTransportMessage.Data).Test);
         }
+        [Test]
+        public void should_ack_message()
+        {
+            BlockingCollection<ITransportMessage> ackQueue = null;
+            _socketManagerMock.Setup(x => x.CreateResponseSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
+                                        It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>(),
+                                      _configuration.Identity))
+                .Callback<BlockingCollection<ITransportMessage>, BlockingCollection<ITransportMessage>, string, string>(
+                    (x, y, z, t) => ackQueue = y);
+            _transport.Initialize();
+
+            var messageId = Guid.NewGuid();
+            var recipientIdentity = "toto";
+            _transport.AckMessage(recipientIdentity, messageId, true);
+
+           Assert.AreEqual(1, ackQueue.Count);
+            var transportMessage = ackQueue.Take();
+            Assert.AreNotEqual(Guid.Empty, transportMessage.MessageIdentity);
+            Assert.AreEqual(recipientIdentity, transportMessage.SenderIdentity);
+            Assert.AreEqual(typeof(AcknowledgementMessage).FullName, transportMessage.MessageType);
+            Assert.AreEqual(Serializer.Serialize(new AcknowledgementMessage(messageId, true)), transportMessage.Data);
+        }
 
         [Test]
         public void should_send_message_on_proper_socket()

@@ -4,14 +4,13 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C33450C1-7E6E-4E0A-9FFA-058B27743719}</ProjectGuid>
+    <ProjectGuid>{C1262581-6F1E-44FE-B852-C7FE731F0908}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ZmqServiceBus.Bus</RootNamespace>
-    <AssemblyName>ZmqServiceBus.Bus</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <RootNamespace>PersistenceService.Commands</RootNamespace>
+    <AssemblyName>PersistenceService.Commands</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,7 +20,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -32,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="StructureMap">
-      <HintPath>..\..\Libraries\StructureMap\StructureMap.dll</HintPath>
+    <Reference Include="protobuf-net">
+      <HintPath>..\..\Libraries\Protobuf\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -44,29 +42,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IBusConfiguration.cs" />
-    <Compile Include="InternalBus.cs" />
-    <Compile Include="IBus.cs" />
-    <Compile Include="IMessageDispatcher.cs" />
-    <Compile Include="IObjectFactory.cs" />
-    <Compile Include="MessageDispatcher.cs" />
+    <Compile Include="PersistMessageCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DirectoryService\DirectoryService.Commands\DirectoryService.Commands.csproj">
-      <Project>{49ea8413-2ffb-48f8-bbcf-2bff26b1df99}</Project>
-      <Name>DirectoryService.Commands</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\DirectoryService\DirectoryService.Events\DirectoryService.Events.csproj">
-      <Project>{9ebb2a67-a2b4-4517-ab16-8234e6fa612b}</Project>
-      <Name>DirectoryService.Events</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ServiceBus\ZmqServiceBus.Transport\ZmqServiceBus.Transport.csproj">
-      <Project>{260acc9f-c02e-4a1f-b3a7-a32a45310380}</Project>
+      <Project>{260ACC9F-C02E-4A1F-B3A7-A32A45310380}</Project>
       <Name>ZmqServiceBus.Transport</Name>
     </ProjectReference>
     <ProjectReference Include="..\Shared\Shared.csproj">
-      <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>
+      <Project>{7df08a0e-d508-443a-88ca-f85568d5bf55}</Project>
       <Name>Shared</Name>
     </ProjectReference>
   </ItemGroup>

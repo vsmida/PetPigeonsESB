@@ -1,8 +1,10 @@
 ﻿using System;
 using Shared;
+using Shared.Attributes;
 
 namespace DirectoryService.Event
 {
+    [InfrastructureMessage]
     public class RegisteredHandlersForCommand : IEvent
     {
         public readonly Type EventType;

@@ -10,9 +10,11 @@ namespace ZmqServiceBus.Transport
         void Initialize();
         void SendMessage<T>(T message) where T : IMessage;
         void PublishMessage<T>(T message) where T : IMessage;
+        void AckMessage(string recipientIdentity, Guid messageId, bool success);
         void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage;
         void RegisterCommandHandlerEndpoint<T>(string endpoint) where T : IMessage;
         event Action<ITransportMessage> OnMessageReceived;
+        TransportConfiguration Configuration { get; }
 
     }
 }

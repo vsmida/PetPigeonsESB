@@ -3,12 +3,12 @@ using ZmqServiceBus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport
 {
-    public class FakeTransportConfiguration : ITransportConfiguration
+    public class FakeTransportConfiguration : TransportConfiguration
     {
         private int? _eventsPort;
         private int? _commandsPort;
 
-        public int EventsPort
+        public override int EventsPort
         {
             get
             {
@@ -16,10 +16,10 @@ namespace ZmqServiceBus.Tests.Transport
                     _eventsPort = NetworkUtils.GetRandomUnusedPort();
                 return _eventsPort.Value;
             }
-             set { _eventsPort = value; }
+         //    set { _eventsPort = value; }
         }
 
-        public int CommandsPort
+        public override int CommandsPort
         {
             get { if(_commandsPort == null)
             {
@@ -27,12 +27,12 @@ namespace ZmqServiceBus.Tests.Transport
             }
                 return _commandsPort.Value;
             }
-            set { _commandsPort = value; }
+      //      set { _commandsPort = value; }
         }
 
-        public string EventsProtocol { get { return "inproc"; }  }
-        public string CommandsProtocol { get { return "inproc"; } }
+        public override string EventsProtocol { get { return "inproc"; }  }
+        public override string CommandsProtocol { get { return "inproc"; } }
 
-        public string Identity { get { return "Identity"; } }
+        public override string Identity { get { return "Identity"; } }
     }
 }

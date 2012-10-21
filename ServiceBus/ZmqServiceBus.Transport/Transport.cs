@@ -18,22 +18,22 @@ namespace ZmqServiceBus.Transport
         private readonly BlockingCollection<ITransportMessage> _messagesToPublish = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _acknowledgementsToSend = new BlockingCollection<ITransportMessage>();
-        private readonly ITransportConfiguration _config;
+        public TransportConfiguration Configuration { get; private set; }
         private readonly IZmqSocketManager _socketManager;
         public event Action<ITransportMessage> OnMessageReceived = delegate { };
         private volatile bool _running = true;
 
-        public Transport(ITransportConfiguration config, IZmqSocketManager socketManager)
+        public Transport(TransportConfiguration configuration, IZmqSocketManager socketManager)
         {
-            _config = config;
+            Configuration = configuration;
             _socketManager = socketManager;
         }
 
 
         public void Initialize()
         {
-            _socketManager.CreateResponseSocket(_messagesToForward,_acknowledgementsToSend, GetCommandReplierEndpoint(), _config.Identity);
-            _socketManager.CreatePublisherSocket(_messagesToPublish, GetPublisherSocketEndpoint());
+            _socketManager.CreateResponseSocket(_messagesToForward,_acknowledgementsToSend, Configuration.GetCommandsEnpoint(), Configuration.Identity);
+            _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint());
             CreateTransportMessageProcessingThread();
         }
 
@@ -55,22 +55,19 @@ namespace ZmqServiceBus.Transport
 
         public void SendMessage<T>(T message) where T : IMessage
         {
-            _endpointsToMessageQueue[_messageTypesToEndpoints[typeof(T)]].Add(new TransportMessage(Guid.NewGuid(),_config.Identity, typeof(T).FullName, Serializer.Serialize(message)));
+            _endpointsToMessageQueue[_messageTypesToEndpoints[typeof(T)]].Add(new TransportMessage(Guid.NewGuid(),Configuration.Identity, typeof(T).FullName, Serializer.Serialize(message)));
         }
 
-        private string GetCommandReplierEndpoint()
-        {
-            return _config.CommandsProtocol + "://*:" + _config.CommandsPort;
-        }
 
-        private string GetPublisherSocketEndpoint()
-        {
-            return _config.EventsProtocol + "://*:" + _config.EventsPort;
-        }
 
         public void PublishMessage<T>(T message) where T : IMessage
         {
             _messagesToPublish.Add(new TransportMessage(Guid.NewGuid(), null,typeof(T).FullName, Serializer.Serialize(message)));
+        }
+
+        public void AckMessage(string recipientIdentity, Guid messageId, bool success)
+        {
+            _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), recipientIdentity, typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
         }
 
         public void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage
@@ -84,7 +81,7 @@ namespace ZmqServiceBus.Transport
             if (!_endpointsToMessageQueue.ContainsKey(endpoint))
             {
                 _endpointsToMessageQueue[endpoint] = new BlockingCollection<ITransportMessage>();
-                _socketManager.CreateRequestSocket(_endpointsToMessageQueue[endpoint], _messagesToForward, endpoint, _config.Identity);
+                _socketManager.CreateRequestSocket(_endpointsToMessageQueue[endpoint], _messagesToForward, endpoint, Configuration.Identity);
             }
         }
 

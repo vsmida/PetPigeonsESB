@@ -7,5 +7,26 @@ namespace ZmqServiceBus.Transport
         string EventsProtocol { get; }
         string CommandsProtocol { get; }
         string Identity { get; }
+
+
+    }
+
+    public abstract class TransportConfiguration : ITransportConfiguration
+    {
+        public string GetCommandsEnpoint()
+        {
+            return CommandsProtocol + "://*:" + CommandsPort;
+        }
+
+        public string GetEventsEndpoint()
+        {
+            return EventsProtocol + "://*:" + EventsPort;
+        }
+
+        public abstract int EventsPort { get; }
+        public abstract int CommandsPort { get; }
+        public abstract string EventsProtocol { get; }
+        public abstract string CommandsProtocol { get; }
+        public abstract string Identity { get; }
     }
 }

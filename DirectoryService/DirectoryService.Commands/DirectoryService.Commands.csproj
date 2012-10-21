@@ -82,6 +82,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RegisterCommandHandlerCommand.cs" />
     <Compile Include="RegisterPublisherCommand.cs" />
+    <Compile Include="RegisterServiceRelevantMessages.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Shared.csproj">

@@ -8,17 +8,25 @@ namespace Shared
 {
     public static class TypeUtils
     {
+        private static readonly Dictionary<string, Type> _cache = new Dictionary<string, Type>(); 
+
         public static Type Resolve(string fullName)
         {
             Debug.Assert(fullName != null);
+            Type cachedType;
+            if (_cache.TryGetValue(fullName, out cachedType))
+                return cachedType;
 
-            List<Assembly> assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
 
             foreach (var assembly in assemblies)
             {
-                Type t = assembly.GetType(fullName, false);
-                if (t != null)
-                    return t;
+                var type = assembly.GetType(fullName, false);
+                if (type != null)
+                {
+                    _cache[fullName] = type;
+                    return type;                    
+                }
             }
             throw new ArgumentException("Type " + fullName + " doesn't exist in the current app domain");
         }
