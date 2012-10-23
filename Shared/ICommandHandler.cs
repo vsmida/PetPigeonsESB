@@ -1,7 +1,7 @@
 ﻿namespace Shared
 {
-    public interface ICommandHandler<T> where T : ICommand
+    public interface ICommandHandler<in T> :IMessageHandler<T> where T : ICommand
     {
-        void Handle(T command);
+      
     }
 }

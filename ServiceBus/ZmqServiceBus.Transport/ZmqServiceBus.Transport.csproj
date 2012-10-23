@@ -82,6 +82,7 @@
   <ItemGroup>
     <Compile Include="ITransportMessage.cs" />
     <Compile Include="IZmqSocketManager.cs" />
+    <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
     <Compile Include="Transport.cs" />
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ITransport.cs" />

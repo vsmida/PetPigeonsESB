@@ -1,10 +1,12 @@
 ﻿using System;
 using ProtoBuf;
 using Shared;
+using Shared.Attributes;
 
 namespace ZmqServiceBus.Transport
 {
     [ProtoContract]
+    [InfrastructureMessage]
     public class AcknowledgementMessage
     {
         [ProtoMember(1, IsRequired = true)]

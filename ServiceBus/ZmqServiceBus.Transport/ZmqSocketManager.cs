@@ -49,7 +49,7 @@ namespace ZmqServiceBus.Transport
                                          waitForConnect.Set();
                                          while (_running)
                                          {
-                                             var id = Serializer.DeserializeStruct<Guid>(subSocket.Receive());
+                                             var id = new Guid(subSocket.Receive());
                                              var type = subSocket.Receive(Encoding.ASCII);
                                              var data = subSocket.Receive();
                                              receiveQueue.Add(new TransportMessage(id, null, type, data));
@@ -83,7 +83,7 @@ namespace ZmqServiceBus.Transport
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
-            zmqSocket.SendMore(Serializer.Serialize(message.MessageIdentity));
+            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
             zmqSocket.Send(message.Data);
         }
@@ -92,7 +92,7 @@ namespace ZmqServiceBus.Transport
         {
             var zmqSocket = socketEventArgs.Socket;
             zmqSocket.Receive();
-            var id = Serializer.DeserializeStruct<Guid>(zmqSocket.Receive());
+            var id = new Guid(zmqSocket.Receive());
             var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedItem = zmqSocket.Receive();
             acknowledgementQueue.Add(new TransportMessage(id, null, type, serializedItem));
@@ -114,7 +114,7 @@ namespace ZmqServiceBus.Transport
                                              if (sendingQueue.TryTake(out message, TimeSpan.FromSeconds(0.1)))
                                              {
                                                  publisherSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
-                                                 publisherSocket.SendMore(Serializer.Serialize(message.MessageIdentity));
+                                                 publisherSocket.SendMore(message.MessageIdentity.ToByteArray());
                                                  publisherSocket.Send(message.Data);
                                              }
                                          }
@@ -149,7 +149,7 @@ namespace ZmqServiceBus.Transport
             var zmqSocket = socketEventArgs.Socket;
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.SenderIdentity));
             zmqSocket.SendMore(new byte[0]);
-            zmqSocket.SendMore(Serializer.Serialize(message.MessageIdentity));
+            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
             zmqSocket.Send(message.Data);
 
@@ -160,10 +160,17 @@ namespace ZmqServiceBus.Transport
             var zmqSocket = socketEventArgs.Socket;
             var identity = zmqSocket.Receive(Encoding.ASCII);
             var serializedId = zmqSocket.Receive();
-            var messageId =Serializer.DeserializeStruct<Guid>(serializedId);
+            var messageId =new Guid(serializedId);
             var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedItem = zmqSocket.Receive();
             receivingQueue.Add(new TransportMessage(messageId, identity, type, serializedItem));
+
+            zmqSocket.SendMore(identity, Encoding.ASCII);
+            zmqSocket.SendMore(new byte[0]);
+            zmqSocket.SendMore(messageId.ToByteArray());
+            zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(ReceivedOnTransportAcknowledgement).FullName));
+            zmqSocket.Send(new byte[0]);
+
         }
 
         public void Stop()

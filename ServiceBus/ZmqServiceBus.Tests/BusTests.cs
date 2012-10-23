@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Threading;
 using DirectoryService.Commands;
 using DirectoryService.Event;
 using Moq;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
+using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Tests.Transport;
 using ZmqServiceBus.Transport;
@@ -114,6 +116,28 @@ namespace ZmqServiceBus.Tests
 
         }
 
+        [Test, Timeout(1000)]
+        public void should_be_able_to_dispatch_infrastructure_and_domain_messages_simultaneously()
+        {
+            _bus.Initialize();
+            var infraMessage = new TransportMessage(Guid.NewGuid(), "tt", typeof(FakeCommand).FullName, Serializer.Serialize(new FakeCommand(5)));
+            var domainMessage = new TransportMessage(Guid.NewGuid(), "tt", typeof(FakeCommand).FullName, Serializer.Serialize(new FakeEvent(5)));
+            var simulateDomainModelProcessing = new AutoResetEvent(false);
+            var waitForInfraToBeProcessed = new AutoResetEvent(false);
+            _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<FakeEvent>())).Callback<IMessage>(x => simulateDomainModelProcessing
+                                                                                                      .WaitOne());
+            _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<FakeEvent>())).Callback<IMessage>(x => waitForInfraToBeProcessed
+                                                                                                      .Set());
+            _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, domainMessage);
+            _transportMock.Verify(x => x.AckMessage(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<bool>()), Times.Never());
+
+            _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, infraMessage);
+            waitForInfraToBeProcessed.WaitOne();
+            _transportMock.Verify(x => x.AckMessage(infraMessage.SenderIdentity, infraMessage.MessageIdentity, true));
+            simulateDomainModelProcessing.Set();
+            _transportMock.Verify(x => x.AckMessage(domainMessage.SenderIdentity, domainMessage.MessageIdentity, true));
+        }
+
         [Test]
         public void should_stop_transport_on_stop()
         {
@@ -130,6 +154,7 @@ namespace ZmqServiceBus.Tests
         }
 
         [ProtoContract]
+        [InfrastructureMessage]
         private class FakeCommand : ICommand
         {
             [ProtoMember(1, IsRequired = true)]

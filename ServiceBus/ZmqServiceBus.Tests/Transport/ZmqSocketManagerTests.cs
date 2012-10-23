@@ -40,13 +40,13 @@ namespace ZmqServiceBus.Tests.Transport
             sendCollection.Add(new TransportMessage(messageIdentity, senderIdentity, commandType, Encoding.ASCII.GetBytes(commandData)));
 
             Assert.AreEqual(senderIdentity, Encoding.ASCII.GetString(routerSocket.Receive()));
-            Assert.AreEqual(messageIdentity, Serializer.DeserializeStruct<Guid>(routerSocket.Receive()));
+            Assert.AreEqual(messageIdentity, new Guid(routerSocket.Receive()));
             Assert.AreEqual(commandType, Encoding.ASCII.GetString(routerSocket.Receive()));
             Assert.AreEqual(commandData, Encoding.ASCII.GetString(routerSocket.Receive()));
 
             routerSocket.SendMore(Encoding.ASCII.GetBytes(senderIdentity));
             routerSocket.SendMore(new byte[0]);
-            routerSocket.SendMore(Serializer.Serialize(messageIdentity));
+            routerSocket.SendMore(messageIdentity.ToByteArray());
             routerSocket.SendMore(Encoding.ASCII.GetBytes(ackType));
             routerSocket.Send(Encoding.ASCII.GetBytes(ackData));
 
@@ -74,7 +74,7 @@ namespace ZmqServiceBus.Tests.Transport
             sendQueue.Add(transportMessage);
 
             Assert.AreEqual(Encoding.ASCII.GetBytes(transportMessage.MessageType), subscriberSocket.Receive());
-            Assert.AreEqual(Serializer.Serialize(messageIdentity), subscriberSocket.Receive());
+            Assert.AreEqual(messageIdentity.ToByteArray(), subscriberSocket.Receive());
             Assert.AreEqual(transportMessage.Data, subscriberSocket.Receive());
             subscriberSocket.Dispose();
         }
@@ -89,7 +89,7 @@ namespace ZmqServiceBus.Tests.Transport
             var messageType = "Type";
             var messageData = "Data";
             var messageId = Guid.NewGuid();
-            publisherSocket.SendMore(Serializer.Serialize(messageId));
+            publisherSocket.SendMore(messageId.ToByteArray());
             publisherSocket.SendMore(Encoding.ASCII.GetBytes(messageType));
             publisherSocket.Send(Encoding.ASCII.GetBytes(messageData));
 
@@ -127,7 +127,7 @@ namespace ZmqServiceBus.Tests.Transport
         private ZmqSocket CreateEphemeralSocketAndSendData(string ephemeralSenderIdentity, string endpoint)
         {
             var ephemeralRequestorSocket = CreateRequestorSocket(ephemeralSenderIdentity, endpoint);
-            ephemeralRequestorSocket.SendMore(Serializer.Serialize(Guid.NewGuid()));
+            ephemeralRequestorSocket.SendMore(Guid.NewGuid().ToByteArray());
             ephemeralRequestorSocket.SendMore(Encoding.ASCII.GetBytes("Type"));
             ephemeralRequestorSocket.Send(Encoding.ASCII.GetBytes("Data"));
             return ephemeralRequestorSocket;
@@ -155,6 +155,39 @@ namespace ZmqServiceBus.Tests.Transport
             return receiveThread;
         }
 
+
+        [Test, Timeout(1000), Repeat(10)]
+        public void should_send_back_ack_when_message_received_on_response_socket()
+        {
+            var sendCollection = new BlockingCollection<ITransportMessage>();
+            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            const string senderIdentity = "RequestorIdentity";
+            const string sentMessageType = "Type";
+            const string sentData = "Data";
+            var messageId = Guid.NewGuid();
+            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
+            var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
+
+            requestorSocket.SendMore(messageId.ToByteArray());
+            requestorSocket.SendMore(Encoding.ASCII.GetBytes(sentMessageType));
+            requestorSocket.Send(Encoding.ASCII.GetBytes(sentData));
+
+            var receivedMessage = receiveCollection.Take();
+            Assert.AreEqual(senderIdentity, receivedMessage.SenderIdentity);
+            Assert.AreEqual(sentMessageType, receivedMessage.MessageType);
+            Assert.AreEqual(messageId, receivedMessage.MessageIdentity);
+            Assert.AreEqual(sentData, Encoding.ASCII.GetString(receivedMessage.Data));
+
+            Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
+            Assert.AreEqual(messageId.ToByteArray(), requestorSocket.Receive());
+            Assert.AreEqual(typeof(ReceivedOnTransportAcknowledgement).FullName, requestorSocket.Receive(Encoding.ASCII));
+            Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
+
+            requestorSocket.Dispose();
+
+        }
+
+
         [Test, Timeout(1000), Repeat(10)]
         public void should_receive_messages_on_replier_socket_and_route_messages_back()
         {
@@ -167,7 +200,7 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
             var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
 
-            requestorSocket.SendMore(Serializer.Serialize(messageId));
+            requestorSocket.SendMore(messageId.ToByteArray());
             requestorSocket.SendMore(Encoding.ASCII.GetBytes(sentMessageType));
             requestorSocket.Send(Encoding.ASCII.GetBytes(sentData));
 
@@ -177,13 +210,20 @@ namespace ZmqServiceBus.Tests.Transport
             Assert.AreEqual(messageId, receivedMessage.MessageIdentity);
             Assert.AreEqual(sentData, Encoding.ASCII.GetString(receivedMessage.Data));
 
+            //ack
+            Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
+            Assert.AreEqual(messageId.ToByteArray(), requestorSocket.Receive());
+            Assert.AreEqual(typeof(ReceivedOnTransportAcknowledgement).FullName, requestorSocket.Receive(Encoding.ASCII));
+            Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
+
+            //sending mess
             const string ackMessageType = "Ack";
             const string ackMessageData = "Reply";
             var ackMessage = new TransportMessage(messageId, senderIdentity, ackMessageType, Encoding.ASCII.GetBytes(ackMessageData));
             sendCollection.Add(ackMessage);
 
             Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
-            Assert.AreEqual(ackMessage.MessageIdentity, Serializer.DeserializeStruct<Guid>(requestorSocket.Receive()));
+            Assert.AreEqual(ackMessage.MessageIdentity, new Guid(requestorSocket.Receive()));
             Assert.AreEqual(ackMessage.MessageType, requestorSocket.Receive(Encoding.ASCII));
             Assert.AreEqual(ackMessage.Data, requestorSocket.Receive());
 

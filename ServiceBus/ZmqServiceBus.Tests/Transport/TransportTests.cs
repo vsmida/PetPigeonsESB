@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using Moq;
 using NUnit.Framework;
@@ -28,7 +29,7 @@ namespace ZmqServiceBus.Tests.Transport
             {
                 Test = test;
             }
-            
+
             private FakeCommand()
             {
 
@@ -119,7 +120,7 @@ namespace ZmqServiceBus.Tests.Transport
             Assert.AreEqual(2, Serializer.Deserialize<FakeCommand>(sentTransportMessage.Data).Test);
         }
         [Test]
-        public void should_ack_message()
+        public void should_send_domain_acknowledgement()
         {
             BlockingCollection<ITransportMessage> ackQueue = null;
             _socketManagerMock.Setup(x => x.CreateResponseSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
@@ -133,7 +134,7 @@ namespace ZmqServiceBus.Tests.Transport
             var recipientIdentity = "toto";
             _transport.AckMessage(recipientIdentity, messageId, true);
 
-           Assert.AreEqual(1, ackQueue.Count);
+            Assert.AreEqual(1, ackQueue.Count);
             var transportMessage = ackQueue.Take();
             Assert.AreNotEqual(Guid.Empty, transportMessage.MessageIdentity);
             Assert.AreEqual(recipientIdentity, transportMessage.SenderIdentity);
@@ -212,7 +213,7 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()))
                                          .Callback<BlockingCollection<ITransportMessage>, string>((x, y) => messagesReceived = x);
             var messageIdentity = Guid.NewGuid();
-            var transportMessage = new TransportMessage(messageIdentity,null, typeof (FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
+            var transportMessage = new TransportMessage(messageIdentity, null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
             _transport.Initialize();
             _transport.OnMessageReceived += (message) =>
                                                 {
