@@ -84,6 +84,7 @@
     <Compile Include="BackgroundThread.cs" />
     <Compile Include="ExtendDictionary.cs" />
     <Compile Include="ExtendEnumerable.cs" />
+    <Compile Include="ExtendIMessage.cs" />
     <Compile Include="ExtendSocket.cs" />
     <Compile Include="ICommand.cs" />
     <Compile Include="ICommandHandler.cs" />

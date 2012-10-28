@@ -87,6 +87,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyScannerTests.cs" />
     <Compile Include="BusTests.cs" />
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

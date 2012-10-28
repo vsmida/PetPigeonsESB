@@ -17,20 +17,17 @@ namespace ZmqServiceBus.Transport
         private readonly Dictionary<string, string> _messageTypesToEndpoints = new Dictionary<string, string>();
         private readonly BlockingCollection<ITransportMessage> _messagesToPublish = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
-        private readonly BlockingCollection<ITransportMessage> _messagesToRaise = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _acknowledgementsToSend = new BlockingCollection<ITransportMessage>();
         public TransportConfiguration Configuration { get; private set; }
         private readonly IZmqSocketManager _socketManager;
-        private readonly IQosManager _qosManager;
         public event Action<ITransportMessage> OnMessageReceived = delegate { };
         private volatile bool _running = true;
         private string _serviceIdentity;
 
-        public Transport(TransportConfiguration configuration, IZmqSocketManager socketManager, IQosManager qosManager)
+        public Transport(TransportConfiguration configuration, IZmqSocketManager socketManager)
         {
             Configuration = configuration;
             _socketManager = socketManager;
-            _qosManager = qosManager;
         }
 
 
@@ -39,25 +36,7 @@ namespace ZmqServiceBus.Transport
             _serviceIdentity = serviceIdentity;
             _socketManager.CreateResponseSocket(_messagesToForward, _acknowledgementsToSend, Configuration.GetCommandsEnpoint(), _serviceIdentity);
             _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint());
-            CreateQosInspectionThread();
             CreateTransportMessageProcessingThread();
-        }
-
-        private void CreateQosInspectionThread()
-        {
-            new BackgroundThread(() =>
-            {
-                while (_running)
-                {
-                    ITransportMessage message;
-                    if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
-                    {
-                        _qosManager.InspectMessage(message);
-                        _messagesToRaise.Add(message);
-                    }
-                }
-
-            }).Start();
         }
 
         private void CreateTransportMessageProcessingThread()
@@ -67,7 +46,7 @@ namespace ZmqServiceBus.Transport
                                          while(_running)
                                          {
                                              ITransportMessage message;
-                                             if (_messagesToRaise.TryTake(out message, TimeSpan.FromMilliseconds(500)))
+                                             if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
                                              {
                                                  OnMessageReceived(message);
                                              }
@@ -78,7 +57,6 @@ namespace ZmqServiceBus.Transport
 
         public void SendMessage(ITransportMessage message, IQosStrategy strategy)
         {
-            _qosManager.RegisterMessage(message, strategy);
             _endpointsToMessageQueue[_messageTypesToEndpoints[message.MessageType]].Add(message);
             strategy.WaitForQosAssurancesToBeFulfilled(message);
         }
@@ -87,7 +65,6 @@ namespace ZmqServiceBus.Transport
 
         public void PublishMessage(ITransportMessage message, IQosStrategy strategy) 
         {
-            _qosManager.RegisterMessage(message, strategy);
             _messagesToPublish.Add(message);
         }
 

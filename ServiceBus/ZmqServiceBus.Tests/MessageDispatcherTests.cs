@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using Moq;
 using NUnit.Framework;
 using ProtoBuf;
@@ -11,15 +13,23 @@ namespace ZmqServiceBus.Tests
     {
         private MessageDispatcher _dispatcher;
         private Mock<IObjectFactory> _objectFactoryMock;
+        private Mock<IAssemblyScanner> _assemblyScannerMock;
 
         [SetUp]
         public void setup()
         {
             _objectFactoryMock = new Mock<IObjectFactory>();
+            _assemblyScannerMock = new Mock<IAssemblyScanner>();
             _objectFactoryMock.Setup(x => x.GetInstance(typeof (FakeCommandHandler))).Returns(new FakeCommandHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler))).Returns(new FakeEventHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler_2))).Returns(new FakeEventHandler_2());
-            _dispatcher = new MessageDispatcher(_objectFactoryMock.Object);
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand>())).Returns(
+                new List<MethodInfo> {typeof (FakeCommandHandler).GetMethod("Handle")});
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<MethodInfo> ());
+            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<MethodInfo> ());
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand2>())).Returns(new List<MethodInfo> { typeof(FakeCommandHandler2_1).GetMethod("Handle"), typeof(FakeCommandHandler2_2).GetMethod("Handle") });
+            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeEvent>())).Returns(new List<MethodInfo> { typeof(FakeEventHandler).GetMethod("Handle"), typeof(FakeEventHandler_2).GetMethod("Handle") });
+            _dispatcher = new MessageDispatcher(_objectFactoryMock.Object, _assemblyScannerMock.Object);
             FakeCommandHandler.NumberInMessage = null;
         }
 

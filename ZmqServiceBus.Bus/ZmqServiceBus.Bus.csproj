@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IAssemblyScanner.cs" />
     <Compile Include="IBusConfiguration.cs" />
     <Compile Include="InternalBus.cs" />
     <Compile Include="IBus.cs" />

@@ -18,7 +18,6 @@ namespace ZmqServiceBus.Tests.Transport
         private ZmqServiceBus.Transport.Transport _transport;
         private Mock<IZmqSocketManager> _socketManagerMock;
         private FakeTransportConfiguration _configuration;
-        private Mock<IQosManager> _qosManagerMock;
         private string _serviceIdentity = "Identity";
         [ProtoContract]
         private class FakeCommand : ICommand
@@ -76,8 +75,7 @@ namespace ZmqServiceBus.Tests.Transport
         {
             _configuration = new FakeTransportConfiguration();
             _socketManagerMock = new Mock<IZmqSocketManager>();
-            _qosManagerMock = new Mock<IQosManager>();
-            _transport = new ZmqServiceBus.Transport.Transport(_configuration, _socketManagerMock.Object, _qosManagerMock.Object);
+            _transport = new ZmqServiceBus.Transport.Transport(_configuration, _socketManagerMock.Object);
         }
 
         [Test]
@@ -97,24 +95,6 @@ namespace ZmqServiceBus.Tests.Transport
             var endpoint = _configuration.EventsProtocol + "://*:" + _configuration.EventsPort;
             _socketManagerMock.Verify(x => x.CreatePublisherSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), endpoint));
         }
-
-        [Test]
-        public void should_register_qosManager_and_wait_on_qos_when_sending()
-        {
-            _transport.Initialize(_serviceIdentity);
-            var endpoint = "endpoint";
-            _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
-
-            var qosMock = new Mock<IQosStrategy>();
-            var fakeCommand = new FakeCommand(2);
-            var transportMessage = GetTransportMessage(fakeCommand);
-            _transport.SendMessage(transportMessage, qosMock.Object);
-
-            _qosManagerMock.Verify(x => x.RegisterMessage(It.IsAny<ITransportMessage>(), It.IsAny<IQosStrategy>()));
-            qosMock.Verify(x => x.WaitForQosAssurancesToBeFulfilled(It.IsAny<ITransportMessage>()));
-
-        }
-
 
 
         [Test]
@@ -207,7 +187,6 @@ namespace ZmqServiceBus.Tests.Transport
             var fakeCommand2 = sendQueueForFakeCommand2.Take();
             Assert.AreEqual(typeof(FakeCommand).FullName, fakeCommand.MessageType);
             Assert.AreEqual(typeof(FakeCommand2).FullName, fakeCommand2.MessageType);
-            _qosManagerMock.Verify(x => x.RegisterMessage(It.IsAny<ITransportMessage>(), It.IsAny<IQosStrategy>()), Times.Exactly(2));
         }
 
         [Test]
@@ -225,73 +204,6 @@ namespace ZmqServiceBus.Tests.Transport
 
 
         [Test]
-        public void should_allow_Qos_to_check_incoming_messages()
-        {
-
-            AutoResetEvent waitForEvent = new AutoResetEvent(false);
-            BlockingCollection<ITransportMessage> messagesReceived = null;
-            _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()))
-                                         .Callback<BlockingCollection<ITransportMessage>, string>((x, y) => messagesReceived = x);
-            var transportMessage = new TransportMessage(Guid.NewGuid(), null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
-            _transport.Initialize(_serviceIdentity);
-            _transport.OnMessageReceived += (message) => waitForEvent.Set();
-            string endpoint = "endpoint";
-            _transport.RegisterPublisherEndpoint<FakeEvent>(endpoint);
-
-            messagesReceived.Add(transportMessage);
-            waitForEvent.WaitOne();
-
-            _qosManagerMock.Verify(x => x.InspectMessage(transportMessage));
-
-
-        }
-
-        [Test, Timeout(1000000)]
-        public void qos_should_be_allowed_to_check_incoming_messages_even_when_message_received_event_thread_blocks()
-        {
-            var transportMessage = new TransportMessage(Guid.NewGuid(), null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
-            var transportMessage2 = new TransportMessage(Guid.NewGuid(), null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
-            AutoResetEvent waitIndefinitely = new AutoResetEvent(false);
-            AutoResetEvent waitForFirstMessageToBeReceived = new AutoResetEvent(false);
-            AutoResetEvent waitForSecondMessageToUnblockWaitIndefinitely = new AutoResetEvent(false);
-            BlockingCollection<ITransportMessage> messagesReceived = null;
-            _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()))
-                                         .Callback<BlockingCollection<ITransportMessage>, string>((x, y) => messagesReceived = x);
-
-            _transport.Initialize(_serviceIdentity);
-            string endpoint = "endpoint";
-            _transport.RegisterPublisherEndpoint<FakeEvent>(endpoint);
-
-            _transport.OnMessageReceived += (message) =>
-                                                {
-                                                    waitForFirstMessageToBeReceived.Set();
-                                                    waitIndefinitely.WaitOne();
-                                                    waitForSecondMessageToUnblockWaitIndefinitely.Set();
-
-                                                };
-
-            new BackgroundThread(() =>
-                                     {
-                                         messagesReceived.Add(transportMessage);
-                                         //now waiting indefinitely on message received thread;
-                                         waitForFirstMessageToBeReceived.WaitOne();
-                                         //first message received, qosManager should have been called
-                                         _qosManagerMock.Verify(x => x.InspectMessage(transportMessage));
-                                         //first call to qosManager, now thread is blocked
-                                         _qosManagerMock.Setup(
-                                             x => x.InspectMessage(transportMessage2)).Callback
-                                             <ITransportMessage>((x) => waitIndefinitely.Set());
-                                         //liberates blocked thread when called
-                                         messagesReceived.Add(transportMessage2);
-
-                                     }).Start();
-
-            waitForSecondMessageToUnblockWaitIndefinitely.WaitOne();
-            Assert.Pass();
-
-        }
-
-        [Test]
         public void should_publish_events()
         {
             BlockingCollection<ITransportMessage> messagesToSend = null;
@@ -307,7 +219,6 @@ namespace ZmqServiceBus.Tests.Transport
             Assert.AreEqual(typeof(FakeEvent).FullName, sentMessage.MessageType);
             Assert.AreEqual(null, sentMessage.SenderIdentity);
             Assert.AreEqual(2, Serializer.Deserialize<FakeEvent>(sentMessage.Data).Test);
-            _qosManagerMock.Verify(x => x.RegisterMessage(It.IsAny<ITransportMessage>(), It.IsAny<IQosStrategy>()));
         }
 
         [Test]

@@ -9,22 +9,24 @@ namespace ZmqServiceBus.Bus
     public class MessageDispatcher : IMessageDispatcher
     {
         private readonly IObjectFactory _objectFactory;
+        private readonly IAssemblyScanner _assemblyScanner;
         private readonly Dictionary<Type, MethodInfo> _messageTypeToCommandHandler = new Dictionary<Type, MethodInfo>();
         private readonly Dictionary<Type, List<MethodInfo>> _messageTypeToEventHandlers = new Dictionary<Type, List<MethodInfo>>();
 
-        public MessageDispatcher(IObjectFactory objectFactory)
+        public MessageDispatcher(IObjectFactory objectFactory, IAssemblyScanner assemblyScanner)
         {
             _objectFactory = objectFactory;
+            _assemblyScanner = assemblyScanner;
         }
 
         public void Dispatch(IMessage message)
         {
-            if (IsICommand(message))
+            if (message.IsICommand())
             {
                 InvokeCommandHandler(message);
             }
 
-            if (IsIEvent(message))
+            if (message.IsIEvent())
             {
                 InvokeEventHandlers(message);
             }
@@ -36,7 +38,7 @@ namespace ZmqServiceBus.Bus
             List<MethodInfo> eventHandlers;
             if (!_messageTypeToEventHandlers.TryGetValue(message.GetType(), out eventHandlers))
             {
-                eventHandlers = FindEventHandlersInAssemblies(message);
+                eventHandlers = _assemblyScanner.FindEventHandlersInAssemblies(message);
                 _messageTypeToEventHandlers[message.GetType()] = eventHandlers;
             }
 
@@ -47,24 +49,13 @@ namespace ZmqServiceBus.Bus
             }
         }
 
-        private List<MethodInfo> FindEventHandlersInAssemblies(IMessage message)
-        {
-            return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
-                                               (type.GetInterfaces().SingleOrDefault(
-                                                   x => IsEventHandler(x, message.GetType())) != null)), "Handle");
-        }
-
-        private static bool IsIEvent(IMessage message)
-        {
-            return message.GetType().GetInterfaces().Contains(typeof(IEvent));
-        }
-
+        
         private void InvokeCommandHandler(IMessage message)
         {
             MethodInfo methodInfo;
             if (!_messageTypeToCommandHandler.TryGetValue(message.GetType(), out methodInfo))
             {
-                var handlers = FindCommandHandlersInAssemblies(message);
+                var handlers = _assemblyScanner.FindCommandHandlersInAssemblies(message);
 
                 if (!handlers.Any())
                     return;
@@ -79,41 +70,5 @@ namespace ZmqServiceBus.Bus
             methodInfo.Invoke(instance, new[] { message });
         }
 
-        private List<MethodInfo> FindMethodsInAssemblyFromTypes(Predicate<Type> typeCondition, string methodName)
-        {
-            var methods = new List<MethodInfo>();
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-            foreach (var assembly in assemblies)
-            {
-                foreach (var type in assembly.GetTypes())
-                {
-                    if (typeCondition(type))
-                        methods.Add(type.GetMethod(methodName));
-                }
-            }
-            return methods;
-        }
-
-        private List<MethodInfo> FindCommandHandlersInAssemblies(IMessage message)
-        {
-            return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
-                                                           (type.GetInterfaces().SingleOrDefault(
-                                                               x => IsCommandHandler(x, message.GetType())) != null)), "Handle");
-        }
-
-        private static bool IsICommand(IMessage message)
-        {
-            return message.GetType().GetInterfaces().Contains(typeof(ICommand));
-        }
-
-        private static bool IsCommandHandler(Type type, Type messageType)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommandHandler<>) && type.GetGenericArguments().Single() == messageType;
-        }
-
-        private bool IsEventHandler(Type type, Type messageType)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEventHandler<>) && type.GetGenericArguments().Single() == messageType;
-        }
     }
 }
