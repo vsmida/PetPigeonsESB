@@ -20,6 +20,7 @@ namespace ZmqServiceBus.Transport
         public ZmqSocketManager(ZmqContext context)
         {
             _context = context;
+            CreatePollingThread();
         }
 
         private void CreatePollingThread()
@@ -36,27 +37,27 @@ namespace ZmqServiceBus.Transport
 
         public void CreateSubscribeSocket(BlockingCollection<ITransportMessage> receiveQueue, string endpoint)
         {
-            var waitForConnect = new AutoResetEvent(false);
+            var subSocket = _context.CreateSocket(SocketType.SUB);
+            _socketsToDispose.Add(subSocket);
+            subSocket.Linger = TimeSpan.FromSeconds(1);
+            subSocket.ReceiveHighWatermark = 10000;
+            subSocket.SubscribeAll();
+            subSocket.Connect(endpoint);
+            subSocket.ReceiveReady += (s, e) => ReceiveFromSubscriber(e, receiveQueue);
+            _poller.AddSocket(subSocket);
+            subSocket.Connect(endpoint);
+            Console.WriteLine("Command dealer socket bound to {0}", endpoint);
+            if (_pollingThread == null)
+                CreatePollingThread();
+        }
 
-            new BackgroundThread(() =>
-                                     {
-                                         var subSocket = _context.CreateSocket(SocketType.SUB);
-                                         _socketsToDispose.Add(subSocket);
-                                         subSocket.Linger = TimeSpan.FromSeconds(1);
-                                         subSocket.ReceiveHighWatermark = 10000;
-                                         subSocket.SubscribeAll();
-                                         subSocket.Connect(endpoint);
-                                         waitForConnect.Set();
-                                         while (_running)
-                                         {
-                                             var id = new Guid(subSocket.Receive());
-                                             var type = subSocket.Receive(Encoding.ASCII);
-                                             var data = subSocket.Receive();
-                                             receiveQueue.Add(new TransportMessage(id, null, type, data));
-                                         }
-                                     }).Start();
-
-            waitForConnect.WaitOne();
+        private void ReceiveFromSubscriber(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> receiveQueue)
+        {
+            var zmqSocket = socketEventArgs.Socket;
+            var id = new Guid(zmqSocket.Receive());
+            var type = zmqSocket.Receive(Encoding.ASCII);
+            var data = zmqSocket.Receive();
+            receiveQueue.Add(new TransportMessage(id, null, type, data));
         }
 
 
@@ -160,7 +161,7 @@ namespace ZmqServiceBus.Transport
             var zmqSocket = socketEventArgs.Socket;
             var identity = zmqSocket.Receive(Encoding.ASCII);
             var serializedId = zmqSocket.Receive();
-            var messageId =new Guid(serializedId);
+            var messageId = new Guid(serializedId);
             var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedItem = zmqSocket.Receive();
             receivingQueue.Add(new TransportMessage(messageId, identity, type, serializedItem));
