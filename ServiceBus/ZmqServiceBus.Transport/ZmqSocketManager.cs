@@ -165,6 +165,8 @@ namespace ZmqServiceBus.Transport
             var serializedItem = zmqSocket.Receive();
             receivingQueue.Add(new TransportMessage(messageId, identity, type, serializedItem));
 
+            if (type == typeof(ReceivedOnTransportAcknowledgement).FullName)
+                return;
             zmqSocket.SendMore(identity, Encoding.ASCII);
             zmqSocket.SendMore(new byte[0]);
             zmqSocket.SendMore(messageId.ToByteArray());

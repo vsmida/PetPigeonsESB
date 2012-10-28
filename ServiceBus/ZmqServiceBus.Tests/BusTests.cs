@@ -29,6 +29,8 @@ namespace ZmqServiceBus.Tests
             {
                 get { return "EEndpoint"; }
             }
+
+            public string ServiceIdentity { get { return "Identity"; }}
         }
 
 
@@ -52,7 +54,7 @@ namespace ZmqServiceBus.Tests
         public void should_initialize_transport_on_start()
         {
             _bus.Initialize();
-            _transportMock.Verify(x => x.Initialize());
+            _transportMock.Verify(x => x.Initialize(_config.ServiceIdentity));
         }
 
         [Test]
@@ -68,12 +70,12 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_register_relevant_types_with_directory_service_on_start()
         {
-            RegisterServiceRelevantMessages command = null;
-            _transportMock.Setup(x => x.SendMessage(It.IsAny<ICommand>())).Callback<ICommand>(x => command = (RegisterServiceRelevantMessages)x);
+            ITransportMessage transportMessage = null;
+            _transportMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>(), It.IsAny<IQosStrategy>())).Callback<ITransportMessage, IQosStrategy>((x, y) => transportMessage = x);
             _bus.Initialize();
 
-
-            Assert.AreEqual(_transportConfig.Identity, command.ServiceIdentity);
+            var command = Serializer.Deserialize<RegisterServiceRelevantMessages>(transportMessage.Data);
+            Assert.AreEqual(_config.ServiceIdentity, command.ServiceIdentity);
             Assert.AreEqual(_transportConfig.GetCommandsEnpoint(), command.CommandsEndpoint);
             Assert.AreEqual(_transportConfig.GetEventsEndpoint(), command.EventsEndpoint);
             Assert.Contains(typeof(FakeEvent), command.EventsListenedTo);

@@ -7,9 +7,9 @@ namespace ZmqServiceBus.Transport
 {
     public interface ITransport : IDisposable
     {
-        void Initialize();
-        void SendMessage<T>(T message) where T : IMessage;
-        void PublishMessage<T>(T message) where T : IMessage;
+        void Initialize(string serviceIdentity);
+        void SendMessage(ITransportMessage message, IQosStrategy strategy);
+        void PublishMessage(ITransportMessage message, IQosStrategy strategy); 
         void AckMessage(string recipientIdentity, Guid messageId, bool success);
         void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage;
         void RegisterCommandHandlerEndpoint<T>(string endpoint) where T : IMessage;

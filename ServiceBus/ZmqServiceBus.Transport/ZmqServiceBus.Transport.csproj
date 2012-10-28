@@ -80,9 +80,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FireAndForgetStrategy.cs" />
+    <Compile Include="IQosManager.cs" />
+    <Compile Include="IQosStrategy.cs" />
     <Compile Include="ITransportMessage.cs" />
     <Compile Include="IZmqSocketManager.cs" />
+    <Compile Include="QosStrategy.cs" />
     <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
+    <Compile Include="SendOptions.cs" />
     <Compile Include="Transport.cs" />
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ITransport.cs" />

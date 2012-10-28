@@ -187,6 +187,33 @@ namespace ZmqServiceBus.Tests.Transport
 
         }
 
+        [Test, Timeout(1000), Repeat(1)]
+        public void should_not_send_back_ack_when_message_received_on_response_socket_is_already_a_transport_ack()
+        {
+            var sendCollection = new BlockingCollection<ITransportMessage>();
+            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            const string senderIdentity = "RequestorIdentity";
+            const string sentMessageType = "Type";
+            const string sentData = "Data";
+            var messageId = Guid.NewGuid();
+            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
+            var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
+
+            requestorSocket.SendMore(messageId.ToByteArray());
+            requestorSocket.SendMore(Encoding.ASCII.GetBytes(typeof(ReceivedOnTransportAcknowledgement).FullName));
+            requestorSocket.Send(new byte[0]);
+
+            Assert.AreEqual(null, requestorSocket.Receive(Encoding.ASCII, TimeSpan.FromMilliseconds(100)));
+            Assert.AreEqual(null, requestorSocket.Receive(Encoding.ASCII, TimeSpan.FromMilliseconds(100)));
+            //Assert.AreEqual(messageId.ToByteArray(), requestorSocket.Receive());
+            //Assert.AreEqual(typeof(ReceivedOnTransportAcknowledgement).FullName, requestorSocket.Receive(Encoding.ASCII));
+            //Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
+
+            requestorSocket.Dispose();
+
+        }
+
+
 
         [Test, Timeout(1000), Repeat(10)]
         public void should_receive_messages_on_replier_socket_and_route_messages_back()

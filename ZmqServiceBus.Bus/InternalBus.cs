@@ -24,17 +24,24 @@ namespace ZmqServiceBus.Bus
 
         public void Send(ICommand command)
         {
-            _transport.SendMessage(command);
+            var transportMessage = GetTransportMessage(command);
+            _transport.SendMessage(transportMessage, QosStrategy.FireAndForget);
+        }
+
+        private TransportMessage GetTransportMessage(IMessage command)
+        {
+            return new TransportMessage(Guid.NewGuid(), _config.ServiceIdentity, command.GetType().FullName, Serializer.Serialize(command));
         }
 
         public void Publish(IEvent message)
         {
-            _transport.PublishMessage(message);
+            var transportMessage = GetTransportMessage(message);
+            _transport.PublishMessage(transportMessage, QosStrategy.FireAndForget);
         }
 
         public void Initialize()
         {
-            _transport.Initialize();
+            _transport.Initialize(_config.ServiceIdentity);
             _transport.OnMessageReceived += OnTransportMessageReceived;
             RegisterDirectoryServiceEndpoints();
             RegisterWithDirectoryService();
@@ -74,7 +81,7 @@ namespace ZmqServiceBus.Bus
                 }
             }
 
-            var registerCommand = new RegisterServiceRelevantMessages(_transport.Configuration.Identity,
+            var registerCommand = new RegisterServiceRelevantMessages(_config.ServiceIdentity,
                                                                       _transport.Configuration.GetCommandsEnpoint(),
                                                                       _transport.Configuration.GetEventsEndpoint(),
                                                                       handledCommands.ToArray(), events.ToArray(),
@@ -115,13 +122,13 @@ namespace ZmqServiceBus.Bus
             try
             {
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, true);                
+                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, true);
             }
-            catch(Exception)
+            catch (Exception)
             {
-                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, false);                                
+                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, false);
             }
-            
+
         }
 
         public void Dispose()
