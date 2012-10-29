@@ -25,7 +25,7 @@ namespace ZmqServiceBus.Bus
         public void Send(ICommand command)
         {
             var transportMessage = GetTransportMessage(command);
-            _transport.SendMessage(transportMessage, QosStrategy.FireAndForget);
+            _transport.SendMessage(transportMessage);
         }
 
         private TransportMessage GetTransportMessage(IMessage command)
@@ -36,7 +36,7 @@ namespace ZmqServiceBus.Bus
         public void Publish(IEvent message)
         {
             var transportMessage = GetTransportMessage(message);
-            _transport.PublishMessage(transportMessage, QosStrategy.FireAndForget);
+            _transport.PublishMessage(transportMessage);
         }
 
         public void Initialize()
@@ -55,7 +55,6 @@ namespace ZmqServiceBus.Bus
 
         private RegisterServiceRelevantMessages ScanAssembliesForRelevantTypes()
         {
-            var commands = new List<Type>();
             var events = new List<Type>();
             var handledCommands = new List<Type>();
             var listenedEvents = new List<Type>();
@@ -67,8 +66,6 @@ namespace ZmqServiceBus.Bus
                 {
                     if (!type.IsInterface && !type.IsAbstract)
                     {
-                        if (IsCommand(type))
-                            commands.Add(type);
                         if (IsEvent(type))
                             events.Add(type);
 
@@ -84,8 +81,7 @@ namespace ZmqServiceBus.Bus
             var registerCommand = new RegisterServiceRelevantMessages(_config.ServiceIdentity,
                                                                       _transport.Configuration.GetCommandsEnpoint(),
                                                                       _transport.Configuration.GetEventsEndpoint(),
-                                                                      handledCommands.ToArray(), events.ToArray(),
-                                                                      commands.ToArray(), listenedEvents.ToArray());
+                                                                      handledCommands.ToArray(), events.ToArray(), listenedEvents.ToArray());
             return registerCommand;
         }
 

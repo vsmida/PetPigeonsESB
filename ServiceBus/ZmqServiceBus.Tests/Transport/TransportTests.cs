@@ -115,7 +115,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             var fakeCommand = new FakeCommand(2);
             var transportMessage = GetTransportMessage(fakeCommand);
-            _transport.SendMessage(transportMessage, QosStrategy.FireAndForget);
+            _transport.SendMessage(transportMessage);
 
             var sentTransportMessage = sendQueue.Take();
             Assert.AreEqual(_serviceIdentity, sentTransportMessage.SenderIdentity);
@@ -178,10 +178,10 @@ namespace ZmqServiceBus.Tests.Transport
 
             var command1 = new FakeCommand(2);
             var transportMessage = GetTransportMessage(command1);
-            _transport.SendMessage(transportMessage, QosStrategy.FireAndForget);
+            _transport.SendMessage(transportMessage);
             var command2 = new FakeCommand2(3);
             var transportMessage2 = GetTransportMessage(command2);
-            _transport.SendMessage(transportMessage2, QosStrategy.FireAndForget);
+            _transport.SendMessage(transportMessage2);
 
             var fakeCommand = sendQueueForFakeCommand.Take();
             var fakeCommand2 = sendQueueForFakeCommand2.Take();
@@ -213,7 +213,7 @@ namespace ZmqServiceBus.Tests.Transport
             var fakeEvent = new FakeEvent(2);
             var transportMessage = GetTransportMessage(fakeEvent, null);
            
-            _transport.PublishMessage(transportMessage, QosStrategy.FireAndForget);
+            _transport.PublishMessage(transportMessage);
 
             var sentMessage = messagesToSend.Take();
             Assert.AreEqual(typeof(FakeEvent).FullName, sentMessage.MessageType);

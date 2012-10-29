@@ -55,15 +55,14 @@ namespace ZmqServiceBus.Transport
                                      }).Start();
         }
 
-        public void SendMessage(ITransportMessage message, IQosStrategy strategy)
+        public void SendMessage(ITransportMessage message)
         {
             _endpointsToMessageQueue[_messageTypesToEndpoints[message.MessageType]].Add(message);
-            strategy.WaitForQosAssurancesToBeFulfilled(message);
         }
 
 
 
-        public void PublishMessage(ITransportMessage message, IQosStrategy strategy) 
+        public void PublishMessage(ITransportMessage message) 
         {
             _messagesToPublish.Add(message);
         }

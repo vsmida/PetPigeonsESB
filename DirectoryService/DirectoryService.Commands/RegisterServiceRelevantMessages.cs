@@ -18,16 +18,13 @@ namespace DirectoryService.Commands
         [ProtoMember(5, IsRequired = true)]
         public readonly Type[] SentEvents;
         [ProtoMember(6, IsRequired = true)]
-        public readonly Type[] CommandsSent;
-        [ProtoMember(7, IsRequired = true)]
         public readonly Type[] EventsListenedTo;
         
-        public RegisterServiceRelevantMessages(string serviceIdentity, string commandsEndpoint, string eventsEndpoint, Type[] handledCommands, Type[] sentEvents, Type[] commandsSent, Type[] eventsListenedTo)
+        public RegisterServiceRelevantMessages(string serviceIdentity, string commandsEndpoint, string eventsEndpoint, Type[] handledCommands, Type[] sentEvents, Type[] eventsListenedTo)
         {
             ServiceIdentity = serviceIdentity;
             HandledCommands = handledCommands;
             SentEvents = sentEvents;
-            CommandsSent = commandsSent;
             EventsListenedTo = eventsListenedTo;
             CommandsEndpoint = commandsEndpoint;
             EventsEndpoint = eventsEndpoint;

@@ -71,7 +71,7 @@ namespace ZmqServiceBus.Tests
         public void should_register_relevant_types_with_directory_service_on_start()
         {
             ITransportMessage transportMessage = null;
-            _transportMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>(), It.IsAny<IQosStrategy>())).Callback<ITransportMessage, IQosStrategy>((x, y) => transportMessage = x);
+            _transportMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage, ReliabilityStrategy>((x, y) => transportMessage = x);
             _bus.Initialize();
 
             var command = Serializer.Deserialize<RegisterServiceRelevantMessages>(transportMessage.Data);
@@ -79,7 +79,6 @@ namespace ZmqServiceBus.Tests
             Assert.AreEqual(_transportConfig.GetCommandsEnpoint(), command.CommandsEndpoint);
             Assert.AreEqual(_transportConfig.GetEventsEndpoint(), command.EventsEndpoint);
             Assert.Contains(typeof(FakeEvent), command.EventsListenedTo);
-            Assert.Contains(typeof(FakeCommand), command.CommandsSent);
             Assert.Contains(typeof(FakeCommand), command.HandledCommands);
             Assert.Contains(typeof(FakeEvent), command.EventsListenedTo);
         }

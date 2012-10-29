@@ -12,6 +12,8 @@ namespace ZmqServiceBus.Bus
         List<MethodInfo> FindEventHandlersInAssemblies(IMessage message);
         List<Type> GetHandledCommands();
         List<Type> GetHandledEvents();
+        List<Type> SendEvents();
+
     }
 
     public class AssemblyScanner : IAssemblyScanner
@@ -61,6 +63,11 @@ namespace ZmqServiceBus.Bus
         }
 
         public List<Type> GetHandledEvents()
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<Type> SendEvents()
         {
             throw new NotImplementedException();
         }
