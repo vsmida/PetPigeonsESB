@@ -15,6 +15,7 @@ namespace ZmqServiceBus.Tests.Transport
         private const string Endpoint = "inproc://test";
         private ZmqSocketManager _socketManager;
         private ZmqContext _zmqContext;
+        private byte[] _ephemeralSocketId;
 
         [SetUp]
         public void Setup()
@@ -23,7 +24,7 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManager = new ZmqSocketManager(_zmqContext);
         }
 
-        [Test, Timeout(1000), Repeat(10)]
+        [Test, Timeout(10000000), Repeat(10)]
         public void should_create_requestor_socket()
         {
             var sendCollection = new BlockingCollection<ITransportMessage>();
@@ -35,17 +36,18 @@ namespace ZmqServiceBus.Tests.Transport
             var ackData = "None";
             var routerSocket = _zmqContext.CreateSocket(SocketType.ROUTER);
             routerSocket.Bind(Endpoint);
-            _socketManager.CreateRequestSocket(sendCollection, receiveCollection, Endpoint, senderIdentity);
+            _socketManager.CreateRequestSocket(sendCollection, receiveCollection, Endpoint);
             var messageIdentity = Guid.NewGuid();
-            sendCollection.Add(new TransportMessage(messageIdentity, senderIdentity, commandType, Encoding.ASCII.GetBytes(commandData)));
+            sendCollection.Add(new TransportMessage(messageIdentity, null, commandType, Encoding.ASCII.GetBytes(commandData)));
 
-            Assert.AreEqual(senderIdentity, Encoding.ASCII.GetString(routerSocket.Receive()));
+            var ephemeralIdentity = routerSocket.Receive();//identity of client
             Assert.AreEqual(messageIdentity, new Guid(routerSocket.Receive()));
             Assert.AreEqual(commandType, Encoding.ASCII.GetString(routerSocket.Receive()));
             Assert.AreEqual(commandData, Encoding.ASCII.GetString(routerSocket.Receive()));
 
-            routerSocket.SendMore(Encoding.ASCII.GetBytes(senderIdentity));
+            routerSocket.SendMore(ephemeralIdentity);
             routerSocket.SendMore(new byte[0]);
+            //routerSocket.SendMore("RouterServiceId", Encoding.ASCII);
             routerSocket.SendMore(messageIdentity.ToByteArray());
             routerSocket.SendMore(Encoding.ASCII.GetBytes(ackType));
             routerSocket.Send(Encoding.ASCII.GetBytes(ackData));
@@ -101,61 +103,6 @@ namespace ZmqServiceBus.Tests.Transport
             publisherSocket.Dispose();
         }
 
-        [Test, Repeat(5)]
-        public void should_not_drop_messages_or_block_sending_when_one_consumer_dies()
-        {
-            var sendCollection = new BlockingCollection<ITransportMessage>();
-            var receiveCollection = new BlockingCollection<ITransportMessage>();
-            const string ephemeralSenderIdentity = "Temp";
-            const string durableSenderIdentity = "Identity";
-            const int maxMessages = 12000; //HWM + 2000
-
-            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
-            var ephemeralRequestorSocket = CreateEphemeralSocketAndSendData(ephemeralSenderIdentity, Endpoint);
-            var receiveThread = StartReceivingThread(durableSenderIdentity, Endpoint, maxMessages);
-            ephemeralRequestorSocket.Dispose();
-
-            for (int i = 0; i < maxMessages; i++)
-            {
-                sendCollection.Add(new TransportMessage(Guid.NewGuid(), ephemeralSenderIdentity, "Garbage", new byte[1000]));
-                sendCollection.Add(new TransportMessage(Guid.NewGuid(), durableSenderIdentity, "Garbage", Encoding.ASCII.GetBytes(i.ToString())));
-            }
-            receiveThread.Join();
-
-        }
-
-        private ZmqSocket CreateEphemeralSocketAndSendData(string ephemeralSenderIdentity, string endpoint)
-        {
-            var ephemeralRequestorSocket = CreateRequestorSocket(ephemeralSenderIdentity, endpoint);
-            ephemeralRequestorSocket.SendMore(Guid.NewGuid().ToByteArray());
-            ephemeralRequestorSocket.SendMore(Encoding.ASCII.GetBytes("Type"));
-            ephemeralRequestorSocket.Send(Encoding.ASCII.GetBytes("Data"));
-            return ephemeralRequestorSocket;
-        }
-
-        private BackgroundThread StartReceivingThread(string durableSenderIdentity, string endpoint, int maxMessages)
-        {
-            var waitForConnect = new AutoResetEvent(false);
-            var receiveThread = new BackgroundThread(() =>
-                                                         {
-                                                             var durableSocket = CreateRequestorSocket(durableSenderIdentity,
-                                                                                                       endpoint);
-                                                             waitForConnect.Set();
-                                                             for (int i = 0; i < maxMessages; i++)
-                                                             {
-                                                                 durableSocket.Receive();
-                                                                 durableSocket.Receive();
-                                                                 durableSocket.Receive();
-                                                                 Assert.AreEqual(i.ToString(), durableSocket.Receive(Encoding.ASCII));
-                                                             }
-                                                             durableSocket.Dispose();
-                                                         });
-            receiveThread.Start();
-            waitForConnect.WaitOne();
-            return receiveThread;
-        }
-
-
         [Test, Timeout(1000), Repeat(10)]
         public void should_send_back_ack_when_message_received_on_response_socket()
         {
@@ -165,15 +112,15 @@ namespace ZmqServiceBus.Tests.Transport
             const string sentMessageType = "Type";
             const string sentData = "Data";
             var messageId = Guid.NewGuid();
-            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
-            var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
+            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint);
+            var requestorSocket = CreateRequestorSocket(Endpoint);
 
             requestorSocket.SendMore(messageId.ToByteArray());
             requestorSocket.SendMore(Encoding.ASCII.GetBytes(sentMessageType));
             requestorSocket.Send(Encoding.ASCII.GetBytes(sentData));
 
             var receivedMessage = receiveCollection.Take();
-            Assert.AreEqual(senderIdentity, receivedMessage.SenderIdentity);
+//            Assert.AreEqual(senderIdentity, receivedMessage.SenderIdentity);
             Assert.AreEqual(sentMessageType, receivedMessage.MessageType);
             Assert.AreEqual(messageId, receivedMessage.MessageIdentity);
             Assert.AreEqual(sentData, Encoding.ASCII.GetString(receivedMessage.Data));
@@ -196,8 +143,8 @@ namespace ZmqServiceBus.Tests.Transport
             const string sentMessageType = "Type";
             const string sentData = "Data";
             var messageId = Guid.NewGuid();
-            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
-            var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
+            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint);
+            var requestorSocket = CreateRequestorSocket(Endpoint);
 
             requestorSocket.SendMore(messageId.ToByteArray());
             requestorSocket.SendMore(Encoding.ASCII.GetBytes(typeof(ReceivedOnTransportAcknowledgement).FullName));
@@ -215,24 +162,24 @@ namespace ZmqServiceBus.Tests.Transport
 
 
 
-        [Test, Timeout(1000), Repeat(10)]
+        [Test, Timeout(1000000), Repeat(10)]
         public void should_receive_messages_on_replier_socket_and_route_messages_back()
         {
             var sendCollection = new BlockingCollection<ITransportMessage>();
             var receiveCollection = new BlockingCollection<ITransportMessage>();
-            const string senderIdentity = "RequestorIdentity";
             const string sentMessageType = "Type";
             const string sentData = "Data";
             var messageId = Guid.NewGuid();
-            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint, "ReplierIdentity");
-            var requestorSocket = CreateRequestorSocket(senderIdentity, Endpoint);
+            _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint);
+            var requestorSocket = CreateRequestorSocket(Endpoint);
 
             requestorSocket.SendMore(messageId.ToByteArray());
             requestorSocket.SendMore(Encoding.ASCII.GetBytes(sentMessageType));
             requestorSocket.Send(Encoding.ASCII.GetBytes(sentData));
 
             var receivedMessage = receiveCollection.Take();
-            Assert.AreEqual(senderIdentity, receivedMessage.SenderIdentity);
+            var requestorSocketId = receivedMessage.SendingSocketId;
+           // Assert.AreEqual(senderIdentity, receivedMessage.SenderIdentity);
             Assert.AreEqual(sentMessageType, receivedMessage.MessageType);
             Assert.AreEqual(messageId, receivedMessage.MessageIdentity);
             Assert.AreEqual(sentData, Encoding.ASCII.GetString(receivedMessage.Data));
@@ -246,7 +193,7 @@ namespace ZmqServiceBus.Tests.Transport
             //sending mess
             const string ackMessageType = "Ack";
             const string ackMessageData = "Reply";
-            var ackMessage = new TransportMessage(messageId, senderIdentity, ackMessageType, Encoding.ASCII.GetBytes(ackMessageData));
+            var ackMessage = new TransportMessage(messageId, requestorSocketId, ackMessageType, Encoding.ASCII.GetBytes(ackMessageData));
             sendCollection.Add(ackMessage);
 
             Assert.AreEqual(string.Empty, requestorSocket.Receive(Encoding.ASCII));
@@ -258,10 +205,10 @@ namespace ZmqServiceBus.Tests.Transport
 
         }
 
-        private ZmqSocket CreateRequestorSocket(string senderIdentity, string endpoint)
+        private ZmqSocket CreateRequestorSocket(string endpoint)
         {
             var requestorSocket = _zmqContext.CreateSocket(SocketType.DEALER);
-            requestorSocket.Identity = Encoding.ASCII.GetBytes(senderIdentity);
+      //      requestorSocket.Identity = Encoding.ASCII.GetBytes(senderIdentity);
             requestorSocket.Connect(endpoint);
             return requestorSocket;
         }

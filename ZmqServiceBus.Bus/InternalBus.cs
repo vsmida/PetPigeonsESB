@@ -30,7 +30,7 @@ namespace ZmqServiceBus.Bus
 
         private TransportMessage GetTransportMessage(IMessage command)
         {
-            return new TransportMessage(Guid.NewGuid(), _config.ServiceIdentity, command.GetType().FullName, Serializer.Serialize(command));
+            return new TransportMessage(Guid.NewGuid(), null, command.GetType().FullName, Serializer.Serialize(command));
         }
 
         public void Publish(IEvent message)
@@ -41,7 +41,7 @@ namespace ZmqServiceBus.Bus
 
         public void Initialize()
         {
-            _transport.Initialize(_config.ServiceIdentity);
+            _transport.Initialize();
             _transport.OnMessageReceived += OnTransportMessageReceived;
             RegisterDirectoryServiceEndpoints();
             RegisterWithDirectoryService();
@@ -118,11 +118,11 @@ namespace ZmqServiceBus.Bus
             try
             {
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, true);
+                _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true);
             }
             catch (Exception)
             {
-                _transport.AckMessage(transportMessage.SenderIdentity, transportMessage.MessageIdentity, false);
+                _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false);
             }
 
         }

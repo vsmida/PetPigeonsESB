@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using Moq;
 using NUnit.Framework;
@@ -35,7 +36,7 @@ namespace ZmqServiceBus.Tests
             _reliabilityStrategyMock.SetupGet(x => x.WaitForReliabilityConditionsToBeFulfilled).Returns(waitForStrategy);
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(ReliabilityOption.FireAndForget);
 
-            _reliabilityLayer.Send(new TransportMessage(Guid.NewGuid(), "toto", typeof(FakeMessage).FullName, new byte[0]));
+            _reliabilityLayer.Send(new TransportMessage(Guid.NewGuid(), null, typeof(FakeMessage).FullName, new byte[0]));
 
             _reliabilityStrategyFactoryMock.Verify(x => x.GetStrategy(ReliabilityOption.FireAndForget));
             _reliabilityStrategyMock.VerifyGet(x => x.WaitForReliabilityConditionsToBeFulfilled);

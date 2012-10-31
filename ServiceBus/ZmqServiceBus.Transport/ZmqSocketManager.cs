@@ -20,7 +20,6 @@ namespace ZmqServiceBus.Transport
         public ZmqSocketManager(ZmqContext context)
         {
             _context = context;
-            CreatePollingThread();
         }
 
         private void CreatePollingThread()
@@ -61,11 +60,11 @@ namespace ZmqServiceBus.Transport
         }
 
 
-        public void CreateRequestSocket(BlockingCollection<ITransportMessage> sendingQueue, BlockingCollection<ITransportMessage> acknowledgementQueue, string endpoint, string senderIdentity)
+        public void CreateRequestSocket(BlockingCollection<ITransportMessage> sendingQueue, BlockingCollection<ITransportMessage> acknowledgementQueue, string endpoint)
         {
             var requestorSocket = _context.CreateSocket(SocketType.DEALER);
             requestorSocket.Linger = TimeSpan.FromSeconds(1);
-            requestorSocket.Identity = Encoding.ASCII.GetBytes(senderIdentity);
+           // requestorSocket.Identity = Encoding.ASCII.GetBytes(senderIdentity);
             requestorSocket.SendHighWatermark = 10000;
             requestorSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(requestorSocket);
@@ -84,6 +83,7 @@ namespace ZmqServiceBus.Transport
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
+
             zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
             zmqSocket.Send(message.Data);
@@ -125,11 +125,11 @@ namespace ZmqServiceBus.Transport
 
         }
 
-        public void CreateResponseSocket(BlockingCollection<ITransportMessage> receivingQueue, BlockingCollection<ITransportMessage> sendingQueue, string endpoint, string identity)
+        public void CreateResponseSocket(BlockingCollection<ITransportMessage> receivingQueue, BlockingCollection<ITransportMessage> sendingQueue, string endpoint)
         {
             var replierSocket = _context.CreateSocket(SocketType.ROUTER);
             replierSocket.Linger = TimeSpan.FromSeconds(1);
-            replierSocket.Identity = Encoding.ASCII.GetBytes(identity);
+           // replierSocket.Identity = Encoding.ASCII.GetBytes(identity);
             replierSocket.SendHighWatermark = 10000;
             replierSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(replierSocket);
@@ -148,7 +148,10 @@ namespace ZmqServiceBus.Transport
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
-            zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.SenderIdentity));
+            if(message.SendingSocketId == null || message.SendingSocketId.Length == 0)
+                throw new ArgumentException("Router socket has received an unroutable transport message");
+
+            zmqSocket.SendMore(message.SendingSocketId);
             zmqSocket.SendMore(new byte[0]);
             zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
@@ -159,16 +162,16 @@ namespace ZmqServiceBus.Transport
         private void ReceiveFromRouter(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> receivingQueue)
         {
             var zmqSocket = socketEventArgs.Socket;
-            var identity = zmqSocket.Receive(Encoding.ASCII);
+            var zmqIdentity = zmqSocket.Receive();
             var serializedId = zmqSocket.Receive();
             var messageId = new Guid(serializedId);
             var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedItem = zmqSocket.Receive();
-            receivingQueue.Add(new TransportMessage(messageId, identity, type, serializedItem));
+            receivingQueue.Add(new TransportMessage(messageId, zmqIdentity, type, serializedItem));
 
             if (type == typeof(ReceivedOnTransportAcknowledgement).FullName)
                 return;
-            zmqSocket.SendMore(identity, Encoding.ASCII);
+            zmqSocket.SendMore(zmqIdentity);
             zmqSocket.SendMore(new byte[0]);
             zmqSocket.SendMore(messageId.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(ReceivedOnTransportAcknowledgement).FullName));

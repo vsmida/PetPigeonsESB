@@ -22,7 +22,6 @@ namespace ZmqServiceBus.Transport
         private readonly IZmqSocketManager _socketManager;
         public event Action<ITransportMessage> OnMessageReceived = delegate { };
         private volatile bool _running = true;
-        private string _serviceIdentity;
 
         public Transport(TransportConfiguration configuration, IZmqSocketManager socketManager)
         {
@@ -31,10 +30,9 @@ namespace ZmqServiceBus.Transport
         }
 
 
-        public void Initialize(string serviceIdentity)
+        public void Initialize()
         {
-            _serviceIdentity = serviceIdentity;
-            _socketManager.CreateResponseSocket(_messagesToForward, _acknowledgementsToSend, Configuration.GetCommandsEnpoint(), _serviceIdentity);
+            _socketManager.CreateResponseSocket(_messagesToForward, _acknowledgementsToSend, Configuration.GetCommandsEnpoint());
             _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint());
             CreateTransportMessageProcessingThread();
         }
@@ -67,7 +65,7 @@ namespace ZmqServiceBus.Transport
             _messagesToPublish.Add(message);
         }
 
-        public void AckMessage(string recipientIdentity, Guid messageId, bool success)
+        public void AckMessage(byte[] recipientIdentity, Guid messageId, bool success)
         {
             _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), recipientIdentity, typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
         }
@@ -83,7 +81,7 @@ namespace ZmqServiceBus.Transport
             if (!_endpointsToMessageQueue.ContainsKey(endpoint))
             {
                 _endpointsToMessageQueue[endpoint] = new BlockingCollection<ITransportMessage>();
-                _socketManager.CreateRequestSocket(_endpointsToMessageQueue[endpoint], _messagesToForward, endpoint, _serviceIdentity);
+                _socketManager.CreateRequestSocket(_endpointsToMessageQueue[endpoint], _messagesToForward, endpoint);
             }
         }
 
