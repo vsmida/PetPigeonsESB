@@ -96,9 +96,18 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Verify(x => x.CreatePublisherSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), endpoint));
         }
 
+        [Test]
+        public void should_create_a_sub_socket_on_init()
+        {
+            _transport.Initialize();
+
+            var endpoint = _configuration.EventsProtocol + "://*:" + _configuration.EventsPort;
+            _socketManagerMock.Verify(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>()));
+        }
+
 
         [Test]
-        public void should_register_command_handling_endpoint_and_send()
+        public void should_register_command_handling_endpoint_and_create_socket_lazily()
         {
             BlockingCollection<ITransportMessage> sendQueue = null;
             _socketManagerMock.Setup(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
@@ -110,12 +119,14 @@ namespace ZmqServiceBus.Tests.Transport
             var endpoint = "endpoint";
             _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
 
-            _socketManagerMock.VerifyAll();
+            _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
+                It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()), Times.Never());
 
             var fakeCommand = new FakeCommand(2);
             var transportMessage = GetTransportMessage(fakeCommand);
             _transport.SendMessage(transportMessage);
 
+            _socketManagerMock.VerifyAll();
             var sentTransportMessage = sendQueue.Take();
             Assert.AreEqual(transportMessage.SendingSocketId, sentTransportMessage.SendingSocketId);
             Assert.AreEqual(typeof(FakeCommand).FullName, sentTransportMessage.MessageType);
@@ -196,6 +207,9 @@ namespace ZmqServiceBus.Tests.Transport
             _transport.RegisterCommandHandlerEndpoint<FakeCommand2>(endpoint);
             _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
 
+            _transport.SendMessage(new TransportMessage(Guid.NewGuid(), new byte[0], typeof(FakeCommand).FullName, new byte[0] ));
+            _transport.SendMessage(new TransportMessage(Guid.NewGuid(), new byte[0], typeof(FakeCommand2).FullName, new byte[0] ));
+
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(),
                                                                  It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()), Times.Exactly(1));
         }
@@ -227,7 +241,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _transport.RegisterPublisherEndpoint<FakeEvent>(endpoint);
 
-            _socketManagerMock.Verify(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), endpoint));
+            _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }
 
         [Test, Timeout(1000)]
@@ -235,8 +249,8 @@ namespace ZmqServiceBus.Tests.Transport
         {
             AutoResetEvent waitForEvent = new AutoResetEvent(false);
             BlockingCollection<ITransportMessage> messagesReceived = null;
-            _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>()))
-                                         .Callback<BlockingCollection<ITransportMessage>, string>((x, y) => messagesReceived = x);
+            _socketManagerMock.Setup(x => x.CreateSubscribeSocket(It.IsAny<BlockingCollection<ITransportMessage>>()))
+                                         .Callback<BlockingCollection<ITransportMessage>>((x) => messagesReceived = x);
             var messageIdentity = Guid.NewGuid();
             var transportMessage = new TransportMessage(messageIdentity, null, typeof(FakeEvent).FullName, Serializer.Serialize(new FakeEvent(2)));
             _transport.Initialize();
@@ -274,6 +288,7 @@ namespace ZmqServiceBus.Tests.Transport
             };
             string endpoint = "endpoint";
             _transport.RegisterCommandHandlerEndpoint<FakeCommand>(endpoint);
+            _transport.SendMessage(TestData.GenerateDummyMessage<FakeCommand>());
             messagesReceived.Add(transportMessage);
 
             waitForEvent.WaitOne();

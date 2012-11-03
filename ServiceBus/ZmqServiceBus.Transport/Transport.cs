@@ -13,7 +13,18 @@ namespace ZmqServiceBus.Transport
 {
     public class Transport : ITransport
     {
-        private readonly Dictionary<string, BlockingCollection<ITransportMessage>> _endpointsToMessageQueue = new Dictionary<string, BlockingCollection<ITransportMessage>>();
+        private class SocketInfo
+        {
+            public BlockingCollection<ITransportMessage> SendingQueue { get; set; }
+            public bool SocketInitialized { get; set; }
+
+            public SocketInfo()
+            {
+                SendingQueue = new BlockingCollection<ITransportMessage>();
+            }
+        }
+
+        private readonly Dictionary<string, SocketInfo> _endpointsToSocketInfo = new Dictionary<string, SocketInfo>();
         private readonly Dictionary<string, string> _messageTypesToEndpoints = new Dictionary<string, string>();
         private readonly BlockingCollection<ITransportMessage> _messagesToPublish = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
@@ -34,6 +45,7 @@ namespace ZmqServiceBus.Transport
         {
             _socketManager.CreateResponseSocket(_messagesToForward, _acknowledgementsToSend, Configuration.GetCommandsEnpoint());
             _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint());
+            _socketManager.CreateSubscribeSocket(_messagesToForward);
             CreateTransportMessageProcessingThread();
         }
 
@@ -41,7 +53,7 @@ namespace ZmqServiceBus.Transport
         {
             new BackgroundThread(() =>
                                      {
-                                         while(_running)
+                                         while (_running)
                                          {
                                              ITransportMessage message;
                                              if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
@@ -49,18 +61,25 @@ namespace ZmqServiceBus.Transport
                                                  OnMessageReceived(message);
                                              }
                                          }
-                                         
+
                                      }).Start();
         }
 
         public void SendMessage(ITransportMessage message)
         {
-            _endpointsToMessageQueue[_messageTypesToEndpoints[message.MessageType]].Add(message);
+            var endpoint = _messageTypesToEndpoints[message.MessageType];
+            var socketInfo = _endpointsToSocketInfo[endpoint];
+            if(!socketInfo.SocketInitialized)
+            {
+                _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, endpoint);
+                socketInfo.SocketInitialized = true;
+            }
+            socketInfo.SendingQueue.Add(message);
         }
 
 
 
-        public void PublishMessage(ITransportMessage message) 
+        public void PublishMessage(ITransportMessage message)
         {
             _messagesToPublish.Add(message);
         }
@@ -72,16 +91,15 @@ namespace ZmqServiceBus.Transport
 
         public void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage
         {
-            _socketManager.CreateSubscribeSocket(_messagesToForward, endpoint);
+            _socketManager.SubscribeTo(endpoint, typeof(T).FullName);
         }
 
         public void RegisterCommandHandlerEndpoint<T>(string endpoint) where T : IMessage
         {
             _messageTypesToEndpoints[typeof(T).FullName] = endpoint;
-            if (!_endpointsToMessageQueue.ContainsKey(endpoint))
+            if (!_endpointsToSocketInfo.ContainsKey(endpoint))
             {
-                _endpointsToMessageQueue[endpoint] = new BlockingCollection<ITransportMessage>();
-                _socketManager.CreateRequestSocket(_endpointsToMessageQueue[endpoint], _messagesToForward, endpoint);
+                _endpointsToSocketInfo[endpoint] = new SocketInfo();
             }
         }
 
@@ -92,14 +110,5 @@ namespace ZmqServiceBus.Transport
             _socketManager.Stop();
         }
 
-        private void CompleteAddingCollections()
-        {
-            _messagesToPublish.CompleteAdding();
-            _messagesToForward.CompleteAdding();
-            foreach (var pair in _endpointsToMessageQueue)
-            {
-                pair.Value.CompleteAdding();
-            }
-        }
     }
 }

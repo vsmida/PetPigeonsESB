@@ -16,6 +16,7 @@ namespace ZmqServiceBus.Transport
         private readonly List<ZmqSocket> _socketsToDispose = new List<ZmqSocket>();
         private readonly Poller _poller = new Poller();
         private BackgroundThread _pollingThread;
+        private ZmqSocket _subSocket;
 
         public ZmqSocketManager(ZmqContext context)
         {
@@ -34,18 +35,22 @@ namespace ZmqServiceBus.Transport
             _pollingThread.Start();
         }
 
-        public void CreateSubscribeSocket(BlockingCollection<ITransportMessage> receiveQueue, string endpoint)
+
+        public void SubscribeTo(string endpoint, string messageType)
         {
-            var subSocket = _context.CreateSocket(SocketType.SUB);
-            _socketsToDispose.Add(subSocket);
-            subSocket.Linger = TimeSpan.FromSeconds(1);
-            subSocket.ReceiveHighWatermark = 10000;
-            subSocket.SubscribeAll();
-            subSocket.Connect(endpoint);
-            subSocket.ReceiveReady += (s, e) => ReceiveFromSubscriber(e, receiveQueue);
-            _poller.AddSocket(subSocket);
-            subSocket.Connect(endpoint);
-            Console.WriteLine("Command dealer socket bound to {0}", endpoint);
+            _subSocket.Connect(endpoint);
+            _subSocket.Subscribe(Encoding.ASCII.GetBytes(messageType));
+        }
+
+        public void CreateSubscribeSocket(BlockingCollection<ITransportMessage> receiveQueue)
+        {
+            _subSocket = _context.CreateSocket(SocketType.SUB);
+            _socketsToDispose.Add(_subSocket);
+            _subSocket.Linger = TimeSpan.FromSeconds(1);
+        //    _subSocket.ReceiveHighWatermark = 10000;
+
+            _subSocket.ReceiveReady += (s, e) => ReceiveFromSubscriber(e, receiveQueue);
+            _poller.AddSocket(_subSocket);
             if (_pollingThread == null)
                 CreatePollingThread();
         }
@@ -53,8 +58,8 @@ namespace ZmqServiceBus.Transport
         private void ReceiveFromSubscriber(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> receiveQueue)
         {
             var zmqSocket = socketEventArgs.Socket;
-            var id = new Guid(zmqSocket.Receive());
             var type = zmqSocket.Receive(Encoding.ASCII);
+            var id = new Guid(zmqSocket.Receive());
             var data = zmqSocket.Receive();
             receiveQueue.Add(new TransportMessage(id, null, type, data));
         }
@@ -84,8 +89,8 @@ namespace ZmqServiceBus.Transport
                 return;
             var zmqSocket = socketEventArgs.Socket;
 
-            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
+            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.Send(message.Data);
         }
 
@@ -93,8 +98,8 @@ namespace ZmqServiceBus.Transport
         {
             var zmqSocket = socketEventArgs.Socket;
             zmqSocket.Receive();
-            var id = new Guid(zmqSocket.Receive());
             var type = zmqSocket.Receive(Encoding.ASCII);
+            var id = new Guid(zmqSocket.Receive());
             var serializedItem = zmqSocket.Receive();
             acknowledgementQueue.Add(new TransportMessage(id, null, type, serializedItem));
         }
@@ -153,8 +158,8 @@ namespace ZmqServiceBus.Transport
 
             zmqSocket.SendMore(message.SendingSocketId);
             zmqSocket.SendMore(new byte[0]);
-            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
+            zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
             zmqSocket.Send(message.Data);
 
         }
@@ -163,9 +168,9 @@ namespace ZmqServiceBus.Transport
         {
             var zmqSocket = socketEventArgs.Socket;
             var zmqIdentity = zmqSocket.Receive();
+            var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedId = zmqSocket.Receive();
             var messageId = new Guid(serializedId);
-            var type = zmqSocket.Receive(Encoding.ASCII);
             var serializedItem = zmqSocket.Receive();
             receivingQueue.Add(new TransportMessage(messageId, zmqIdentity, type, serializedItem));
 
@@ -173,8 +178,8 @@ namespace ZmqServiceBus.Transport
                 return;
             zmqSocket.SendMore(zmqIdentity);
             zmqSocket.SendMore(new byte[0]);
-            zmqSocket.SendMore(messageId.ToByteArray());
             zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(ReceivedOnTransportAcknowledgement).FullName));
+            zmqSocket.SendMore(messageId.ToByteArray());
             zmqSocket.Send(new byte[0]);
 
         }
