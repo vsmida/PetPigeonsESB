@@ -5,6 +5,12 @@
         void Handle(T message);
     }
 
-    public interface IMessageHandler { }
+    public interface IMessageHandler
+    {
+        
+
+
+    }
+
 
 }

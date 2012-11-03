@@ -80,7 +80,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IReliabilityInfo.cs" />
     <Compile Include="IReliabilityLayer.cs" />
     <Compile Include="ReliabilityStrategy.cs" />
     <Compile Include="ITransportMessage.cs" />

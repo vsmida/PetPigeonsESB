@@ -51,6 +51,7 @@
     <Compile Include="IMessageDispatcher.cs" />
     <Compile Include="IObjectFactory.cs" />
     <Compile Include="MessageDispatcher.cs" />
+    <Compile Include="MessageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
