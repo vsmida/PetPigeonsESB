@@ -6,6 +6,7 @@ namespace ZmqServiceBus.Transport
         int CommandsPort { get; }
         string EventsProtocol { get; }
         string CommandsProtocol { get; }
+        string PeerName { get; }
 
 
     }
@@ -26,5 +27,6 @@ namespace ZmqServiceBus.Transport
         public abstract int CommandsPort { get; }
         public abstract string EventsProtocol { get; }
         public abstract string CommandsProtocol { get; }
+        public abstract string PeerName { get;}
     }
 }

@@ -33,5 +33,9 @@ namespace ZmqServiceBus.Tests.Transport
         public override string EventsProtocol { get { return "inproc"; }  }
         public override string CommandsProtocol { get { return "inproc"; } }
 
+        public override string PeerName
+        {
+            get { return "FakePeerName"; }
+        }
     }
 }

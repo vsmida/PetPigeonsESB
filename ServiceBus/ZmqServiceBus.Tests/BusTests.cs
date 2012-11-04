@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.Threading;
 using DirectoryService.Commands;
 using DirectoryService.Event;
@@ -90,33 +89,33 @@ namespace ZmqServiceBus.Tests
         {
             _bus.Initialize();
 
-            var transportMessage = new TransportMessage(Guid.NewGuid(), Encoding.ASCII.GetBytes("tt"), typeof(FakeCommand).FullName, Serializer.Serialize(new FakeCommand(5)));
+            var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
             _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
             _dispatcherMock.Verify(x => x.Dispatch(It.Is<FakeCommand>(y => y.Number == 5)));
         }
 
-        [Test]
-        public void should_send_positive_acknowledgement_message_after_successful_dispatch()
-        {
-            _bus.Initialize();
-            var transportMessage = new TransportMessage(Guid.NewGuid(), Encoding.ASCII.GetBytes("tt"), typeof(FakeCommand).FullName, Serializer.Serialize(new FakeCommand(5)));
-            _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+        //[Test]
+        //public void should_send_positive_acknowledgement_message_after_successful_dispatch()
+        //{
+        //    _bus.Initialize();
+        //    var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
+        //    _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-            _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true));
-        }
+        //    _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true));
+        //}
 
-        [Test]
-        public void should_send_negative_ack_after_unsuccessful_dispatch()
-        {
-            _bus.Initialize();
-            var transportMessage = new TransportMessage(Guid.NewGuid(), Encoding.ASCII.GetBytes("tt"), typeof(FakeCommand).FullName, Serializer.Serialize(new FakeCommand(5)));
-            _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<IMessage>())).Callback<IMessage>(x => { throw new Exception(); });
-            _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+        //[Test]
+        //public void should_send_negative_ack_after_unsuccessful_dispatch()
+        //{
+        //    _bus.Initialize();
+        //    var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
+        //    _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<IMessage>())).Callback<IMessage>(x => { throw new Exception(); });
+        //    _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-            _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false));
+        //    _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false));
 
-        }
+        //}
 
   
 

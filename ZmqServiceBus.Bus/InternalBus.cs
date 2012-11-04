@@ -30,7 +30,8 @@ namespace ZmqServiceBus.Bus
 
         private TransportMessage GetTransportMessage(IMessage command)
         {
-            return new TransportMessage(Guid.NewGuid(), null, command.GetType().FullName, Serializer.Serialize(command));
+          //  return new TransportMessage(Guid.NewGuid(), command.GetType().FullName, Serializer.Serialize(command));
+            return null;
         }
 
         public void Publish(IEvent message)
@@ -118,11 +119,11 @@ namespace ZmqServiceBus.Bus
             try
             {
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-                _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true);
+            //    _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true);
             }
             catch (Exception)
             {
-                _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false);
+       //         _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false);
             }
 
         }

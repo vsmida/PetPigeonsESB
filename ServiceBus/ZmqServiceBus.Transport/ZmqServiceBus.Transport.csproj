@@ -81,7 +81,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IReliabilityLayer.cs" />
-    <Compile Include="IAdressableMessage.cs" />
+    <Compile Include="MessageOption.cs" />
     <Compile Include="ReliabilityStrategy.cs" />
     <Compile Include="ITransportMessage.cs" />
     <Compile Include="IZmqSocketManager.cs" />

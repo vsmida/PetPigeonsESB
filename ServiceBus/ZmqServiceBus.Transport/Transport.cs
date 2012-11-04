@@ -43,8 +43,8 @@ namespace ZmqServiceBus.Transport
 
         public void Initialize()
         {
-            _socketManager.CreateResponseSocket(_messagesToForward, _acknowledgementsToSend, Configuration.GetCommandsEnpoint());
-            _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint());
+            _socketManager.CreateResponseSocket(_messagesToForward, Configuration.GetCommandsEnpoint(), Configuration.PeerName);
+            _socketManager.CreatePublisherSocket(_messagesToPublish, Configuration.GetEventsEndpoint(), Configuration.PeerName);
             _socketManager.CreateSubscribeSocket(_messagesToForward);
             CreateTransportMessageProcessingThread();
         }
@@ -71,7 +71,7 @@ namespace ZmqServiceBus.Transport
             var socketInfo = _endpointsToSocketInfo[endpoint];
             if(!socketInfo.SocketInitialized)
             {
-                _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, endpoint);
+                _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, endpoint, Configuration.PeerName);
                 socketInfo.SocketInitialized = true;
             }
             socketInfo.SendingQueue.Add(message);
@@ -86,7 +86,7 @@ namespace ZmqServiceBus.Transport
 
         public void AckMessage(byte[] recipientIdentity, Guid messageId, bool success)
         {
-            _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), recipientIdentity, typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
+         //   _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
         }
 
         public void RegisterPeer(IServicePeer peer)

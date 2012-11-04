@@ -9,12 +9,12 @@ namespace ZmqServiceBus.Tests.Transport
     {
          public static TransportMessage GenerateDummyMessage<T>()
          {
-             return new TransportMessage(Guid.NewGuid(), new byte[0],typeof(T).FullName, new byte[0]);
+             return new TransportMessage(typeof(T).FullName,"Peer", Guid.NewGuid(), new byte[0]);
          }
 
          public static TransportMessage GenerateDummyMessage<T>(T item)
          {
-             return new TransportMessage(Guid.NewGuid(), new byte[0], typeof(T).FullName, Serializer.Serialize(item));
+             return new TransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
          }
 
         public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint)

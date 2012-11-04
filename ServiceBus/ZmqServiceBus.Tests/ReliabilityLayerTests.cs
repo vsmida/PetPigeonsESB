@@ -38,7 +38,7 @@ namespace ZmqServiceBus.Tests
             _reliabilityStrategyMock.SetupGet(x => x.WaitForReliabilityConditionsToBeFulfilled).Returns(waitForStrategy);
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(ReliabilityOption.FireAndForget);
 
-            _reliabilityLayer.Send(new TransportMessage(Guid.NewGuid(), null, typeof(FakeMessage).FullName, new byte[0]));
+            _reliabilityLayer.Send(new TransportMessage(typeof(FakeMessage).FullName,"",Guid.NewGuid(), new byte[0]));
 
             _reliabilityStrategyFactoryMock.Verify(x => x.GetStrategy(ReliabilityOption.FireAndForget));
             _reliabilityStrategyMock.VerifyGet(x => x.WaitForReliabilityConditionsToBeFulfilled);
@@ -48,10 +48,10 @@ namespace ZmqServiceBus.Tests
         public void should_update_reliability_strategy_when_client_ack_arrives()
         {
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(ReliabilityOption.FireAndForget);
-            var sentMessage = new TransportMessage(Guid.NewGuid(), null, typeof (FakeMessage).FullName, new byte[0]);
+            var sentMessage = new TransportMessage(typeof(FakeMessage).FullName, "", Guid.NewGuid(), new byte[0]);
             _reliabilityLayer.Send(sentMessage);
             
-            _transportMock.Raise(x => x.OnMessageReceived += OnMessageReceived, new TransportMessage(sentMessage.MessageIdentity,null,typeof(ReceivedOnTransportAcknowledgement).FullName, new byte[0]));
+       //     _transportMock.Raise(x => x.OnMessageReceived += OnMessageReceived, new TransportMessage(sentMessage.MessageIdentity,typeof(ReceivedOnTransportAcknowledgement).FullName, new byte[0]));
 
             Assert.IsTrue(_reliabilityStrategyMock.Object.ClientTransportAckReceived);
         }
