@@ -89,17 +89,20 @@ namespace ZmqServiceBus.Transport
             _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), recipientIdentity, typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
         }
 
-        public void RegisterPublisherEndpoint<T>(string endpoint) where T : IMessage
+        public void RegisterPeer(IServicePeer peer)
         {
-            _socketManager.SubscribeTo(endpoint, typeof(T).FullName);
-        }
-
-        public void RegisterCommandHandlerEndpoint<T>(string endpoint) where T : IMessage
-        {
-            _messageTypesToEndpoints[typeof(T).FullName] = endpoint;
-            if (!_endpointsToSocketInfo.ContainsKey(endpoint))
+            foreach (var publishedMessageType in peer.PublishedMessages)
             {
-                _endpointsToSocketInfo[endpoint] = new SocketInfo();
+                _socketManager.SubscribeTo(peer.PublicationEndpoint, publishedMessageType.FullName);
+            }
+
+            foreach (var handledMessage in peer.HandledMessages)
+            {
+                _messageTypesToEndpoints[handledMessage.FullName] = peer.ReceptionEndpoint;
+                if (!_endpointsToSocketInfo.ContainsKey(peer.ReceptionEndpoint))
+                {
+                    _endpointsToSocketInfo[peer.ReceptionEndpoint] = new SocketInfo();
+                }
             }
         }
 

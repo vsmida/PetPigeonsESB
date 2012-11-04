@@ -81,11 +81,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IReliabilityLayer.cs" />
+    <Compile Include="IAdressableMessage.cs" />
     <Compile Include="ReliabilityStrategy.cs" />
     <Compile Include="ITransportMessage.cs" />
     <Compile Include="IZmqSocketManager.cs" />
     <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
     <Compile Include="ReliabilityOption.cs" />
+    <Compile Include="ServicePeer.cs" />
     <Compile Include="Transport.cs" />
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ITransport.cs" />

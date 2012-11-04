@@ -107,9 +107,9 @@ namespace ZmqServiceBus.Bus
 
         private void RegisterDirectoryServiceEndpoints()
         {
-            _transport.RegisterCommandHandlerEndpoint<RegisterServiceRelevantMessages>(_config.DirectoryServiceCommandEndpoint);
-            _transport.RegisterPublisherEndpoint<RegisteredHandlersForCommand>(_config.DirectoryServiceEventEndpoint);
-            _transport.RegisterPublisherEndpoint<RegisteredPublishersForEvent>(_config.DirectoryServiceEventEndpoint);
+            //_transport.RegisterCommandHandlerEndpoint<RegisterServiceRelevantMessages>(_config.DirectoryServiceCommandEndpoint);
+            //_transport.RegisterPublisherEndpoint<RegisteredHandlersForCommand>(_config.DirectoryServiceEventEndpoint);
+            //_transport.RegisterPublisherEndpoint<RegisteredPublishersForEvent>(_config.DirectoryServiceEventEndpoint);
         }
 
         private void OnTransportMessageReceived(ITransportMessage transportMessage)
