@@ -1,16 +1,16 @@
 ﻿using ProtoBuf;
 
-namespace ZmqServiceBus.Transport
+namespace Shared
 {
     [ProtoContract]
-    public class MessageOption
+    public class MessageOptions
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly ReliabilityOption ReliabilityLevel;
+        public readonly ReliabilityLevel ReliabilityLevel;
         [ProtoMember(2, IsRequired = true)]
         public readonly string BrokerName;
 
-        public MessageOption(ReliabilityOption reliabilityLevel, string brokerName)
+        public MessageOptions(ReliabilityLevel reliabilityLevel, string brokerName)
         {
             ReliabilityLevel = reliabilityLevel;
             BrokerName = brokerName;

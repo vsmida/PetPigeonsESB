@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using DirectoryService.Commands;
-using DirectoryService.Event;
 using Shared;
 using ZmqServiceBus.Transport;
 
@@ -11,13 +9,13 @@ namespace ZmqServiceBus.Bus
 {
     public class InternalBus : IBus
     {
-        private readonly ITransport _transport;
+        private readonly IStartupLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;
         private readonly IBusConfiguration _config;
 
-        public InternalBus(ITransport transport, IMessageDispatcher dispatcher, IBusConfiguration config)
+        public InternalBus(IStartupLayer startupLayer, IMessageDispatcher dispatcher, IBusConfiguration config)
         {
-            _transport = transport;
+            _startupLayer = startupLayer;
             _dispatcher = dispatcher;
             _config = config;
         }
@@ -25,7 +23,7 @@ namespace ZmqServiceBus.Bus
         public void Send(ICommand command)
         {
             var transportMessage = GetTransportMessage(command);
-            _transport.SendMessage(transportMessage);
+            _startupLayer.Send(transportMessage);
         }
 
         private TransportMessage GetTransportMessage(IMessage command)
@@ -37,13 +35,13 @@ namespace ZmqServiceBus.Bus
         public void Publish(IEvent message)
         {
             var transportMessage = GetTransportMessage(message);
-            _transport.PublishMessage(transportMessage);
+            _startupLayer.Publish(transportMessage);
         }
 
         public void Initialize()
         {
-            _transport.Initialize();
-            _transport.OnMessageReceived += OnTransportMessageReceived;
+            _startupLayer.Initialize();
+            _startupLayer.OnMessageReceived += OnTransportMessageReceived;
             RegisterDirectoryServiceEndpoints();
             RegisterWithDirectoryService();
         }
@@ -79,11 +77,13 @@ namespace ZmqServiceBus.Bus
                 }
             }
 
-            var registerCommand = new RegisterServiceRelevantMessages(_config.ServiceIdentity,
-                                                                      _transport.Configuration.GetCommandsEnpoint(),
-                                                                      _transport.Configuration.GetEventsEndpoint(),
-                                                                      handledCommands.ToArray(), events.ToArray(), listenedEvents.ToArray());
-            return registerCommand;
+
+            //var registerCommand = new RegisterServiceRelevantMessages(_config.ServiceIdentity,
+            //                                                          _transport.Configuration.GetCommandsEnpoint(),
+            //                                                          _transport.Configuration.GetEventsEndpoint(),
+            //                                                          handledCommands.ToArray(), events.ToArray(), listenedEvents.ToArray());
+            //return registerCommand;
+            return null;
         }
 
         private static bool IsEventHandler(Type type)
@@ -130,7 +130,7 @@ namespace ZmqServiceBus.Bus
 
         public void Dispose()
         {
-            _transport.Dispose();
+            _startupLayer.Dispose();
         }
     }
 }

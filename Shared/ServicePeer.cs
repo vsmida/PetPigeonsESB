@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ProtoBuf;
 
-namespace ZmqServiceBus.Transport
+namespace Shared
 {
     public interface IServicePeer
     {

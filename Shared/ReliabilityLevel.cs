@@ -1,6 +1,6 @@
-﻿namespace ZmqServiceBus.Transport
+﻿namespace Shared
 {
-    public enum ReliabilityOption
+    public enum ReliabilityLevel
     {
         FireAndForget = 1,
         SendToClientAndBrokerNoAck = 2,

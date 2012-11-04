@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PersistenceService.Commands</RootNamespace>
     <AssemblyName>PersistenceService.Commands</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,13 +44,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PersistMessageCommand.cs" />
+    <Compile Include="ProcessMessagesCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ServiceBus\ZmqServiceBus.Transport\ZmqServiceBus.Transport.csproj">
-      <Project>{260ACC9F-C02E-4A1F-B3A7-A32A45310380}</Project>
-      <Name>ZmqServiceBus.Transport</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Shared\Shared.csproj">
       <Project>{7df08a0e-d508-443a-88ca-f85568d5bf55}</Project>
       <Name>Shared</Name>

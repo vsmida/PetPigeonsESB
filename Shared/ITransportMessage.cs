@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZmqServiceBus.Transport
+namespace Shared
 {
     public interface ITransportMessage
     {
