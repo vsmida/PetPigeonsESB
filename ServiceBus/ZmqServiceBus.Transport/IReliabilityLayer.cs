@@ -1,39 +1,68 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Shared;
 
 namespace ZmqServiceBus.Transport
 {
-    public interface IReliabilityLayer
+    public interface IReliabilityLayer : IDisposable
     {
-        void RegisterMessageReliabilitySetting<T>(ReliabilityOption option);
+        void RegisterMessageReliabilitySetting(Type messageType, MessageOptions level);
         void Send(ITransportMessage message);
+        void Publish(ITransportMessage message);
+        void Route(ITransportMessage message);
+        event Action<ITransportMessage> OnMessageReceived;
+        void Initialize();
     }
 
     public class ReliabilityLayer : IReliabilityLayer
     {
         private readonly ConcurrentDictionary<Guid, IReliabilityStrategy> _messageIdToReliabilityInfo = new ConcurrentDictionary<Guid, IReliabilityStrategy>();
-        private readonly ConcurrentDictionary<Guid, IReliabilityStrategy> _brokerSaveRequestIdToReliabilityInfo = new ConcurrentDictionary<Guid, IReliabilityStrategy>();
-        private readonly Dictionary<string, ReliabilityOption> _messageTypeToReliabilitySetting = new Dictionary<string, ReliabilityOption>();
+        private readonly Dictionary<string, MessageOptions> _messageTypeToReliabilitySetting = new Dictionary<string, MessageOptions>();
+        private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
         private readonly IReliabilityStrategyFactory _reliabilityStrategyFactory;
         private readonly ITransport _transport;
+        public event Action<ITransportMessage> OnMessageReceived = delegate { };
+        public void Initialize()
+        {
+            _transport.Initialize();
+        }
+
+        private volatile bool _running = true;
+
 
         public ReliabilityLayer(IReliabilityStrategyFactory reliabilityStrategyFactory, ITransport transport)
         {
             _reliabilityStrategyFactory = reliabilityStrategyFactory;
             _transport = transport;
             _transport.OnMessageReceived += OnTransportMessageReceived;
+            CreateEventThread();
+        }
+
+        private void CreateEventThread()
+        {
+            new BackgroundThread(() =>
+                                     {
+                                         while (_running)
+                                         {
+                                             ITransportMessage message;
+                                             if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
+                                             {
+                                                 OnMessageReceived(message);
+                                             }
+                                         }
+                                     }).Start();
         }
 
         private void OnTransportMessageReceived(ITransportMessage transportMessage)
         {
-            if(transportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName)
+            if (transportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName)
             {
                 IReliabilityStrategy strategy;
                 if (_messageIdToReliabilityInfo.TryGetValue(transportMessage.MessageIdentity, out strategy))
-                    strategy.ClientTransportAckReceived = true;
-                else if (_brokerSaveRequestIdToReliabilityInfo.TryGetValue(transportMessage.MessageIdentity, out strategy))
-                    strategy.BrokerTransportAckReceived = true;
+                {
+                    strategy.CheckMessage(transportMessage);
+                }
 
             }
 
@@ -41,23 +70,50 @@ namespace ZmqServiceBus.Transport
             {
 
             }
-
+            _messagesToForward.Add(transportMessage);
         }
 
-        public void RegisterMessageReliabilitySetting<T>(ReliabilityOption option)
+        public void RegisterMessageReliabilitySetting<T>(MessageOptions level)
         {
-            _messageTypeToReliabilitySetting[typeof(T).FullName]= option;
+            RegisterMessageReliabilitySetting(typeof(T), level);
+        }
+
+        public void RegisterMessageReliabilitySetting(Type messageType, MessageOptions level)
+        {
+            _messageTypeToReliabilitySetting[messageType.FullName] = level;
         }
 
         public void Send(ITransportMessage message)
         {
-            ReliabilityOption reliabilityOption;
-            if(_messageTypeToReliabilitySetting.TryGetValue(message.MessageType, out reliabilityOption))
+            RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_transport, message));
+        }
+
+        private void RegisterReliabilityStrategyAndForward(ITransportMessage message, Action<IReliabilityStrategy> forwardAction)
+        {
+            MessageOptions reliabilityLevel;
+            if (_messageTypeToReliabilitySetting.TryGetValue(message.MessageType, out reliabilityLevel))
             {
-                var messageStrategy = _reliabilityStrategyFactory.GetStrategy(reliabilityOption);
+                var messageStrategy = _reliabilityStrategyFactory.GetStrategy(reliabilityLevel);
                 _messageIdToReliabilityInfo.TryAdd(message.MessageIdentity, messageStrategy);
-                messageStrategy.WaitForReliabilityConditionsToBeFulfilled.WaitOne();
+                forwardAction(messageStrategy);
             }
+        }
+
+        public void Publish(ITransportMessage message)
+        {
+            RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_transport, message));
+
+        }
+
+        public void Route(ITransportMessage message)
+        {
+            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_transport, message));
+        }
+
+        public void Dispose()
+        {
+            _running = false;
+            _transport.Dispose();
         }
     }
 }

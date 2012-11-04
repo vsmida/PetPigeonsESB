@@ -81,13 +81,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IReliabilityLayer.cs" />
-    <Compile Include="MessageOption.cs" />
+    <Compile Include="IStartupLayer.cs" />
     <Compile Include="ReliabilityStrategy.cs" />
-    <Compile Include="ITransportMessage.cs" />
     <Compile Include="IZmqSocketManager.cs" />
     <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
-    <Compile Include="ReliabilityOption.cs" />
-    <Compile Include="ServicePeer.cs" />
     <Compile Include="Transport.cs" />
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ITransport.cs" />
@@ -99,6 +96,10 @@
     <ProjectReference Include="..\..\..\clrzmq\src\ZeroMQ\ZeroMQ.csproj">
       <Project>{6ffd872f-a4a4-4efa-9b4d-4342ba6cf250}</Project>
       <Name>ZeroMQ</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\PersistenceService.Commands\PersistenceService.Commands.csproj">
+      <Project>{c1262581-6f1e-44fe-b852-c7fe731f0908}</Project>
+      <Name>PersistenceService.Commands</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Shared\Shared.csproj">
       <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>

@@ -35,7 +35,7 @@ namespace ZmqServiceBus.Tests
 
 
         private InternalBus _bus;
-        private Mock<ITransport> _transportMock;
+        private Mock<IStartupLayer> _startupLayerMock;
         private Mock<IMessageDispatcher> _dispatcherMock;
         private FakeIBusConfig _config;
         private FakeTransportConfiguration _transportConfig;
@@ -43,18 +43,18 @@ namespace ZmqServiceBus.Tests
         [SetUp]
         public void setup()
         {
-            _transportMock = new Mock<ITransport>();
+            _startupLayerMock = new Mock<IStartupLayer>();
             _dispatcherMock = new Mock<IMessageDispatcher>();
             _config = new FakeIBusConfig();
             _transportConfig = new FakeTransportConfiguration();
-            _transportMock.SetupGet(x => x.Configuration).Returns(_transportConfig);
-            _bus = new InternalBus(_transportMock.Object, _dispatcherMock.Object, _config);
+          //  _startupLayerMock.SetupGet(x => x.Configuration).Returns(_transportConfig);
+            _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _config);
         }
         [Test]
         public void should_initialize_transport_on_start()
         {
             _bus.Initialize();
-            _transportMock.Verify(x => x.Initialize());
+            _startupLayerMock.Verify(x => x.Initialize());
         }
 
         [Test]
@@ -71,7 +71,7 @@ namespace ZmqServiceBus.Tests
         public void should_register_relevant_types_with_directory_service_on_start()
         {
             ITransportMessage transportMessage = null;
-            _transportMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>((x) => transportMessage = x);
+           // _startupLayerMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>((x) => transportMessage = x);
             _bus.Initialize();
 
             var command = Serializer.Deserialize<RegisterServiceRelevantMessages>(transportMessage.Data);
@@ -90,7 +90,7 @@ namespace ZmqServiceBus.Tests
             _bus.Initialize();
 
             var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
-            _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+            _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
             _dispatcherMock.Verify(x => x.Dispatch(It.Is<FakeCommand>(y => y.Number == 5)));
         }
@@ -126,7 +126,7 @@ namespace ZmqServiceBus.Tests
 
             _bus.Dispose();
 
-            _transportMock.Verify(x => x.Dispose());
+            _startupLayerMock.Verify(x => x.Dispose());
         }
 
         private void OnMessageReceived(ITransportMessage obj)

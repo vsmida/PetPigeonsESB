@@ -9,7 +9,8 @@ namespace ZmqServiceBus.Transport
     {
         void Initialize();
         void SendMessage(ITransportMessage message);
-        void PublishMessage(ITransportMessage message); 
+        void PublishMessage(ITransportMessage message);
+        void RouteMessage(ITransportMessage message);
         void AckMessage(byte[] recipientIdentity, Guid messageId, bool success);
         event Action<ITransportMessage> OnMessageReceived;
         TransportConfiguration Configuration { get; }

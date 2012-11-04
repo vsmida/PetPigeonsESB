@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using PersistenceService.Commands;
+using Shared;
 
 namespace ZmqServiceBus.Transport
 {
@@ -9,32 +11,35 @@ namespace ZmqServiceBus.Transport
         bool BrokerTransportAckReceived { get; set; }
         bool ClientDispatchAckReceived { get; set; }
         bool ClientDispatchSuccessful { get; set; }
-        WaitHandle WaitForReliabilityConditionsToBeFulfilled { get; }
+        void SendOn(ITransport transport, ITransportMessage message);
+        void PublishOn(ITransport transport, ITransportMessage message);
+        void RouteOn(ITransport transport, ITransportMessage message);
+        void CheckMessage(ITransportMessage message);
     }
 
     public interface IReliabilityStrategyFactory
     {
-        IReliabilityStrategy GetStrategy(ReliabilityOption option);
+        IReliabilityStrategy GetStrategy(MessageOptions messageOptions);
     }
 
     public class ReliabilityStrategyFactory : IReliabilityStrategyFactory
     {
-        public IReliabilityStrategy GetStrategy(ReliabilityOption option)
+        public IReliabilityStrategy GetStrategy(MessageOptions messageOptionses)
         {
-            switch (option)
+            switch (messageOptionses.ReliabilityLevel)
             {
-                case ReliabilityOption.FireAndForget:
+                case ReliabilityLevel.FireAndForget:
                     return new FireAndForget();
                     break;
                 //case ReliabilityOption.SendToClientAndBrokerNoAck:
                 //    break;
-                case ReliabilityOption.SomeoneReceivedMessageOnTransport:
-                    return new WaitForClientOrBrokerTransportAck();
+                case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
+                    return new WaitForClientOrBrokerTransportAck(messageOptionses.BrokerName);
                     break;
                 //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                 //    break;
                 default:
-                    throw new ArgumentOutOfRangeException("option");
+                    throw new ArgumentOutOfRangeException("level");
             }
         }
     }
@@ -94,10 +99,11 @@ namespace ZmqServiceBus.Transport
             }
         }
 
-        public WaitHandle WaitForReliabilityConditionsToBeFulfilled
-        {
-            get { return _waitForReliabilityConditionsToBeFulfilled; }
-        }
+        public abstract void SendOn(ITransport transport, ITransportMessage message);
+        public abstract void PublishOn(ITransport transport, ITransportMessage message);
+        public abstract void RouteOn(ITransport transport, ITransportMessage message);
+        public abstract void CheckMessage(ITransportMessage message);
+
 
         protected abstract void ReleaseWhenReliabilityAchieved();
 
@@ -105,6 +111,38 @@ namespace ZmqServiceBus.Transport
 
     internal class WaitForClientOrBrokerTransportAck : ReliabilityStrategy
     {
+        private readonly string _brokerPeerName;
+
+        public WaitForClientOrBrokerTransportAck(string brokerPeerName)
+        {
+            _brokerPeerName = brokerPeerName;
+        }
+
+        public override void SendOn(ITransport transport, ITransportMessage message)
+        {
+            transport.SendMessage(message);
+            transport.RouteMessage(new TransportMessage(typeof(PersistMessageCommand).FullName, _brokerPeerName, message.MessageIdentity, Serializer.Serialize(message)));
+           
+        }
+
+        public override void PublishOn(ITransport transport, ITransportMessage message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RouteOn(ITransport transport, ITransportMessage message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CheckMessage(ITransportMessage message)
+        {
+            if (message.PeerName == _brokerPeerName)
+                BrokerTransportAckReceived = true;
+            else
+                ClientTransportAckReceived = true;
+        }
+
         protected override void ReleaseWhenReliabilityAchieved()
         {
             if (ClientTransportAckReceived && BrokerTransportAckReceived)
@@ -114,6 +152,26 @@ namespace ZmqServiceBus.Transport
 
     internal class FireAndForget : ReliabilityStrategy
     {
+        public override void SendOn(ITransport transport, ITransportMessage message)
+        {
+            transport.SendMessage(message);
+        }
+
+        public override void PublishOn(ITransport transport, ITransportMessage message)
+        {
+            transport.PublishMessage(message);
+        }
+
+        public override void RouteOn(ITransport transport, ITransportMessage message)
+        {
+           
+        }
+
+        public override void CheckMessage(ITransportMessage message)
+        {
+            
+        }
+
         protected override void ReleaseWhenReliabilityAchieved()
         {
             _waitForReliabilityConditionsToBeFulfilled.Set();

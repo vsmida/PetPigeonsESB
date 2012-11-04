@@ -7,9 +7,9 @@ namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
-         public static TransportMessage GenerateDummyMessage<T>()
+         public static TransportMessage GenerateDummyMessage<T>(string peerName = null)
          {
-             return new TransportMessage(typeof(T).FullName,"Peer", Guid.NewGuid(), new byte[0]);
+             return new TransportMessage(typeof(T).FullName,peerName ?? "Peer", Guid.NewGuid(), new byte[0]);
          }
 
          public static TransportMessage GenerateDummyMessage<T>(T item)
@@ -17,9 +17,9 @@ namespace ZmqServiceBus.Tests.Transport
              return new TransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
          }
 
-        public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint)
+        public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)
         {
-            return new ServicePeer("Name", receptionEndpoint, "", new List<Type>{typeof(T)},new List<Type>());
+            return new ServicePeer(peerName ?? "Name", receptionEndpoint, "", new List<Type>{typeof(T)},new List<Type>());
         }
 
         public static IServicePeer CreatePeerThatPublishes<T>(string pubEndpoint)

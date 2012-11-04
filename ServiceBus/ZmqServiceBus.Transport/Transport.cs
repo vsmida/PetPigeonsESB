@@ -25,10 +25,12 @@ namespace ZmqServiceBus.Transport
         }
 
         private readonly Dictionary<string, SocketInfo> _endpointsToSocketInfo = new Dictionary<string, SocketInfo>();
-        private readonly Dictionary<string, string> _messageTypesToEndpoints = new Dictionary<string, string>();
+        private readonly Dictionary<string, HashSet<string>> _messageTypesToEndpoints = new Dictionary<string, HashSet<string>>();
         private readonly BlockingCollection<ITransportMessage> _messagesToPublish = new BlockingCollection<ITransportMessage>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
-        private readonly BlockingCollection<ITransportMessage> _acknowledgementsToSend = new BlockingCollection<ITransportMessage>();
+        private readonly Dictionary<string, IServicePeer> _knownPeersById = new Dictionary<string, IServicePeer>();
+        private readonly HashSet<Type> listenedToEvents = new HashSet<Type>();
+        private readonly HashSet<Type> commandsSent = new HashSet<Type>();
         public TransportConfiguration Configuration { get; private set; }
         private readonly IZmqSocketManager _socketManager;
         public event Action<ITransportMessage> OnMessageReceived = delegate { };
@@ -67,14 +69,18 @@ namespace ZmqServiceBus.Transport
 
         public void SendMessage(ITransportMessage message)
         {
-            var endpoint = _messageTypesToEndpoints[message.MessageType];
-            var socketInfo = _endpointsToSocketInfo[endpoint];
-            if(!socketInfo.SocketInitialized)
+            HashSet<string> endpoints = _messageTypesToEndpoints[message.MessageType];
+            foreach (var endpoint in endpoints)
             {
-                _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, endpoint, Configuration.PeerName);
-                socketInfo.SocketInitialized = true;
+                var socketInfo = _endpointsToSocketInfo[endpoint];
+                if (!socketInfo.SocketInitialized)
+                {
+                    _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, endpoint, Configuration.PeerName);
+                    socketInfo.SocketInitialized = true;
+                }
+                socketInfo.SendingQueue.Add(message);
             }
-            socketInfo.SendingQueue.Add(message);
+
         }
 
 
@@ -84,21 +90,44 @@ namespace ZmqServiceBus.Transport
             _messagesToPublish.Add(message);
         }
 
+        public void RouteMessage(ITransportMessage message)
+        {
+            IServicePeer peer;
+            if (!_knownPeersById.TryGetValue(message.PeerName, out peer))
+                throw new ArgumentException(string.Format("Cannot route to an unknown peer {0}", message.PeerName));
+            var targetEndpoint = peer.ReceptionEndpoint;
+            var socketInfo = _endpointsToSocketInfo[targetEndpoint];
+            if (!socketInfo.SocketInitialized)
+            {
+                _socketManager.CreateRequestSocket(socketInfo.SendingQueue, _messagesToForward, targetEndpoint, Configuration.PeerName);
+                socketInfo.SocketInitialized = true;
+            }
+            socketInfo.SendingQueue.Add(message);
+        }
+
         public void AckMessage(byte[] recipientIdentity, Guid messageId, bool success)
         {
-         //   _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
+            //   _acknowledgementsToSend.Add(new TransportMessage(Guid.NewGuid(), typeof(AcknowledgementMessage).FullName, Serializer.Serialize(new AcknowledgementMessage(messageId, success))));
         }
 
         public void RegisterPeer(IServicePeer peer)
         {
+            _knownPeersById[peer.PeerName] = peer;
             foreach (var publishedMessageType in peer.PublishedMessages)
             {
-                _socketManager.SubscribeTo(peer.PublicationEndpoint, publishedMessageType.FullName);
+                if (listenedToEvents.Contains(publishedMessageType))
+                    _socketManager.SubscribeTo(peer.PublicationEndpoint, publishedMessageType.FullName);
             }
 
             foreach (var handledMessage in peer.HandledMessages)
             {
-                _messageTypesToEndpoints[handledMessage.FullName] = peer.ReceptionEndpoint;
+                HashSet<string> endpointsForMessageType;
+                if (!_messageTypesToEndpoints.TryGetValue(handledMessage.FullName, out endpointsForMessageType))
+                {
+                    endpointsForMessageType = new HashSet<string>();
+                    _messageTypesToEndpoints[handledMessage.FullName] = endpointsForMessageType;
+                }
+                endpointsForMessageType.Add(peer.ReceptionEndpoint);
                 if (!_endpointsToSocketInfo.ContainsKey(peer.ReceptionEndpoint))
                 {
                     _endpointsToSocketInfo[peer.ReceptionEndpoint] = new SocketInfo();
@@ -113,5 +142,14 @@ namespace ZmqServiceBus.Transport
             _socketManager.Stop();
         }
 
+        public void ListenTo<T>()
+        {
+            listenedToEvents.Add(typeof(T));
+            foreach (var servicePeer in _knownPeersById.Values)
+            {
+                if (servicePeer.PublishedMessages.Contains(typeof(T)))
+                    _socketManager.SubscribeTo(servicePeer.PublicationEndpoint, typeof(T).FullName);
+            }
+        }
     }
 }
