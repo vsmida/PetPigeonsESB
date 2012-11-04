@@ -50,6 +50,7 @@
     <Compile Include="IBus.cs" />
     <Compile Include="IMessageDispatcher.cs" />
     <Compile Include="IObjectFactory.cs" />
+    <Compile Include="MessageContext.cs" />
     <Compile Include="MessageDispatcher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

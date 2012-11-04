@@ -85,9 +85,9 @@
     <Compile Include="ReliabilityStrategy.cs" />
     <Compile Include="IZmqSocketManager.cs" />
     <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
-    <Compile Include="Transport.cs" />
+    <Compile Include="EndpointManager.cs" />
     <Compile Include="AcknowledgementMessage.cs" />
-    <Compile Include="ITransport.cs" />
+    <Compile Include="IEndpointManager.cs" />
     <Compile Include="ITransportConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ZmqSocketManager.cs" />

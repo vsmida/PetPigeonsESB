@@ -18,12 +18,12 @@ namespace ZmqServiceBus.Tests
         private ReliabilityLayer _reliabilityLayer;
         private Mock<IReliabilityStrategy> _reliabilityStrategyMock;
         private Mock<IReliabilityStrategyFactory> _reliabilityStrategyFactoryMock;
-        private Mock<ITransport> _transportMock;
+        private Mock<IEndpointManager> _transportMock;
 
         [SetUp]
         public void setup()
         {
-            _transportMock = new Mock<ITransport>();
+            _transportMock = new Mock<IEndpointManager>();
             _reliabilityStrategyFactoryMock = new Mock<IReliabilityStrategyFactory>();
             _reliabilityStrategyMock = new Mock<IReliabilityStrategy>();
             _reliabilityStrategyFactoryMock.Setup(x => x.GetStrategy(It.IsAny<MessageOptions>())).Returns(_reliabilityStrategyMock.Object);
@@ -79,24 +79,28 @@ namespace ZmqServiceBus.Tests
         //    ITransportMessage capturedMessage = null;
         //    AutoResetEvent waitForProcessing = new AutoResetEvent(false);
         //    AutoResetEvent waitForThreadToWork = new AutoResetEvent(false);
-        //    _reliabilityLayer.OnMessageReceived += x =>
-        //    {
-        //        waitForProcessing.WaitOne();
-        //        if(capturedMessage == null)
-        //        capturedMessage = x;
-        //        waitForThreadToWork.Set();
-        //    };
+        //    new BackgroundThread(() =>
+        //                             {
+        //                                 _reliabilityLayer.OnMessageReceived += x =>
+        //                                                                            {
+        //                                                                                waitForProcessing.WaitOne();
+        //                                                                                if (capturedMessage == null)
+        //                                                                                    capturedMessage = x;
+        //                                                                                waitForThreadToWork.Set();
+        //                                                                            };
+        //                             }).Start();
+        
 
-        //    var sentMessage = new TransportMessage(typeof(FakeMessage).FullName, "", Guid.NewGuid(), new byte[0]);
-        //    var transportMessage = new TransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
+        //var sentMessage = new TransportMessage(typeof (FakeMessage).FullName, "", Guid.NewGuid(), new byte[0]);
+        //    var transportMessage = new TransportMessage(typeof (ReceivedOnTransportAcknowledgement).FullName, "DO",
+        //                                                sentMessage.MessageIdentity, new byte[0]);
         //    _transportMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
         //    Assert.IsNull(capturedMessage);
-        //    _reliabilityStrategyMock.Setup(x => x.CheckMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>(x => waitForProcessing.Set());
+        //    _reliabilityStrategyMock.Setup(x => x.CheckMessage(It.IsAny<ITransportMessage>())).Callback
+        //        <ITransportMessage>(x => waitForProcessing.Set());
         //    waitForThreadToWork.WaitOne();
         //    Assert.AreEqual(sentMessage, capturedMessage);
-
         //}
-
 
         private void OnMessageReceived(ITransportMessage obj)
         {

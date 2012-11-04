@@ -11,9 +11,9 @@ namespace ZmqServiceBus.Transport
         bool BrokerTransportAckReceived { get; set; }
         bool ClientDispatchAckReceived { get; set; }
         bool ClientDispatchSuccessful { get; set; }
-        void SendOn(ITransport transport, ITransportMessage message);
-        void PublishOn(ITransport transport, ITransportMessage message);
-        void RouteOn(ITransport transport, ITransportMessage message);
+        void SendOn(IEndpointManager endpointManager, ITransportMessage message);
+        void PublishOn(IEndpointManager endpointManager, ITransportMessage message);
+        void RouteOn(IEndpointManager endpointManager, ITransportMessage message);
         void CheckMessage(ITransportMessage message);
     }
 
@@ -99,9 +99,9 @@ namespace ZmqServiceBus.Transport
             }
         }
 
-        public abstract void SendOn(ITransport transport, ITransportMessage message);
-        public abstract void PublishOn(ITransport transport, ITransportMessage message);
-        public abstract void RouteOn(ITransport transport, ITransportMessage message);
+        public abstract void SendOn(IEndpointManager endpointManager, ITransportMessage message);
+        public abstract void PublishOn(IEndpointManager endpointManager, ITransportMessage message);
+        public abstract void RouteOn(IEndpointManager endpointManager, ITransportMessage message);
         public abstract void CheckMessage(ITransportMessage message);
 
 
@@ -118,19 +118,19 @@ namespace ZmqServiceBus.Transport
             _brokerPeerName = brokerPeerName;
         }
 
-        public override void SendOn(ITransport transport, ITransportMessage message)
+        public override void SendOn(IEndpointManager endpointManager, ITransportMessage message)
         {
-            transport.SendMessage(message);
-            transport.RouteMessage(new TransportMessage(typeof(PersistMessageCommand).FullName, _brokerPeerName, message.MessageIdentity, Serializer.Serialize(message)));
+            endpointManager.SendMessage(message);
+            endpointManager.RouteMessage(new TransportMessage(typeof(PersistMessageCommand).FullName, _brokerPeerName, message.MessageIdentity, Serializer.Serialize(message)));
            
         }
 
-        public override void PublishOn(ITransport transport, ITransportMessage message)
+        public override void PublishOn(IEndpointManager endpointManager, ITransportMessage message)
         {
             throw new NotImplementedException();
         }
 
-        public override void RouteOn(ITransport transport, ITransportMessage message)
+        public override void RouteOn(IEndpointManager endpointManager, ITransportMessage message)
         {
             throw new NotImplementedException();
         }
@@ -152,17 +152,17 @@ namespace ZmqServiceBus.Transport
 
     internal class FireAndForget : ReliabilityStrategy
     {
-        public override void SendOn(ITransport transport, ITransportMessage message)
+        public override void SendOn(IEndpointManager endpointManager, ITransportMessage message)
         {
-            transport.SendMessage(message);
+            endpointManager.SendMessage(message);
         }
 
-        public override void PublishOn(ITransport transport, ITransportMessage message)
+        public override void PublishOn(IEndpointManager endpointManager, ITransportMessage message)
         {
-            transport.PublishMessage(message);
+            endpointManager.PublishMessage(message);
         }
 
-        public override void RouteOn(ITransport transport, ITransportMessage message)
+        public override void RouteOn(IEndpointManager endpointManager, ITransportMessage message)
         {
            
         }

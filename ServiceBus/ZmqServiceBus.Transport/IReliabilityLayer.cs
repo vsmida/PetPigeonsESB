@@ -21,21 +21,21 @@ namespace ZmqServiceBus.Transport
         private readonly Dictionary<string, MessageOptions> _messageTypeToReliabilitySetting = new Dictionary<string, MessageOptions>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
         private readonly IReliabilityStrategyFactory _reliabilityStrategyFactory;
-        private readonly ITransport _transport;
+        private readonly IEndpointManager _endpointManager;
         public event Action<ITransportMessage> OnMessageReceived = delegate { };
         public void Initialize()
         {
-            _transport.Initialize();
+            _endpointManager.Initialize();
         }
 
         private volatile bool _running = true;
 
 
-        public ReliabilityLayer(IReliabilityStrategyFactory reliabilityStrategyFactory, ITransport transport)
+        public ReliabilityLayer(IReliabilityStrategyFactory reliabilityStrategyFactory, IEndpointManager endpointManager)
         {
             _reliabilityStrategyFactory = reliabilityStrategyFactory;
-            _transport = transport;
-            _transport.OnMessageReceived += OnTransportMessageReceived;
+            _endpointManager = endpointManager;
+            _endpointManager.OnMessageReceived += OnEndpointManagerMessageReceived;
             CreateEventThread();
         }
 
@@ -54,7 +54,7 @@ namespace ZmqServiceBus.Transport
                                      }).Start();
         }
 
-        private void OnTransportMessageReceived(ITransportMessage transportMessage)
+        private void OnEndpointManagerMessageReceived(ITransportMessage transportMessage)
         {
             if (transportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName)
             {
@@ -85,7 +85,7 @@ namespace ZmqServiceBus.Transport
 
         public void Send(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_transport, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_endpointManager, message));
         }
 
         private void RegisterReliabilityStrategyAndForward(ITransportMessage message, Action<IReliabilityStrategy> forwardAction)
@@ -101,19 +101,19 @@ namespace ZmqServiceBus.Transport
 
         public void Publish(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_transport, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_endpointManager, message));
 
         }
 
         public void Route(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_transport, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, message));
         }
 
         public void Dispose()
         {
             _running = false;
-            _transport.Dispose();
+            _endpointManager.Dispose();
         }
     }
 }
