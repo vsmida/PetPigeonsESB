@@ -66,7 +66,7 @@ namespace ZmqServiceBus.Tests
         {
             var handleMethods = _scanner.FindCommandHandlersInAssemblies(new FakeCommand(1));
             Assert.AreEqual(1, handleMethods.Count);
-            var method = typeof (FakeCommandHandler).GetMethod("Handle");
+            var method = typeof(FakeCommandHandler).GetMethod("Handle");
             Assert.AreEqual(method, handleMethods.Single());
         }
 
@@ -77,6 +77,29 @@ namespace ZmqServiceBus.Tests
             Assert.AreEqual(1, handleMethods.Count);
             var method = typeof(FakeEventHandler).GetMethod("Handle");
             Assert.AreEqual(method, handleMethods.Single());
+        }
+
+        [Test]
+        public void should_find_handled_commands()
+        {
+            var types = _scanner.GetHandledCommands();
+            Assert.Contains(typeof(FakeCommand), types);
+            Assert.IsFalse(types.Contains(typeof(FakeEvent)));
+        }
+        
+        [Test]
+        public void should_find_handled_events()
+        {
+            var types = _scanner.GetHandledEvents();
+            Assert.Contains(typeof(FakeEvent), types);
+            Assert.IsFalse(types.Contains(typeof(FakeCommand)));
+        }
+
+        [Test]
+        public void should_find_possibly_sent_events()
+        {
+            var types = _scanner.GetSentEvents();
+            Assert.Contains(typeof(FakeEvent), types);
         }
 
     }
