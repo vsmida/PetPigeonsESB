@@ -9,11 +9,11 @@ namespace ZmqServiceBus.Bus
 {
     public class InternalBus : IBus
     {
-        private readonly IStartupLayer _startupLayer;
+        private readonly IReliabilityLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;
         private readonly IBusConfiguration _config;
 
-        public InternalBus(IStartupLayer startupLayer, IMessageDispatcher dispatcher, IBusConfiguration config)
+        public InternalBus(IReliabilityLayer startupLayer, IMessageDispatcher dispatcher, IBusConfiguration config)
         {
             _startupLayer = startupLayer;
             _dispatcher = dispatcher;

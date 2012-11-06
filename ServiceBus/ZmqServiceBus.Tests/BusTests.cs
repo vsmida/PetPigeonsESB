@@ -30,12 +30,12 @@ namespace ZmqServiceBus.Tests
                 get { return "EEndpoint"; }
             }
 
-            public string ServiceIdentity { get { return "Identity"; }}
+            public string ServiceIdentity { get { return "Identity"; } }
         }
 
 
         private InternalBus _bus;
-        private Mock<IStartupLayer> _startupLayerMock;
+        private Mock<IReliabilityLayer> _startupLayerMock;
         private Mock<IMessageDispatcher> _dispatcherMock;
         private FakeIBusConfig _config;
         private FakeTransportConfiguration _transportConfig;
@@ -43,11 +43,11 @@ namespace ZmqServiceBus.Tests
         [SetUp]
         public void setup()
         {
-            _startupLayerMock = new Mock<IStartupLayer>();
+            _startupLayerMock = new Mock<IReliabilityLayer>();
             _dispatcherMock = new Mock<IMessageDispatcher>();
             _config = new FakeIBusConfig();
             _transportConfig = new FakeTransportConfiguration();
-          //  _startupLayerMock.SetupGet(x => x.Configuration).Returns(_transportConfig);
+            //  _startupLayerMock.SetupGet(x => x.Configuration).Returns(_transportConfig);
             _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _config);
         }
         [Test]
@@ -71,7 +71,7 @@ namespace ZmqServiceBus.Tests
         public void should_register_relevant_types_with_directory_service_on_start()
         {
             ITransportMessage transportMessage = null;
-           // _startupLayerMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>((x) => transportMessage = x);
+            // _startupLayerMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>((x) => transportMessage = x);
             _bus.Initialize();
 
             var command = Serializer.Deserialize<RegisterServiceRelevantMessages>(transportMessage.Data);
@@ -117,7 +117,7 @@ namespace ZmqServiceBus.Tests
 
         //}
 
-  
+
 
         [Test]
         public void should_stop_transport_on_stop()

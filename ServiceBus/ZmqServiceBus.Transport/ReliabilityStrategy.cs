@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using PersistenceService.Commands;
 using Shared;
 
 namespace ZmqServiceBus.Transport
 {
-    public interface IReliabilityStrategy
+    public interface ISendingReliabilityStrategy
     {
         bool ClientTransportAckReceived { get; set; }
         bool BrokerTransportAckReceived { get; set; }
@@ -17,14 +18,25 @@ namespace ZmqServiceBus.Transport
         void CheckMessage(ITransportMessage message);
     }
 
+    public interface IStartupReliabilityStrategy
+    {
+        string PeerName { get; }
+        string MessageType { get; }
+        bool IsInitialized { get; }
+
+
+        IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message); //enqueue or release messages when broker is sending same message as client.
+    }
+
     public interface IReliabilityStrategyFactory
     {
-        IReliabilityStrategy GetStrategy(MessageOptions messageOptions);
+        ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptions);
+        IStartupReliabilityStrategy GetStartupStrategy(MessageOptions messageOptions, string peerName, string messageType);
     }
 
     public class ReliabilityStrategyFactory : IReliabilityStrategyFactory
     {
-        public IReliabilityStrategy GetStrategy(MessageOptions messageOptionses)
+        public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptionses)
         {
             switch (messageOptionses.ReliabilityLevel)
             {
@@ -42,10 +54,106 @@ namespace ZmqServiceBus.Transport
                     throw new ArgumentOutOfRangeException("level");
             }
         }
+
+        public IStartupReliabilityStrategy GetStartupStrategy(MessageOptions messageOptions, string peerName, string messageType)
+        {
+            switch (messageOptions.ReliabilityLevel)
+            {
+                case ReliabilityLevel.FireAndForget:
+                    return new FireAndForgetStartupStrategy(null, null);
+                case ReliabilityLevel.SendToClientAndBrokerNoAck:
+                case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
+                case ReliabilityLevel.ClientAndBrokerReceivedOnTransport:
+                    return new SynchronizeWithBrokerStartupStrategy(peerName, messageType);
+                default:
+                    throw new ArgumentOutOfRangeException("messageOptions");
+            }
+        }
+    }
+
+    public abstract class StartupReliabilityStrategy : IStartupReliabilityStrategy
+    {
+        public string PeerName { get; private set; }
+        public string MessageType { get; private set; }
+        public bool IsInitialized { get; protected set; }
+        public abstract IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message);
+
+        protected StartupReliabilityStrategy(string peerName, string messageType)
+        {
+            PeerName = peerName;
+            MessageType = messageType;
+        }
     }
 
 
-    public abstract class ReliabilityStrategy : IReliabilityStrategy
+    internal class SynchronizeWithBrokerStartupStrategy : StartupReliabilityStrategy
+    {
+        private readonly string _peerName;
+        private readonly string _messageType;
+        private readonly Queue<ITransportMessage> _bufferizedMessages = new Queue<ITransportMessage>();
+        private readonly int _bufferSize = 500;
+
+        public SynchronizeWithBrokerStartupStrategy(string peerName, string messageType)
+            : base(peerName, messageType)
+        {
+            _peerName = peerName;
+            _messageType = messageType;
+        }
+
+        public override IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message)
+        {
+            if (IsInitialized)
+            {
+                yield return message;
+                yield break;
+            }
+
+            var firstElement = _bufferizedMessages.Peek();
+            if (firstElement == null || firstElement.MessageIdentity != message.MessageIdentity)
+                EnqueueMessage(message);
+
+            else
+                foreach (var transportMessage in SetInitialized())
+                    yield return transportMessage;
+
+        }
+
+        private IEnumerable<ITransportMessage> SetInitialized()
+        {
+            IsInitialized = true;
+            foreach (var bufferizedMesage in _bufferizedMessages)
+            {
+                yield return bufferizedMesage;
+            }
+        }
+
+        private void EnqueueMessage(ITransportMessage message)
+        {
+            if (_bufferSize < _bufferizedMessages.Count)
+            {
+                _bufferizedMessages.Clear();
+            }
+            _bufferizedMessages.Enqueue(message);
+        }
+    }
+
+    internal class FireAndForgetStartupStrategy : StartupReliabilityStrategy
+    {
+        public FireAndForgetStartupStrategy(string peerName, string messageType)
+            : base(peerName, messageType)
+        {
+        }
+
+
+        public override IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message)
+        {
+            yield return message;
+        }
+    }
+
+
+
+    public abstract class SendingReliabilityStrategy : ISendingReliabilityStrategy
     {
 
         private bool _clientTransportAckReceived;
@@ -54,7 +162,7 @@ namespace ZmqServiceBus.Transport
         private bool _clientDispatchSuccessful;
         protected readonly AutoResetEvent _waitForReliabilityConditionsToBeFulfilled = new AutoResetEvent(false);
 
-        protected ReliabilityStrategy()
+        protected SendingReliabilityStrategy()
         {
 
         }
@@ -109,7 +217,7 @@ namespace ZmqServiceBus.Transport
 
     }
 
-    internal class WaitForClientOrBrokerTransportAck : ReliabilityStrategy
+    internal class WaitForClientOrBrokerTransportAck : SendingReliabilityStrategy
     {
         private readonly string _brokerPeerName;
 
@@ -122,7 +230,7 @@ namespace ZmqServiceBus.Transport
         {
             endpointManager.SendMessage(message);
             endpointManager.RouteMessage(new TransportMessage(typeof(PersistMessageCommand).FullName, _brokerPeerName, message.MessageIdentity, Serializer.Serialize(message)));
-           
+
         }
 
         public override void PublishOn(IEndpointManager endpointManager, ITransportMessage message)
@@ -150,7 +258,8 @@ namespace ZmqServiceBus.Transport
         }
     }
 
-    internal class FireAndForget : ReliabilityStrategy
+
+    internal class FireAndForget : SendingReliabilityStrategy
     {
         public override void SendOn(IEndpointManager endpointManager, ITransportMessage message)
         {
@@ -164,12 +273,12 @@ namespace ZmqServiceBus.Transport
 
         public override void RouteOn(IEndpointManager endpointManager, ITransportMessage message)
         {
-           
+
         }
 
         public override void CheckMessage(ITransportMessage message)
         {
-            
+
         }
 
         protected override void ReleaseWhenReliabilityAchieved()

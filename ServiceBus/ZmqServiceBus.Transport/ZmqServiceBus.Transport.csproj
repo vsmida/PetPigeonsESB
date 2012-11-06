@@ -81,7 +81,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IReliabilityLayer.cs" />
-    <Compile Include="IStartupLayer.cs" />
+    <Compile Include="ReliabilityLayer.cs" />
     <Compile Include="ReliabilityStrategy.cs" />
     <Compile Include="IZmqSocketManager.cs" />
     <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
@@ -96,6 +96,10 @@
     <ProjectReference Include="..\..\..\clrzmq\src\ZeroMQ\ZeroMQ.csproj">
       <Project>{6ffd872f-a4a4-4efa-9b4d-4342ba6cf250}</Project>
       <Name>ZeroMQ</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\DirectoryService\DirectoryService.Commands\DirectoryService.Commands.csproj">
+      <Project>{49ea8413-2ffb-48f8-bbcf-2bff26b1df99}</Project>
+      <Name>DirectoryService.Commands</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\PersistenceService.Commands\PersistenceService.Commands.csproj">
       <Project>{c1262581-6f1e-44fe-b852-c7fe731f0908}</Project>

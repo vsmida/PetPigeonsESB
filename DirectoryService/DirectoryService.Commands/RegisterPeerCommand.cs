@@ -4,12 +4,12 @@ using Shared;
 namespace DirectoryService.Commands
 {
     [ProtoContract]
-    public class RegisterPeer : ICommand
+    public class RegisterPeerCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly ServicePeer Peer;
 
-        public RegisterPeer(ServicePeer peer)
+        public RegisterPeerCommand(ServicePeer peer)
         {
             Peer = peer;
         }
