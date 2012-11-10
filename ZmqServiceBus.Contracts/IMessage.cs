@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Shared
+namespace ZmqServiceBus.Contracts
 {
     public interface IMessage
     {

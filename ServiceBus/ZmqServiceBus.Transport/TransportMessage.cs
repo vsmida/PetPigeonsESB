@@ -1,15 +1,8 @@
-﻿using System;
+using System;
+using ZmqServiceBus.Contracts;
 
-namespace Shared
+namespace ZmqServiceBus.Transport
 {
-    public interface ITransportMessage
-    {
-        string PeerName { get; }
-        string MessageType { get; }
-        Guid MessageIdentity { get; }
-        byte[] Data { get; }
-    }
-
     public class TransportMessage : ITransportMessage
     {
         public string PeerName { get; private set; }

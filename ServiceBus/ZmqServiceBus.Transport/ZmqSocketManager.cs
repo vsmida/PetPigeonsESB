@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using Shared;
 using ZeroMQ;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Transport
 {

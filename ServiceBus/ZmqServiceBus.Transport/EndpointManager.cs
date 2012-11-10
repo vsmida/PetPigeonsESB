@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Transport
 {
@@ -54,11 +55,8 @@ namespace ZmqServiceBus.Transport
                                          {
                                              ITransportMessage message;
                                              if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
-                                             {
                                                  OnMessageReceived(message);
-                                             }
                                          }
-
                                      }).Start();
         }
 
@@ -127,7 +125,6 @@ namespace ZmqServiceBus.Transport
                 _endpointsToSocketInfo[peer.ReceptionEndpoint] = new SocketInfo();
             }
         }
-
 
         public void Dispose()
         {

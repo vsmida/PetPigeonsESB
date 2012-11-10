@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace DirectoryService.Core
 {

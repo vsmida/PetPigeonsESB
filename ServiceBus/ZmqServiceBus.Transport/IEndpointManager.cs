@@ -2,6 +2,7 @@
 using ProtoBuf;
 using Shared;
 using ZeroMQ;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Transport
 {

@@ -95,6 +95,10 @@
       <Project>{7df08a0e-d508-443a-88ca-f85568d5bf55}</Project>
       <Name>Shared</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\ZmqServiceBus.Contracts\ZmqServiceBus.Contracts.csproj">
+      <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
+      <Name>ZmqServiceBus.Contracts</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

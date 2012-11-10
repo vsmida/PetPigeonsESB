@@ -3,21 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using DirectoryService.Commands;
 using Shared;
+using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Transport;
 
 namespace ZmqServiceBus.Bus
 {
-    public class InternalBus : IBus
+    public interface IBusBootstrapperConfiguration
+    {
+        string DirectoryServiceCommandEndpoint { get; }
+        string DirectoryServiceEventEndpoint { get; }
+    }
+
+    public interface IBusBootstrapper
+    {
+        void BootStrapTopology();
+    }
+
+    public class InternalBus : IBus, IReplier
     {
         private readonly IReliabilityLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;
-        private readonly IBusConfiguration _config;
+        private readonly IBusBootstrapper _bootstrapper;
 
-        public InternalBus(IReliabilityLayer startupLayer, IMessageDispatcher dispatcher, IBusConfiguration config)
+        public InternalBus(IReliabilityLayer startupLayer, IMessageDispatcher dispatcher, IBusBootstrapper bootstrapper)
         {
             _startupLayer = startupLayer;
             _dispatcher = dispatcher;
-            _config = config;
+            _bootstrapper = bootstrapper;
         }
 
         public void Send(ICommand command)
@@ -26,7 +38,7 @@ namespace ZmqServiceBus.Bus
             _startupLayer.Send(transportMessage);
         }
 
-        private TransportMessage GetTransportMessage(IMessage command)
+        private ITransportMessage GetTransportMessage(IMessage command)
         {
           //  return new TransportMessage(Guid.NewGuid(), command.GetType().FullName, Serializer.Serialize(command));
             return null;
@@ -43,68 +55,12 @@ namespace ZmqServiceBus.Bus
             _startupLayer.Initialize();
             _startupLayer.OnMessageReceived += OnTransportMessageReceived;
             RegisterDirectoryServiceEndpoints();
-            RegisterWithDirectoryService();
         }
 
-        private void RegisterWithDirectoryService()
+        public void Reply(IMessage message)
         {
-            var registerCommand = ScanAssembliesForRelevantTypes();
-            Send(registerCommand);
         }
 
-        private RegisterServiceRelevantMessages ScanAssembliesForRelevantTypes()
-        {
-            var events = new List<Type>();
-            var handledCommands = new List<Type>();
-            var listenedEvents = new List<Type>();
-
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-            foreach (var assembly in assemblies)
-            {
-                foreach (var type in assembly.GetTypes())
-                {
-                    if (!type.IsInterface && !type.IsAbstract)
-                    {
-                        if (IsEvent(type))
-                            events.Add(type);
-
-                        var commandHandlerInterfaces = type.GetInterfaces().Where(IsCommandHandler);
-                        handledCommands.AddRange(commandHandlerInterfaces.Select(inter => inter.GetGenericArguments().First()));
-
-                        var eventHandlerInterfaces = type.GetInterfaces().Where(IsEventHandler);
-                        listenedEvents.AddRange(eventHandlerInterfaces.Select(inter => inter.GetGenericArguments().First()));
-                    }
-                }
-            }
-
-
-            //var registerCommand = new RegisterServiceRelevantMessages(_config.ServiceIdentity,
-            //                                                          _transport.Configuration.GetCommandsEnpoint(),
-            //                                                          _transport.Configuration.GetEventsEndpoint(),
-            //                                                          handledCommands.ToArray(), events.ToArray(), listenedEvents.ToArray());
-            //return registerCommand;
-            return null;
-        }
-
-        private static bool IsEventHandler(Type type)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEventHandler<>);
-        }
-
-        private static bool IsCommandHandler(Type type)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommandHandler<>);
-        }
-
-        private static bool IsEvent(Type type)
-        {
-            return type.GetInterfaces().Contains(typeof(IEvent));
-        }
-
-        private static bool IsCommand(Type type)
-        {
-            return type.GetInterfaces().Contains(typeof(ICommand));
-        }
 
         private void RegisterDirectoryServiceEndpoints()
         {

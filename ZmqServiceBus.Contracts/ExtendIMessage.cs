@@ -1,6 +1,5 @@
-﻿using System.Linq;
-
-namespace Shared
+using System.Linq;
+namespace ZmqServiceBus.Contracts
 {
     public static class ExtendIMessage
     {

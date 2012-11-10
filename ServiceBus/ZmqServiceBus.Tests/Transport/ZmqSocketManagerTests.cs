@@ -5,6 +5,8 @@ using System.Threading;
 using NUnit.Framework;
 using Shared;
 using ZeroMQ;
+using ZmqServiceBus.Bus;
+using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport

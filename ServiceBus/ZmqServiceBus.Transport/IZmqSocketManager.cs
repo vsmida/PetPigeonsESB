@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Transport
 {

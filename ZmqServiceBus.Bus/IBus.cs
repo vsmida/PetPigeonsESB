@@ -1,5 +1,6 @@
 ﻿using System;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus
 {
@@ -8,5 +9,10 @@ namespace ZmqServiceBus.Bus
         void Send(ICommand command);
         void Publish(IEvent message);
         void Initialize();
+    }
+
+    public interface IReplier
+    {
+        void Reply(IMessage message);
     }
 }

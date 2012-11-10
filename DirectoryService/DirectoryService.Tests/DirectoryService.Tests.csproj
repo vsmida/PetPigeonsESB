@@ -88,6 +88,10 @@
     <Compile Include="ServiceStoreTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\ZmqServiceBus.Contracts\ZmqServiceBus.Contracts.csproj">
+      <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
+      <Name>ZmqServiceBus.Contracts</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DirectoryService.Commands\DirectoryService.Commands.csproj">
       <Project>{49ea8413-2ffb-48f8-bbcf-2bff26b1df99}</Project>
       <Name>DirectoryService.Commands</Name>

@@ -1,5 +1,6 @@
 ﻿using System;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace DirectoryService.Commands
 {

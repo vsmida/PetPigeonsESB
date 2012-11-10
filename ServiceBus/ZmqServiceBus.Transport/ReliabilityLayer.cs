@@ -2,13 +2,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using DirectoryService.Commands;
+using PersistenceService.Commands;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Transport
 {
     public class ReliabilityLayer : IReliabilityLayer
     {
-        private readonly ConcurrentDictionary<Guid, ISendingReliabilityStrategy> _messageIdToReliabilityInfo = new ConcurrentDictionary<Guid, ISendingReliabilityStrategy>();
+        private readonly ISendingStrategyManager _sendingStrategyManager;
         private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _startupKeyToStartupStrategy = new Dictionary<StartUpKey, IStartupReliabilityStrategy>();
         private readonly Dictionary<string, MessageOptions> _messageTypeToReliabilitySetting = new Dictionary<string, MessageOptions>();
         private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
@@ -23,15 +25,21 @@ namespace ZmqServiceBus.Transport
         private volatile bool _running = true;
 
 
-        public ReliabilityLayer(IReliabilityStrategyFactory reliabilityStrategyFactory, IEndpointManager endpointManager)
+        public ReliabilityLayer(IReliabilityStrategyFactory reliabilityStrategyFactory, IEndpointManager endpointManager, ISendingStrategyManager sendingStrategyManager)
         {
             _reliabilityStrategyFactory = reliabilityStrategyFactory;
             _endpointManager = endpointManager;
+            _sendingStrategyManager = sendingStrategyManager;
             _endpointManager.OnMessageReceived += OnEndpointManagerMessageReceived;
             CreateEventThread();
-            RegisterMessageReliabilitySetting<ReceivedOnTransportAcknowledgement>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
+            RegisterInfrastructureMessages();
+        }
+
+        private void RegisterInfrastructureMessages()
+        {
             RegisterMessageReliabilitySetting<InitializeTopologyAndMessageSettings>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
             RegisterMessageReliabilitySetting<RegisterPeerCommand>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
+            RegisterMessageReliabilitySetting<ProcessMessagesCommand>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
         }
 
         private void CreateEventThread()
@@ -53,7 +61,14 @@ namespace ZmqServiceBus.Transport
         {
             ReleaseSendingStrategy(transportMessage);
 
+            if (IsTransportAck(transportMessage))
+                return;
             ForwardMessagesAcceptedByStartupStrategy(transportMessage);
+        }
+
+        private static bool IsTransportAck(ITransportMessage transportMessage)
+        {
+            return transportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName;
         }
 
         private void ForwardMessagesAcceptedByStartupStrategy(ITransportMessage transportMessage)
@@ -63,7 +78,7 @@ namespace ZmqServiceBus.Transport
             if (!_startupKeyToStartupStrategy.TryGetValue(startUpKey, out startupStrategy))
             {
                 startupStrategy =
-                    _reliabilityStrategyFactory.GetStartupStrategy(_messageTypeToReliabilitySetting[transportMessage.MessageType], startUpKey.PeerName, startUpKey.MessageType);_startupKeyToStartupStrategy.Add(startUpKey, startupStrategy);
+                    _reliabilityStrategyFactory.GetStartupStrategy(_messageTypeToReliabilitySetting[transportMessage.MessageType], startUpKey.PeerName, startUpKey.MessageType); _startupKeyToStartupStrategy.Add(startUpKey, startupStrategy);
             }
 
             foreach (var message in startupStrategy.GetMessagesToBubbleUp(transportMessage))
@@ -74,16 +89,20 @@ namespace ZmqServiceBus.Transport
 
         private void ReleaseSendingStrategy(ITransportMessage transportMessage)
         {
-            ISendingReliabilityStrategy strategy;
-            if (_messageIdToReliabilityInfo.TryGetValue(transportMessage.MessageIdentity, out strategy))
-            {
+            ISendingReliabilityStrategy strategy = _sendingStrategyManager.GetSendingStrategy(transportMessage);
+            if (strategy != null)
                 strategy.CheckMessage(transportMessage);
-            }
+        }
 
+        private SendingStrategyKey GetSendingStrategyKey(ITransportMessage transportMessage)
+        {
+            if (IsTransportAck(transportMessage))
+                return new SendingStrategyKey(transportMessage.MessageIdentity);
             if (transportMessage.MessageType == typeof(AcknowledgementMessage).FullName)
             {
                 //do stuff
             }
+            return null;
         }
 
         public void RegisterMessageReliabilitySetting<T>(MessageOptions level)
@@ -98,17 +117,17 @@ namespace ZmqServiceBus.Transport
 
         public void Send(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_endpointManager, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_endpointManager, _sendingStrategyManager, message));
         }
 
         public void Publish(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_endpointManager, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_endpointManager, _sendingStrategyManager, message));
         }
 
         public void Route(ITransportMessage message)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, _sendingStrategyManager, message));
         }
 
         private void RegisterReliabilityStrategyAndForward(ITransportMessage message, Action<ISendingReliabilityStrategy> forwardAction)
@@ -117,7 +136,6 @@ namespace ZmqServiceBus.Transport
             if (_messageTypeToReliabilitySetting.TryGetValue(message.MessageType, out reliabilityLevel))
             {
                 var messageStrategy = _reliabilityStrategyFactory.GetSendingStrategy(reliabilityLevel);
-                _messageIdToReliabilityInfo.TryAdd(message.MessageIdentity, messageStrategy);
                 forwardAction(messageStrategy);
             }
             else
@@ -129,6 +147,7 @@ namespace ZmqServiceBus.Transport
             _running = false;
             _endpointManager.Dispose();
         }
+
 
         private class StartUpKey
         {

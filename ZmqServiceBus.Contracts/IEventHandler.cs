@@ -1,4 +1,4 @@
-﻿namespace Shared
+namespace ZmqServiceBus.Contracts
 {
     public interface IEventHandler<T>  : IMessageHandler<T> where T : IEvent
     {

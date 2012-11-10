@@ -4,6 +4,8 @@ using Moq;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Bus;
+using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Transport;
 using Serializer = Shared.Serializer;
 using Shared.TestTools;

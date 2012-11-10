@@ -4,6 +4,5 @@
     {
         string DirectoryServiceCommandEndpoint { get; }
         string DirectoryServiceEventEndpoint { get; }
-        string ServiceIdentity { get; }
     }
 }

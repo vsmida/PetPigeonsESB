@@ -1,4 +1,5 @@
 ﻿using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus
 {

@@ -1,5 +1,6 @@
 ﻿using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Contracts;
 
 namespace PersistenceService.Commands
 {
@@ -7,6 +8,6 @@ namespace PersistenceService.Commands
     public class PersistMessageCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public TransportMessage Message;
+        public ITransportMessage Message;
     }
 }
