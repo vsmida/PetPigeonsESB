@@ -1,5 +1,6 @@
 ﻿using Shared;
-using ZmqServiceBus.Transport;
+using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport
 {

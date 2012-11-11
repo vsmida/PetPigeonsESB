@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Shared;
 using ZeroMQ;
-using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public class ZmqSocketManager : IZmqSocketManager
     {
@@ -43,7 +41,7 @@ namespace ZmqServiceBus.Transport
             _subSocket.Subscribe(Encoding.ASCII.GetBytes(messageType));
         }
 
-        public void CreateSubscribeSocket(BlockingCollection<ITransportMessage> receiveQueue)
+        public void CreateSubscribeSocket(BlockingCollection<IReceivedTransportMessage> receiveQueue)
         {
             _subSocket = _context.CreateSocket(SocketType.SUB);
             _socketsToDispose.Add(_subSocket);
@@ -56,18 +54,18 @@ namespace ZmqServiceBus.Transport
                 CreatePollingThread();
         }
 
-        private void ReceiveFromSubscriber(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> receiveQueue)
+        private void ReceiveFromSubscriber(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> receiveQueue)
         {
             var zmqSocket = socketEventArgs.Socket;
             var type = zmqSocket.Receive(Encoding.ASCII);
             var senderServiceId = zmqSocket.Receive(Encoding.ASCII);
             var id = new Guid(zmqSocket.Receive());
             var data = zmqSocket.Receive();
-            receiveQueue.Add(new TransportMessage(type, senderServiceId, id, data));
+            receiveQueue.Add(new ReceivedTransportMessage(type, senderServiceId, id, data));
         }
 
 
-        public void CreateRequestSocket(BlockingCollection<ITransportMessage> sendingQueue, BlockingCollection<ITransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
+        public void CreateRequestSocket(BlockingCollection<IReceivedTransportMessage> sendingQueue, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
         {
             var requestorSocket = _context.CreateSocket(SocketType.DEALER);
             requestorSocket.Linger = TimeSpan.FromSeconds(1);
@@ -84,9 +82,9 @@ namespace ZmqServiceBus.Transport
                 CreatePollingThread();
         }
 
-        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> sendingQueue, string servicePeerName)
+        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> sendingQueue, string servicePeerName)
         {
-            ITransportMessage message;
+            IReceivedTransportMessage message;
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
@@ -97,7 +95,7 @@ namespace ZmqServiceBus.Transport
             zmqSocket.Send(message.Data);
         }
 
-        private void ReceiveFromDealer(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> acknowledgementQueue)
+        private void ReceiveFromDealer(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue)
         {
             var zmqSocket = socketEventArgs.Socket;
             zmqSocket.Receive();
@@ -105,10 +103,10 @@ namespace ZmqServiceBus.Transport
             var servicePeerName = zmqSocket.Receive(Encoding.ASCII);
             var id = new Guid(zmqSocket.Receive());
             var serializedItem = zmqSocket.Receive();
-            acknowledgementQueue.Add(new TransportMessage(type,servicePeerName,id, serializedItem));
+            acknowledgementQueue.Add(new ReceivedTransportMessage(type,servicePeerName,id, serializedItem));
         }
 
-        public void CreatePublisherSocket(BlockingCollection<ITransportMessage> sendingQueue, string endpoint, string servicePeerName)
+        public void CreatePublisherSocket(BlockingCollection<IReceivedTransportMessage> sendingQueue, string endpoint, string servicePeerName)
         {
             var waitForBind = new AutoResetEvent(false);
             new BackgroundThread(() =>
@@ -120,7 +118,7 @@ namespace ZmqServiceBus.Transport
                                          waitForBind.Set();
                                          while (_running)
                                          {
-                                             ITransportMessage message;
+                                             IReceivedTransportMessage message;
                                              if (sendingQueue.TryTake(out message, TimeSpan.FromSeconds(0.1)))
                                              {
                                                  publisherSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
@@ -135,7 +133,7 @@ namespace ZmqServiceBus.Transport
 
         }
 
-        public void CreateResponseSocket(BlockingCollection<ITransportMessage> receivingQueue, string endpoint, string servicePeerName)
+        public void CreateResponseSocket(BlockingCollection<IReceivedTransportMessage> receivingQueue, string endpoint, string servicePeerName)
         {
             var replierSocket = _context.CreateSocket(SocketType.ROUTER);
             replierSocket.Linger = TimeSpan.FromSeconds(1);
@@ -169,7 +167,7 @@ namespace ZmqServiceBus.Transport
 
         //}
 
-        private void ReceiveFromRouter(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> receivingQueue, string servicePeerName)
+        private void ReceiveFromRouter(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> receivingQueue, string servicePeerName)
         {
             var zmqSocket = socketEventArgs.Socket;
             var zmqIdentity = zmqSocket.Receive();
@@ -178,7 +176,7 @@ namespace ZmqServiceBus.Transport
             var serializedId = zmqSocket.Receive();
             var messageId = new Guid(serializedId);
             var serializedItem = zmqSocket.Receive();
-            receivingQueue.Add(new TransportMessage(type,peerName, messageId, serializedItem));
+            receivingQueue.Add(new ReceivedTransportMessage(type,peerName, messageId, serializedItem));
 
             if (type == typeof(ReceivedOnTransportAcknowledgement).FullName)
                 return;

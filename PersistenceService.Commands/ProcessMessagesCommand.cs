@@ -1,5 +1,4 @@
-﻿using Shared;
-using ZmqServiceBus.Contracts;
+﻿using ZmqServiceBus.Contracts;
 
 namespace PersistenceService.Commands
 {

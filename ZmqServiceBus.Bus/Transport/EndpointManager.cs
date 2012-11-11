@@ -2,9 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Shared;
-using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public class EndpointManager : IEndpointManager
     {
@@ -81,11 +80,11 @@ namespace ZmqServiceBus.Transport
             _messagesToPublish.Add(message);
         }
 
-        public void RouteMessage(ITransportMessage message)
+        public void RouteMessage(ITransportMessage message, string destinationPeer)
         {
             IServicePeer peer;
-            if (!_knownPeersById.TryGetValue(message.PeerName, out peer))
-                throw new ArgumentException(string.Format("Cannot route to an unknown peer {0}", message.PeerName));
+            if (!_knownPeersById.TryGetValue(destinationPeer, out peer))
+                throw new ArgumentException(string.Format("Cannot route to an unknown peer {0}", destinationPeer));
             var targetEndpoint = peer.ReceptionEndpoint;
             var socketInfo = _endpointsToSocketInfo[targetEndpoint];
             if (!socketInfo.SocketInitialized)

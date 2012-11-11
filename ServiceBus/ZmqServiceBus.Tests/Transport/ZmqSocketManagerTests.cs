@@ -6,8 +6,7 @@ using NUnit.Framework;
 using Shared;
 using ZeroMQ;
 using ZmqServiceBus.Bus;
-using ZmqServiceBus.Contracts;
-using ZmqServiceBus.Transport;
+using ZmqServiceBus.Bus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport
 {
@@ -30,8 +29,8 @@ namespace ZmqServiceBus.Tests.Transport
         [Test, Timeout(10000000), Repeat(10)]
         public void should_create_requestor_socket()
         {
-            var sendCollection = new BlockingCollection<ITransportMessage>();
-            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            var sendCollection = new BlockingCollection<IReceivedTransportMessage>();
+            var receiveCollection = new BlockingCollection<IReceivedTransportMessage>();
             string senderIdentity = "Identity";
             var commandType = "Request";
             var commandData = "Data";
@@ -41,7 +40,7 @@ namespace ZmqServiceBus.Tests.Transport
             routerSocket.Bind(Endpoint);
             _socketManager.CreateRequestSocket(sendCollection, receiveCollection, Endpoint, senderIdentity);
             var messageIdentity = Guid.NewGuid();
-            sendCollection.Add(new TransportMessage(commandType, senderIdentity, messageIdentity, Encoding.ASCII.GetBytes(commandData)));
+            sendCollection.Add(new ReceivedTransportMessage(commandType, senderIdentity, messageIdentity, Encoding.ASCII.GetBytes(commandData)));
 
             var ephemeralIdentity = routerSocket.Receive();//identity of client
             Assert.AreEqual(commandType, Encoding.ASCII.GetString(routerSocket.Receive()));
@@ -69,7 +68,7 @@ namespace ZmqServiceBus.Tests.Transport
         [Test, Timeout(1000), Repeat(10)]
         public void should_create_publisher_socket()
         {
-            var sendQueue = new BlockingCollection<ITransportMessage>();
+            var sendQueue = new BlockingCollection<IReceivedTransportMessage>();
             var subscriberSocket = _zmqContext.CreateSocket(SocketType.SUB);
             var messageType = "Type";
             var messageData = "Data";
@@ -79,7 +78,7 @@ namespace ZmqServiceBus.Tests.Transport
             subscriberSocket.Connect(Endpoint);
 
             var messageIdentity = Guid.NewGuid();
-            var transportMessage = new TransportMessage(messageType, pubServiceName, messageIdentity, Encoding.ASCII.GetBytes(messageData));
+            var transportMessage = new ReceivedTransportMessage(messageType, pubServiceName, messageIdentity, Encoding.ASCII.GetBytes(messageData));
             sendQueue.Add(transportMessage);
 
             Assert.AreEqual(Encoding.ASCII.GetBytes(transportMessage.MessageType), subscriberSocket.Receive());
@@ -92,7 +91,7 @@ namespace ZmqServiceBus.Tests.Transport
         [Test, Timeout(1000000), Repeat(5)]
         public void should_create_subscriber_socket_and_subscribe()
         {
-            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            var receiveCollection = new BlockingCollection<IReceivedTransportMessage>();
             var publisherSocket = _zmqContext.CreateSocket(SocketType.PUB);
             publisherSocket.Bind(Endpoint);
             var messageType = "Type";
@@ -120,7 +119,7 @@ namespace ZmqServiceBus.Tests.Transport
         public void should_send_back_ack_when_message_received_on_response_socket()
         {
             //var sendCollection = new BlockingCollection<ITransportMessage>();
-            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            var receiveCollection = new BlockingCollection<IReceivedTransportMessage>();
             const string senderIdentity = "RequestorIdentity";
             const string sentMessageType = "Type";
             const string sentData = "Data";
@@ -154,7 +153,7 @@ namespace ZmqServiceBus.Tests.Transport
         public void should_not_send_back_ack_when_message_received_on_response_socket_is_already_a_transport_ack()
         {
        //     var sendCollection = new BlockingCollection<ITransportMessage>();
-            var receiveCollection = new BlockingCollection<ITransportMessage>();
+            var receiveCollection = new BlockingCollection<IReceivedTransportMessage>();
             const string senderIdentity = "RequestorIdentity";
             var messageId = Guid.NewGuid();
             _socketManager.CreateResponseSocket(receiveCollection, Endpoint, "test");

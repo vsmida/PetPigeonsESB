@@ -131,10 +131,6 @@
       <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
       <Name>ZmqServiceBus.Contracts</Name>
     </ProjectReference>
-    <ProjectReference Include="..\ZmqServiceBus.Transport\ZmqServiceBus.Transport.csproj">
-      <Project>{260acc9f-c02e-4a1f-b3a7-a32a45310380}</Project>
-      <Name>ZmqServiceBus.Transport</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">

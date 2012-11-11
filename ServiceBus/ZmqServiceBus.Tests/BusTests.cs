@@ -8,9 +8,9 @@ using ProtoBuf;
 using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
-using ZmqServiceBus.Transport;
 using Serializer = Shared.Serializer;
 
 namespace ZmqServiceBus.Tests
@@ -64,32 +64,6 @@ namespace ZmqServiceBus.Tests
         {
             _bus.Initialize();
             _busBootstrapperMock.Verify(x => x.BootStrapTopology());
-        }
-
-        [Test]
-        public void should_register_directory_service_endpoints_on_start()
-        {
-            _bus.Initialize();
-
-            //_transportMock.Verify(x => x.RegisterCommandHandlerEndpoint<RegisterServiceRelevantMessages>(_config.DirectoryServiceCommandEndpoint));
-            //_transportMock.Verify(x => x.RegisterPublisherEndpoint<RegisteredHandlersForCommand>(_config.DirectoryServiceEventEndpoint));
-            //_transportMock.Verify(x => x.RegisterPublisherEndpoint<RegisteredPublishersForEvent>(_config.DirectoryServiceEventEndpoint));
-        }
-
-        [Test]
-        public void should_register_relevant_types_with_directory_service_on_start()
-        {
-            ITransportMessage transportMessage = null;
-            // _startupLayerMock.Setup(x => x.SendMessage(It.IsAny<ITransportMessage>())).Callback<ITransportMessage>((x) => transportMessage = x);
-            _bus.Initialize();
-
-            var command = Serializer.Deserialize<RegisterServiceRelevantMessages>(transportMessage.Data);
-            Assert.AreEqual(_config.ServiceIdentity, command.ServiceIdentity);
-            Assert.AreEqual(_transportConfig.GetCommandsEnpoint(), command.CommandsEndpoint);
-            Assert.AreEqual(_transportConfig.GetEventsEndpoint(), command.EventsEndpoint);
-            Assert.Contains(typeof(FakeEvent), command.EventsListenedTo);
-            Assert.Contains(typeof(FakeCommand), command.HandledCommands);
-            Assert.Contains(typeof(FakeEvent), command.EventsListenedTo);
         }
 
 

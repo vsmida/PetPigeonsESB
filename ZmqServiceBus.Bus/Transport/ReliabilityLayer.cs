@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using DirectoryService.Commands;
-using PersistenceService.Commands;
 using Shared;
-using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public class ReliabilityLayer : IReliabilityLayer
     {
@@ -32,15 +29,8 @@ namespace ZmqServiceBus.Transport
             _sendingStrategyManager = sendingStrategyManager;
             _endpointManager.OnMessageReceived += OnEndpointManagerMessageReceived;
             CreateEventThread();
-            RegisterInfrastructureMessages();
         }
 
-        private void RegisterInfrastructureMessages()
-        {
-            RegisterMessageReliabilitySetting<InitializeTopologyAndMessageSettings>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
-            RegisterMessageReliabilitySetting<RegisterPeerCommand>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
-            RegisterMessageReliabilitySetting<ProcessMessagesCommand>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
-        }
 
         private void CreateEventThread()
         {
@@ -125,9 +115,9 @@ namespace ZmqServiceBus.Transport
             RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_endpointManager, _sendingStrategyManager, message));
         }
 
-        public void Route(ITransportMessage message)
+        public void Route(ITransportMessage message, string destinationPeer)
         {
-            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, _sendingStrategyManager, message));
+            RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, _sendingStrategyManager, message, destinationPeer));
         }
 
         private void RegisterReliabilityStrategyAndForward(ITransportMessage message, Action<ISendingReliabilityStrategy> forwardAction)

@@ -92,6 +92,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\ZmqServiceBus.Bus\ZmqServiceBus.Bus.csproj">
+      <Project>{c33450c1-7e6e-4e0a-9ffa-058b27743719}</Project>
+      <Name>ZmqServiceBus.Bus</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\ZmqServiceBus.Contracts\ZmqServiceBus.Contracts.csproj">
       <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
       <Name>ZmqServiceBus.Contracts</Name>

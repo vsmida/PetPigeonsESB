@@ -5,8 +5,8 @@ using NUnit.Framework;
 using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
-using ZmqServiceBus.Transport;
 using Serializer = Shared.Serializer;
 using Shared.TestTools;
 
@@ -15,7 +15,7 @@ namespace ZmqServiceBus.Tests.Transport
     [TestFixture]
     public class TransportTests
     {
-        private ZmqServiceBus.Transport.EndpointManager _endpointManager;
+        private EndpointManager _endpointManager;
         private Mock<IZmqSocketManager> _socketManagerMock;
         private FakeTransportConfiguration _configuration;
         [ProtoContract]
@@ -74,7 +74,7 @@ namespace ZmqServiceBus.Tests.Transport
         {
             _configuration = new FakeTransportConfiguration();
             _socketManagerMock = new Mock<IZmqSocketManager>();
-            _endpointManager = new ZmqServiceBus.Transport.EndpointManager(_configuration, _socketManagerMock.Object);
+            _endpointManager = new EndpointManager(_configuration, _socketManagerMock.Object);
         }
 
         [Test]
@@ -182,15 +182,15 @@ namespace ZmqServiceBus.Tests.Transport
             _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint, "P1"));
             _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint2, "P2"));
 
-            var transportMessage = TestData.GenerateDummyMessage<FakeCommand>("P1");
-            _endpointManager.RouteMessage(transportMessage);
+            var transportMessage = TestData.GenerateDummyMessage<FakeCommand>();
+            _endpointManager.RouteMessage(transportMessage, "P1");
 
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<BlockingCollection<ITransportMessage>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once());
             var sentMessage = sendQueueForFakeCommand.Take();
             Assert.AreEqual(transportMessage.Data,sentMessage.Data);
             Assert.AreEqual(transportMessage.MessageIdentity,sentMessage.MessageIdentity);
             Assert.AreEqual(transportMessage.MessageType,sentMessage.MessageType);
-            Assert.AreEqual(transportMessage.PeerName,sentMessage.PeerName);
+            Assert.AreEqual(transportMessage.PeerName, sentMessage.PeerName);
         }
 
 

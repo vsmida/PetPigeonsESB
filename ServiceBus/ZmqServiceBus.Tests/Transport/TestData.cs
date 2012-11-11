@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using Shared;
 using ZmqServiceBus.Bus;
-using ZmqServiceBus.Transport;
+using ZmqServiceBus.Bus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
-         public static TransportMessage GenerateDummyMessage<T>(string peerName = null)
+         public static TransportMessage GenerateDummyMessage<T>()
          {
-             return new TransportMessage(typeof(T).FullName,peerName ?? "Peer", Guid.NewGuid(), new byte[0]);
+             return new TransportMessage(typeof(T).FullName,"Peer", Guid.NewGuid(), new byte[0]);
          }
 
          public static TransportMessage GenerateDummyMessage<T>(T item)

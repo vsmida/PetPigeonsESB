@@ -7,9 +7,9 @@ using NUnit.Framework;
 using PersistenceService.Commands;
 using Shared;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
-using ZmqServiceBus.Transport;
 
 namespace ZmqServiceBus.Tests
 {
@@ -53,7 +53,7 @@ namespace ZmqServiceBus.Tests
             _reliabilityLayer.Send(transportMessage);
 
             _reliabilityStrategyFactoryMock.Verify(x => x.GetSendingStrategy(messageOption));
-            _sendingReliabilityStrategyMock.Verify(x => x.SendOn(_endpointManagerMock.Object, transportMessage));
+            _sendingReliabilityStrategyMock.Verify(x => x.SendOn(_endpointManagerMock.Object, _sendingStrategyManagerMock.Object, transportMessage));
         }
 
         [Test]
@@ -150,16 +150,6 @@ namespace ZmqServiceBus.Tests
         {
             _reliabilityLayer.Initialize();
             _endpointManagerMock.Verify(x => x.Initialize());
-        }
-
-        [Test]
-        public void should_register_reliability_of_special_infrastructure_messages_on_start()
-        {
-            _reliabilityLayer.Initialize();
-            
-            Assert.DoesNotThrow(() => _reliabilityLayer.Send(TestData.GenerateDummyMessage<InitializeTopologyAndMessageSettings>()));
-            Assert.DoesNotThrow(() => _reliabilityLayer.Send(TestData.GenerateDummyMessage<RegisterPeerCommand>()));
-            Assert.DoesNotThrow(() => _reliabilityLayer.Send(TestData.GenerateDummyMessage<ProcessMessagesCommand>()));
         }
 
 

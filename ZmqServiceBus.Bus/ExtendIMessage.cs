@@ -1,5 +1,7 @@
 using System.Linq;
-namespace ZmqServiceBus.Contracts
+using ZmqServiceBus.Contracts;
+
+namespace ZmqServiceBus.Bus
 {
     public static class ExtendIMessage
     {

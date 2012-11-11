@@ -80,18 +80,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IReliabilityLayer.cs" />
-    <Compile Include="ReliabilityLayer.cs" />
-    <Compile Include="ReliabilityStrategy.cs" />
-    <Compile Include="IZmqSocketManager.cs" />
-    <Compile Include="ReceivedOnTransportAcknowledgement.cs" />
-    <Compile Include="EndpointManager.cs" />
-    <Compile Include="AcknowledgementMessage.cs" />
-    <Compile Include="IEndpointManager.cs" />
-    <Compile Include="ITransportConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TransportMessage.cs" />
-    <Compile Include="ZmqSocketManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\clrzmq\src\ZeroMQ\ZeroMQ.csproj">

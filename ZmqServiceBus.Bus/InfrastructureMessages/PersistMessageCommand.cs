@@ -1,13 +1,13 @@
 ﻿using ProtoBuf;
-using Shared;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 
-namespace PersistenceService.Commands
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
     public class PersistMessageCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public ITransportMessage Message;
+        public IReceivedTransportMessage Message;
     }
 }

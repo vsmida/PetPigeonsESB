@@ -1,6 +1,6 @@
-﻿using ProtoBuf;
+using ProtoBuf;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     [ProtoContract]
     public class ReceivedOnTransportAcknowledgement

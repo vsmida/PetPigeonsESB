@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using Shared;
-using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public interface ISendingStrategyManager
     {
-        ISendingReliabilityStrategy GetSendingStrategy(ITransportMessage message);
+        ISendingReliabilityStrategy GetSendingStrategy(IReceivedTransportMessage message);
         void RegisterMessageId(Guid messageId, ISendingReliabilityStrategy strategy);
     }
 
@@ -22,7 +21,7 @@ namespace ZmqServiceBus.Transport
         }
 
 
-        public ISendingReliabilityStrategy GetSendingStrategy(ITransportMessage message)
+        public ISendingReliabilityStrategy GetSendingStrategy(IReceivedTransportMessage message)
         {
             return null;
         }
@@ -39,10 +38,10 @@ namespace ZmqServiceBus.Transport
     public interface IReliabilityLayer : IDisposable
     {
         void RegisterMessageReliabilitySetting(Type messageType, MessageOptions level);
-        void Send(ITransportMessage message);
-        void Publish(ITransportMessage message);
-        void Route(ITransportMessage message);
-        event Action<ITransportMessage> OnMessageReceived;
+        void Send(IReceivedTransportMessage message);
+        void Publish(IReceivedTransportMessage message);
+        void Route(IReceivedTransportMessage message, string destinationPeer);
+        event Action<IReceivedTransportMessage> OnMessageReceived;
         void Initialize();
     }
 }

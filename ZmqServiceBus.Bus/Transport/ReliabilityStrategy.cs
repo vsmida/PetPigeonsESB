@@ -1,17 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
-using PersistenceService.Commands;
 using Shared;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public interface ISendingReliabilityStrategy
     {
         void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message);
         void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message);
-        void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message);
+        void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer);
         void CheckMessage(ITransportMessage message);
     }
 
@@ -233,7 +232,7 @@ namespace ZmqServiceBus.Transport
 
         public abstract void SendOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message);
         public abstract void PublishOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message);
-        public abstract void RouteOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message);
+        public abstract void RouteOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer);
         public abstract void CheckMessage(ITransportMessage message);
 
 
@@ -256,14 +255,13 @@ namespace ZmqServiceBus.Transport
             endpointManager.SendMessage(message);
         }
 
-        private void SendReliabilityMessage(IEndpointManager endpointManager, ISendingStrategyManager strategyManager,
-                                            ITransportMessage message)
+        private void SendReliabilityMessage(IEndpointManager endpointManager, ISendingStrategyManager strategyManager,ITransportMessage message)
         {
             var brokerMessage = new TransportMessage(typeof (PersistMessageCommand).FullName, _brokerPeerName,
                                                      message.MessageIdentity, Serializer.Serialize(message));
             strategyManager.RegisterMessageId(message.MessageIdentity, this);
             strategyManager.RegisterMessageId(brokerMessage.MessageIdentity, this);
-            endpointManager.RouteMessage(brokerMessage);
+            endpointManager.RouteMessage(brokerMessage, _brokerPeerName);
         }
 
         public override void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
@@ -272,10 +270,10 @@ namespace ZmqServiceBus.Transport
             endpointManager.PublishMessage(message);
         }
 
-        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer)
         {
             SendReliabilityMessage(endpointManager, strategyManager, message);
-            endpointManager.RouteMessage(message);
+            endpointManager.RouteMessage(message, destinationPeer);
         }
 
         public override void CheckMessage(ITransportMessage message)
@@ -306,9 +304,9 @@ namespace ZmqServiceBus.Transport
            endpointManager.PublishMessage(message);
         }
 
-        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer)
         {
-          endpointManager.RouteMessage(message);
+          endpointManager.RouteMessage(message, destinationPeer);
         }
 
         public override void CheckMessage(ITransportMessage message)

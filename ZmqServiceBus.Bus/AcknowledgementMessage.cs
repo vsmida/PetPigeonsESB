@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using ProtoBuf;
-using Shared;
 using Shared.Attributes;
 
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus
 {
     [ProtoContract]
     [InfrastructureMessage]

@@ -1,6 +1,5 @@
 ﻿using System;
 using ProtoBuf;
-using Shared;
 using ZmqServiceBus.Contracts;
 
 namespace DirectoryService.Commands

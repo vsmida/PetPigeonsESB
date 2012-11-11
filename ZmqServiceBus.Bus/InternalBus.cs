@@ -1,24 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using DirectoryService.Commands;
 using Shared;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
-using ZmqServiceBus.Transport;
 
 namespace ZmqServiceBus.Bus
 {
-    public interface IBusBootstrapperConfiguration
-    {
-        string DirectoryServiceCommandEndpoint { get; }
-        string DirectoryServiceEventEndpoint { get; }
-    }
-
-    public interface IBusBootstrapper
-    {
-        void BootStrapTopology();
-    }
-
     public class InternalBus : IBus, IReplier
     {
         private readonly IReliabilityLayer _startupLayer;
@@ -54,7 +40,7 @@ namespace ZmqServiceBus.Bus
         {
             _startupLayer.Initialize();
             _startupLayer.OnMessageReceived += OnTransportMessageReceived;
-            RegisterDirectoryServiceEndpoints();
+            _bootstrapper.BootStrapTopology();
         }
 
         public void Reply(IMessage message)
@@ -62,24 +48,15 @@ namespace ZmqServiceBus.Bus
         }
 
 
-        private void RegisterDirectoryServiceEndpoints()
-        {
-            //_transport.RegisterCommandHandlerEndpoint<RegisterServiceRelevantMessages>(_config.DirectoryServiceCommandEndpoint);
-            //_transport.RegisterPublisherEndpoint<RegisteredHandlersForCommand>(_config.DirectoryServiceEventEndpoint);
-            //_transport.RegisterPublisherEndpoint<RegisteredPublishersForEvent>(_config.DirectoryServiceEventEndpoint);
-        }
-
         private void OnTransportMessageReceived(ITransportMessage transportMessage)
         {
             var deserializedMessage = Serializer.Deserialize(transportMessage.Data, TypeUtils.Resolve(transportMessage.MessageType));
             try
             {
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-            //    _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true);
             }
             catch (Exception)
             {
-       //         _transport.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false);
             }
 
         }

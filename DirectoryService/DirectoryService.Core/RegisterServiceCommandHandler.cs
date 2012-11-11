@@ -1,6 +1,6 @@
 ﻿using DirectoryService.Commands;
 using Shared;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus;
 
 namespace DirectoryService.Core
 {

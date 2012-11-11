@@ -1,4 +1,4 @@
-namespace ZmqServiceBus.Transport
+namespace ZmqServiceBus.Bus.Transport
 {
     public interface ITransportConfiguration
     {
