@@ -8,10 +8,10 @@ namespace ZmqServiceBus.Bus.Transport
 {
     public interface ISendingReliabilityStrategy
     {
-        void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message);
-        void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message);
-        void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer);
-        void CheckMessage(ITransportMessage message);
+        void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message);
+        void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message);
+        void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message, string destinationPeer);
+        void CheckMessage(IReceivedTransportMessage message);
     }
 
     public interface IStartupReliabilityStrategy
@@ -19,7 +19,7 @@ namespace ZmqServiceBus.Bus.Transport
         string PeerName { get; }
         string MessageType { get; }
         bool IsInitialized { get; }
-        IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message); //enqueue or release messages when broker is sending same message as client.
+        IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message); //enqueue or release messages when broker is sending same message as client.
     }
 
     
@@ -99,7 +99,7 @@ namespace ZmqServiceBus.Bus.Transport
         public string PeerName { get; private set; }
         public string MessageType { get; private set; }
         public bool IsInitialized { get; protected set; }
-        public abstract IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message);
+        public abstract IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message);
 
         protected StartupReliabilityStrategy(string peerName, string messageType)
         {
@@ -113,7 +113,7 @@ namespace ZmqServiceBus.Bus.Transport
     {
         private readonly string _peerName;
         private readonly string _messageType;
-        private readonly Queue<ITransportMessage> _bufferizedMessages = new Queue<ITransportMessage>();
+        private readonly Queue<IReceivedTransportMessage> _bufferizedMessages = new Queue<IReceivedTransportMessage>();
         private readonly int _bufferSize = 500;
 
         public SynchronizeWithBrokerStartupStrategy(string peerName, string messageType)
@@ -123,7 +123,7 @@ namespace ZmqServiceBus.Bus.Transport
             _messageType = messageType;
         }
 
-        public override IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message)
+        public override IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message)
         {
             if (IsInitialized)
             {
@@ -141,7 +141,7 @@ namespace ZmqServiceBus.Bus.Transport
 
         }
 
-        private IEnumerable<ITransportMessage> SetInitialized()
+        private IEnumerable<IReceivedTransportMessage> SetInitialized()
         {
             IsInitialized = true;
             foreach (var bufferizedMesage in _bufferizedMessages)
@@ -150,7 +150,7 @@ namespace ZmqServiceBus.Bus.Transport
             }
         }
 
-        private void EnqueueMessage(ITransportMessage message)
+        private void EnqueueMessage(IReceivedTransportMessage message)
         {
             if (_bufferSize < _bufferizedMessages.Count)
             {
@@ -168,7 +168,7 @@ namespace ZmqServiceBus.Bus.Transport
         }
 
 
-        public override IEnumerable<ITransportMessage> GetMessagesToBubbleUp(ITransportMessage message)
+        public override IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message)
         {
             yield return message;
         }
@@ -230,10 +230,10 @@ namespace ZmqServiceBus.Bus.Transport
             }
         }
 
-        public abstract void SendOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message);
-        public abstract void PublishOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message);
-        public abstract void RouteOn(IEndpointManager endpointManager,ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer);
-        public abstract void CheckMessage(ITransportMessage message);
+        public abstract void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message);
+        public abstract void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message);
+        public abstract void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message, string destinationPeer);
+        public abstract void CheckMessage(IReceivedTransportMessage message);
 
 
         protected abstract void ReleaseWhenReliabilityAchieved();
@@ -249,34 +249,33 @@ namespace ZmqServiceBus.Bus.Transport
             _brokerPeerName = brokerPeerName;
         }
 
-        public override void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message)
         {
             SendReliabilityMessage(endpointManager, strategyManager, message);
             endpointManager.SendMessage(message);
         }
 
-        private void SendReliabilityMessage(IEndpointManager endpointManager, ISendingStrategyManager strategyManager,ITransportMessage message)
+        private void SendReliabilityMessage(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message)
         {
-            var brokerMessage = new TransportMessage(typeof (PersistMessageCommand).FullName, _brokerPeerName,
-                                                     message.MessageIdentity, Serializer.Serialize(message));
+            var brokerMessage = new SendingTransportMessage(typeof (PersistMessageCommand).FullName,message.MessageIdentity, Serializer.Serialize(message));
             strategyManager.RegisterMessageId(message.MessageIdentity, this);
             strategyManager.RegisterMessageId(brokerMessage.MessageIdentity, this);
             endpointManager.RouteMessage(brokerMessage, _brokerPeerName);
         }
 
-        public override void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message)
         {
             SendReliabilityMessage(endpointManager, strategyManager, message);
             endpointManager.PublishMessage(message);
         }
 
-        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer)
+        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message, string destinationPeer)
         {
             SendReliabilityMessage(endpointManager, strategyManager, message);
             endpointManager.RouteMessage(message, destinationPeer);
         }
 
-        public override void CheckMessage(ITransportMessage message)
+        public override void CheckMessage(IReceivedTransportMessage message)
         {
             if (message.PeerName == _brokerPeerName)
                 BrokerTransportAckReceived = true;
@@ -294,22 +293,22 @@ namespace ZmqServiceBus.Bus.Transport
 
     internal class FireAndForget : SendingReliabilityStrategy
     {
-        public override void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void SendOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message)
         {
            endpointManager.SendMessage(message);
         }
 
-        public override void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message)
+        public override void PublishOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message)
         {
            endpointManager.PublishMessage(message);
         }
 
-        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ITransportMessage message, string destinationPeer)
+        public override void RouteOn(IEndpointManager endpointManager, ISendingStrategyManager strategyManager, ISendingTransportMessage message, string destinationPeer)
         {
           endpointManager.RouteMessage(message, destinationPeer);
         }
 
-        public override void CheckMessage(ITransportMessage message)
+        public override void CheckMessage(IReceivedTransportMessage message)
         {
 
         }

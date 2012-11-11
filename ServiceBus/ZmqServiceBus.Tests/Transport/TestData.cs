@@ -8,14 +8,24 @@ namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
-         public static TransportMessage GenerateDummyMessage<T>()
+         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>()
          {
-             return new TransportMessage(typeof(T).FullName,"Peer", Guid.NewGuid(), new byte[0]);
+             return new ReceivedTransportMessage(typeof(T).FullName,"Peer", Guid.NewGuid(), new byte[0]);
          }
 
-         public static TransportMessage GenerateDummyMessage<T>(T item)
+         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
          {
-             return new TransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
+             return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
+         }
+
+         public static SendingTransportMessage GenerateDummySendingMessage<T>()
+         {
+             return new SendingTransportMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0]);
+         }
+
+         public static SendingTransportMessage GenerateDummySendingMessage<T>(T item)
+         {
+             return new SendingTransportMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item));
          }
 
         public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

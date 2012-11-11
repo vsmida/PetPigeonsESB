@@ -9,26 +9,26 @@ namespace ZmqServiceBus.Bus.Transport
     {
         private class SocketInfo
         {
-            public BlockingCollection<ITransportMessage> SendingQueue { get; set; }
+            public BlockingCollection<ISendingTransportMessage> SendingQueue { get; set; }
             public bool SocketInitialized { get; set; }
 
             public SocketInfo()
             {
-                SendingQueue = new BlockingCollection<ITransportMessage>();
+                SendingQueue = new BlockingCollection<ISendingTransportMessage>();
             }
         }
 
         private readonly Dictionary<string, SocketInfo> _endpointsToSocketInfo = new Dictionary<string, SocketInfo>();
         private readonly Dictionary<string, HashSet<string>> _messageTypesToEndpoints = new Dictionary<string, HashSet<string>>();
-        private readonly BlockingCollection<ITransportMessage> _messagesToPublish = new BlockingCollection<ITransportMessage>();
-        private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
+        private readonly BlockingCollection<ISendingTransportMessage> _messagesToPublish = new BlockingCollection<ISendingTransportMessage>();
+        private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
         private readonly Dictionary<string, IServicePeer> _knownPeersById = new Dictionary<string, IServicePeer>();
         private readonly HashSet<Type> listenedToEvents = new HashSet<Type>();
         private readonly TransportConfiguration _configuration;
         private readonly IZmqSocketManager _socketManager;
         private volatile bool _running = true;
 
-        public event Action<ITransportMessage> OnMessageReceived = delegate { };
+        public event Action<IReceivedTransportMessage> OnMessageReceived = delegate { };
 
 
         public EndpointManager(TransportConfiguration configuration, IZmqSocketManager socketManager)
@@ -52,14 +52,14 @@ namespace ZmqServiceBus.Bus.Transport
                                      {
                                          while (_running)
                                          {
-                                             ITransportMessage message;
+                                             IReceivedTransportMessage message;
                                              if (_messagesToForward.TryTake(out message, TimeSpan.FromMilliseconds(500)))
                                                  OnMessageReceived(message);
                                          }
                                      }).Start();
         }
 
-        public void SendMessage(ITransportMessage message)
+        public void SendMessage(ISendingTransportMessage message)
         {
             HashSet<string> endpoints = _messageTypesToEndpoints[message.MessageType];
             foreach (var endpoint in endpoints)
@@ -75,12 +75,12 @@ namespace ZmqServiceBus.Bus.Transport
 
         }
 
-        public void PublishMessage(ITransportMessage message)
+        public void PublishMessage(ISendingTransportMessage message)
         {
             _messagesToPublish.Add(message);
         }
 
-        public void RouteMessage(ITransportMessage message, string destinationPeer)
+        public void RouteMessage(ISendingTransportMessage message, string destinationPeer)
         {
             IServicePeer peer;
             if (!_knownPeersById.TryGetValue(destinationPeer, out peer))

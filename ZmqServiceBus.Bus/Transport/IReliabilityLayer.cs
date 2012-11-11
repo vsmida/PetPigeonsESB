@@ -38,9 +38,9 @@ namespace ZmqServiceBus.Bus.Transport
     public interface IReliabilityLayer : IDisposable
     {
         void RegisterMessageReliabilitySetting(Type messageType, MessageOptions level);
-        void Send(IReceivedTransportMessage message);
-        void Publish(IReceivedTransportMessage message);
-        void Route(IReceivedTransportMessage message, string destinationPeer);
+        void Send(ISendingTransportMessage message);
+        void Publish(ISendingTransportMessage message);
+        void Route(ISendingTransportMessage message, string destinationPeer);
         event Action<IReceivedTransportMessage> OnMessageReceived;
         void Initialize();
     }

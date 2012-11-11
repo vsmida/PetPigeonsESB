@@ -37,8 +37,8 @@ namespace ZmqServiceBus.Tests
             _startupStrategyMock = new Mock<IStartupReliabilityStrategy>();
             _reliabilityStrategyFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(_sendingReliabilityStrategyMock.Object);
             _reliabilityStrategyFactoryMock.Setup(x => x.GetStartupStrategy(It.IsAny<MessageOptions>(), It.IsAny<string>(), It.IsAny<string>())).Returns(_startupStrategyMock.Object);
-            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<TransportMessage>())).Returns
-                <ITransportMessage>(x => new List<ITransportMessage> { x });
+            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<ReceivedTransportMessage>())).Returns
+                <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
             _sendingStrategyManagerMock = new Mock<ISendingStrategyManager>();
             _reliabilityLayer = new ReliabilityLayer(_reliabilityStrategyFactoryMock.Object, _endpointManagerMock.Object, _sendingStrategyManagerMock.Object);
         }
@@ -49,7 +49,7 @@ namespace ZmqServiceBus.Tests
             var messageOption = new MessageOptions(ReliabilityLevel.FireAndForget, null);
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(messageOption);
 
-            var transportMessage = new TransportMessage(typeof(FakeMessage).FullName, "", Guid.NewGuid(), new byte[0]);
+            var transportMessage = new SendingTransportMessage(typeof(FakeMessage).FullName, Guid.NewGuid(), new byte[0]);
             _reliabilityLayer.Send(transportMessage);
 
             _reliabilityStrategyFactoryMock.Verify(x => x.GetSendingStrategy(messageOption));
@@ -60,16 +60,16 @@ namespace ZmqServiceBus.Tests
         public void should_only_allow_messages_checked_by_startup_strategy_to_bubble_up()
         {
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(new MessageOptions(ReliabilityLevel.FireAndForget, null));
-            ITransportMessage capturedMessage = null;
+            IReceivedTransportMessage capturedMessage = null;
             AutoResetEvent waitForProcessing = new AutoResetEvent(false);
             _reliabilityLayer.OnMessageReceived += x =>
             {
                 capturedMessage = x;
                 waitForProcessing.Set();
             };
-            var otherMessage = TestData.GenerateDummyMessage<FakeMessage>();
-            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<TransportMessage>())).Returns(new List<ITransportMessage> { otherMessage });
-            var sentMessage = TestData.GenerateDummyMessage<FakeMessage>();
+            var otherMessage = TestData.GenerateDummyReceivedMessage<FakeMessage>();
+            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<ReceivedTransportMessage>())).Returns(new List<IReceivedTransportMessage> { otherMessage });
+            var sentMessage = TestData.GenerateDummyReceivedMessage<FakeMessage>();
 
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, sentMessage);
 
@@ -81,10 +81,10 @@ namespace ZmqServiceBus.Tests
         public void should_update_reliability_strategy_when_ack_arrives()
         {
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(new MessageOptions(ReliabilityLevel.FireAndForget, "TestBrokerId"));
-            var sentMessage = TestData.GenerateDummyMessage<FakeMessage>();
+            var sentMessage = TestData.GenerateDummySendingMessage<FakeMessage>();
             _reliabilityLayer.Send(sentMessage);
 
-            var transportMessage = new TransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
+            var transportMessage = new ReceivedTransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
             _sendingStrategyManagerMock.Setup(x => x.GetSendingStrategy(transportMessage)).Returns(_sendingReliabilityStrategyMock.Object);
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
 
@@ -106,12 +106,12 @@ namespace ZmqServiceBus.Tests
                                                            messageReceivedRaised = true;
                                                            waitForOneMessageToBeProcessed.Set();
                                                        };
-            
-            var sentMessage = TestData.GenerateDummyMessage<FakeMessage>();
+
+            var sentMessage = TestData.GenerateDummySendingMessage<FakeMessage>();
             _reliabilityLayer.Send(sentMessage);
 
-            var transportMessageTest = new TransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
-            var transportMessageBubble = new TransportMessage(typeof(FakeMessage).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
+            var transportMessageTest = new ReceivedTransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
+            var transportMessageBubble = new ReceivedTransportMessage(typeof(FakeMessage).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageTest);
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageBubble);
 
@@ -122,7 +122,7 @@ namespace ZmqServiceBus.Tests
         [Test, Timeout(1000)]
         public void should_raise_message_received()
         {
-            ITransportMessage capturedMessage = null;
+            IReceivedTransportMessage capturedMessage = null;
             _reliabilityLayer.RegisterMessageReliabilitySetting<FakeMessage>(new MessageOptions(ReliabilityLevel.FireAndForget, "TestBrokerId"));
             AutoResetEvent waitForProcessing = new AutoResetEvent(false);
             _reliabilityLayer.OnMessageReceived += x =>
@@ -131,7 +131,7 @@ namespace ZmqServiceBus.Tests
                 waitForProcessing.Set();
             };
 
-            var transportMessage = new TransportMessage(typeof(FakeMessage).FullName, "DO", Guid.NewGuid(), new byte[0]);
+            var transportMessage = new ReceivedTransportMessage(typeof(FakeMessage).FullName, "DO", Guid.NewGuid(), new byte[0]);
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
             waitForProcessing.WaitOne();
             Assert.AreEqual(transportMessage, capturedMessage);
@@ -153,7 +153,7 @@ namespace ZmqServiceBus.Tests
         }
 
 
-        private void OnMessageReceived(ITransportMessage obj)
+        private void OnMessageReceived(IReceivedTransportMessage obj)
         {
 
         }

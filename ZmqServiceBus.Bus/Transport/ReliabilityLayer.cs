@@ -10,10 +10,10 @@ namespace ZmqServiceBus.Bus.Transport
         private readonly ISendingStrategyManager _sendingStrategyManager;
         private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _startupKeyToStartupStrategy = new Dictionary<StartUpKey, IStartupReliabilityStrategy>();
         private readonly Dictionary<string, MessageOptions> _messageTypeToReliabilitySetting = new Dictionary<string, MessageOptions>();
-        private readonly BlockingCollection<ITransportMessage> _messagesToForward = new BlockingCollection<ITransportMessage>();
+        private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
         private readonly IReliabilityStrategyFactory _reliabilityStrategyFactory;
         private readonly IEndpointManager _endpointManager;
-        public event Action<ITransportMessage> OnMessageReceived = delegate { };
+        public event Action<IReceivedTransportMessage> OnMessageReceived = delegate { };
         public void Initialize()
         {
             _endpointManager.Initialize();
@@ -38,7 +38,7 @@ namespace ZmqServiceBus.Bus.Transport
                                      {
                                          while (_running)
                                          {
-                                             ITransportMessage message;
+                                             IReceivedTransportMessage message;
                                              if (_messagesToForward.TryTake(out message, TimeSpan.FromSeconds(1)))
                                              {
                                                  OnMessageReceived(message);
@@ -47,48 +47,48 @@ namespace ZmqServiceBus.Bus.Transport
                                      }).Start();
         }
 
-        private void OnEndpointManagerMessageReceived(ITransportMessage transportMessage)
+        private void OnEndpointManagerMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {
-            ReleaseSendingStrategy(transportMessage);
+            ReleaseSendingStrategy(receivedTransportMessage);
 
-            if (IsTransportAck(transportMessage))
+            if (IsTransportAck(receivedTransportMessage))
                 return;
-            ForwardMessagesAcceptedByStartupStrategy(transportMessage);
+            ForwardMessagesAcceptedByStartupStrategy(receivedTransportMessage);
         }
 
-        private static bool IsTransportAck(ITransportMessage transportMessage)
+        private static bool IsTransportAck(IReceivedTransportMessage receivedTransportMessage)
         {
-            return transportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName;
+            return receivedTransportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName;
         }
 
-        private void ForwardMessagesAcceptedByStartupStrategy(ITransportMessage transportMessage)
+        private void ForwardMessagesAcceptedByStartupStrategy(IReceivedTransportMessage receivedTransportMessage)
         {
             IStartupReliabilityStrategy startupStrategy;
-            var startUpKey = new StartUpKey(transportMessage.PeerName, transportMessage.MessageType);
+            var startUpKey = new StartUpKey(receivedTransportMessage.PeerName, receivedTransportMessage.MessageType);
             if (!_startupKeyToStartupStrategy.TryGetValue(startUpKey, out startupStrategy))
             {
                 startupStrategy =
-                    _reliabilityStrategyFactory.GetStartupStrategy(_messageTypeToReliabilitySetting[transportMessage.MessageType], startUpKey.PeerName, startUpKey.MessageType); _startupKeyToStartupStrategy.Add(startUpKey, startupStrategy);
+                    _reliabilityStrategyFactory.GetStartupStrategy(_messageTypeToReliabilitySetting[receivedTransportMessage.MessageType], startUpKey.PeerName, startUpKey.MessageType); _startupKeyToStartupStrategy.Add(startUpKey, startupStrategy);
             }
 
-            foreach (var message in startupStrategy.GetMessagesToBubbleUp(transportMessage))
+            foreach (var message in startupStrategy.GetMessagesToBubbleUp(receivedTransportMessage))
             {
                 _messagesToForward.Add(message);
             }
         }
 
-        private void ReleaseSendingStrategy(ITransportMessage transportMessage)
+        private void ReleaseSendingStrategy(IReceivedTransportMessage receivedTransportMessage)
         {
-            ISendingReliabilityStrategy strategy = _sendingStrategyManager.GetSendingStrategy(transportMessage);
+            ISendingReliabilityStrategy strategy = _sendingStrategyManager.GetSendingStrategy(receivedTransportMessage);
             if (strategy != null)
-                strategy.CheckMessage(transportMessage);
+                strategy.CheckMessage(receivedTransportMessage);
         }
 
-        private SendingStrategyKey GetSendingStrategyKey(ITransportMessage transportMessage)
+        private SendingStrategyKey GetSendingStrategyKey(IReceivedTransportMessage receivedTransportMessage)
         {
-            if (IsTransportAck(transportMessage))
-                return new SendingStrategyKey(transportMessage.MessageIdentity);
-            if (transportMessage.MessageType == typeof(AcknowledgementMessage).FullName)
+            if (IsTransportAck(receivedTransportMessage))
+                return new SendingStrategyKey(receivedTransportMessage.MessageIdentity);
+            if (receivedTransportMessage.MessageType == typeof(AcknowledgementMessage).FullName)
             {
                 //do stuff
             }
@@ -105,22 +105,22 @@ namespace ZmqServiceBus.Bus.Transport
             _messageTypeToReliabilitySetting[messageType.FullName] = level;
         }
 
-        public void Send(ITransportMessage message)
+        public void Send(ISendingTransportMessage message)
         {
             RegisterReliabilityStrategyAndForward(message, x => x.SendOn(_endpointManager, _sendingStrategyManager, message));
         }
 
-        public void Publish(ITransportMessage message)
+        public void Publish(ISendingTransportMessage message)
         {
             RegisterReliabilityStrategyAndForward(message, x => x.PublishOn(_endpointManager, _sendingStrategyManager, message));
         }
 
-        public void Route(ITransportMessage message, string destinationPeer)
+        public void Route(ISendingTransportMessage message, string destinationPeer)
         {
             RegisterReliabilityStrategyAndForward(message, x => x.RouteOn(_endpointManager, _sendingStrategyManager, message, destinationPeer));
         }
 
-        private void RegisterReliabilityStrategyAndForward(ITransportMessage message, Action<ISendingReliabilityStrategy> forwardAction)
+        private void RegisterReliabilityStrategyAndForward(ISendingTransportMessage message, Action<ISendingReliabilityStrategy> forwardAction)
         {
             MessageOptions reliabilityLevel;
             if (_messageTypeToReliabilitySetting.TryGetValue(message.MessageType, out reliabilityLevel))

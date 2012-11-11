@@ -8,6 +8,7 @@ using ProtoBuf;
 using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
@@ -72,7 +73,7 @@ namespace ZmqServiceBus.Tests
         {
             _bus.Initialize();
 
-            var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
+            var transportMessage = TestData.GenerateDummyReceivedMessage(new FakeCommand(5));
             _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
             _dispatcherMock.Verify(x => x.Dispatch(It.Is<FakeCommand>(y => y.Number == 5)));
@@ -112,7 +113,7 @@ namespace ZmqServiceBus.Tests
             _startupLayerMock.Verify(x => x.Dispose());
         }
 
-        private void OnMessageReceived(ITransportMessage obj)
+        private void OnMessageReceived(IReceivedTransportMessage obj)
         {
 
         }

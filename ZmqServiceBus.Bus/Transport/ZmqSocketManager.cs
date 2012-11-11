@@ -65,7 +65,7 @@ namespace ZmqServiceBus.Bus.Transport
         }
 
 
-        public void CreateRequestSocket(BlockingCollection<IReceivedTransportMessage> sendingQueue, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
+        public void CreateRequestSocket(BlockingCollection<ISendingTransportMessage> sendingQueue, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
         {
             var requestorSocket = _context.CreateSocket(SocketType.DEALER);
             requestorSocket.Linger = TimeSpan.FromSeconds(1);
@@ -82,9 +82,9 @@ namespace ZmqServiceBus.Bus.Transport
                 CreatePollingThread();
         }
 
-        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> sendingQueue, string servicePeerName)
+        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<ISendingTransportMessage> sendingQueue, string servicePeerName)
         {
-            IReceivedTransportMessage message;
+            ISendingTransportMessage message;
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
@@ -106,7 +106,7 @@ namespace ZmqServiceBus.Bus.Transport
             acknowledgementQueue.Add(new ReceivedTransportMessage(type,servicePeerName,id, serializedItem));
         }
 
-        public void CreatePublisherSocket(BlockingCollection<IReceivedTransportMessage> sendingQueue, string endpoint, string servicePeerName)
+        public void CreatePublisherSocket(BlockingCollection<ISendingTransportMessage> sendingQueue, string endpoint, string servicePeerName)
         {
             var waitForBind = new AutoResetEvent(false);
             new BackgroundThread(() =>
@@ -118,7 +118,7 @@ namespace ZmqServiceBus.Bus.Transport
                                          waitForBind.Set();
                                          while (_running)
                                          {
-                                             IReceivedTransportMessage message;
+                                             ISendingTransportMessage message;
                                              if (sendingQueue.TryTake(out message, TimeSpan.FromSeconds(0.1)))
                                              {
                                                  publisherSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));

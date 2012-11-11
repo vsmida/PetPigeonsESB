@@ -94,7 +94,7 @@
     <Compile Include="ReliabilityLayerTests.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />
     <Compile Include="Transport\TestData.cs" />
-    <Compile Include="Transport\TransportTests.cs" />
+    <Compile Include="Transport\EndpointManagerTests.cs" />
     <Compile Include="Transport\ZmqSocketManagerTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>

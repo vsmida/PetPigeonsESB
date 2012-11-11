@@ -1,5 +1,6 @@
 ﻿using System;
 using Shared;
+using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 
@@ -24,7 +25,7 @@ namespace ZmqServiceBus.Bus
             _startupLayer.Send(transportMessage);
         }
 
-        private ITransportMessage GetTransportMessage(IMessage command)
+        private ISendingTransportMessage GetTransportMessage(IMessage command)
         {
           //  return new TransportMessage(Guid.NewGuid(), command.GetType().FullName, Serializer.Serialize(command));
             return null;
@@ -48,9 +49,9 @@ namespace ZmqServiceBus.Bus
         }
 
 
-        private void OnTransportMessageReceived(ITransportMessage transportMessage)
+        private void OnTransportMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {
-            var deserializedMessage = Serializer.Deserialize(transportMessage.Data, TypeUtils.Resolve(transportMessage.MessageType));
+            var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
             try
             {
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
