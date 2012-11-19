@@ -1,6 +1,8 @@
 ﻿using StructureMap.Configuration.DSL;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 
 namespace ZmqServiceBusHost
 {
@@ -11,7 +13,7 @@ namespace ZmqServiceBusHost
              For<IObjectFactory>().Use<ObjectFactory>();
              For<IZmqSocketManager>().Use<ZmqSocketManager>();
              For<IEndpointManager>().Use<EndpointManager>();
-             For<IReliabilityLayer>().Use<ReliabilityLayer>();
+             For<IReceptionLayer>().Use<ReceptionLayer>();
 
 
          }

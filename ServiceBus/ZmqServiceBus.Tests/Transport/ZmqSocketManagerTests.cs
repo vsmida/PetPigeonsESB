@@ -7,6 +7,8 @@ using Shared;
 using ZeroMQ;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Tests.Transport
 {

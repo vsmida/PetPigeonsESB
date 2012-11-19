@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
-namespace ZmqServiceBus.Bus.Transport
+namespace ZmqServiceBus.Bus.Transport.Network
 {
     public interface IZmqSocketManager
     {

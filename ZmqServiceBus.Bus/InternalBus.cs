@@ -1,53 +1,47 @@
 ﻿using System;
 using Shared;
+using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus
 {
     public class InternalBus : IBus, IReplier
     {
-        private readonly IReliabilityLayer _startupLayer;
+        private readonly IReceptionLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;
-        private readonly IBusBootstrapper _bootstrapper;
+        private readonly IMessageSender _messageSender;
 
-        public InternalBus(IReliabilityLayer startupLayer, IMessageDispatcher dispatcher, IBusBootstrapper bootstrapper)
+        public InternalBus(IReceptionLayer startupLayer, IMessageDispatcher dispatcher, IMessageSender messageSender)
         {
             _startupLayer = startupLayer;
             _dispatcher = dispatcher;
-            _bootstrapper = bootstrapper;
+            _messageSender = messageSender;
         }
 
         public void Send(ICommand command)
         {
-            var transportMessage = GetTransportMessage(command);
-            _startupLayer.Send(transportMessage);
-        }
-
-        private ISendingTransportMessage GetTransportMessage(IMessage command)
-        {
-          //  return new TransportMessage(Guid.NewGuid(), command.GetType().FullName, Serializer.Serialize(command));
-            return null;
+           _messageSender.Send(command);
         }
 
         public void Publish(IEvent message)
         {
-            var transportMessage = GetTransportMessage(message);
-            _startupLayer.Publish(transportMessage);
+            _messageSender.Publish(message);
         }
 
         public void Initialize()
         {
             _startupLayer.Initialize();
             _startupLayer.OnMessageReceived += OnTransportMessageReceived;
-            _bootstrapper.BootStrapTopology();
         }
 
         public void Reply(IMessage message)
         {
+            _messageSender.Route(message, MessageContext.PeerName);
         }
-
 
         private void OnTransportMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {

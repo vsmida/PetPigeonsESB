@@ -5,8 +5,10 @@ using System.Text;
 using System.Threading;
 using Shared;
 using ZeroMQ;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
-namespace ZmqServiceBus.Bus.Transport
+namespace ZmqServiceBus.Bus.Transport.Network
 {
     public class ZmqSocketManager : IZmqSocketManager
     {
@@ -46,7 +48,6 @@ namespace ZmqServiceBus.Bus.Transport
             _subSocket = _context.CreateSocket(SocketType.SUB);
             _socketsToDispose.Add(_subSocket);
             _subSocket.Linger = TimeSpan.FromSeconds(1);
-            //    _subSocket.ReceiveHighWatermark = 10000;
 
             _subSocket.ReceiveReady += (s, e) => ReceiveFromSubscriber(e, receiveQueue);
             _poller.AddSocket(_subSocket);
@@ -69,7 +70,6 @@ namespace ZmqServiceBus.Bus.Transport
         {
             var requestorSocket = _context.CreateSocket(SocketType.DEALER);
             requestorSocket.Linger = TimeSpan.FromSeconds(1);
-            // requestorSocket.Identity = Encoding.ASCII.GetBytes(senderIdentity);
             requestorSocket.SendHighWatermark = 10000;
             requestorSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(requestorSocket);
@@ -137,35 +137,16 @@ namespace ZmqServiceBus.Bus.Transport
         {
             var replierSocket = _context.CreateSocket(SocketType.ROUTER);
             replierSocket.Linger = TimeSpan.FromSeconds(1);
-            // replierSocket.Identity = Encoding.ASCII.GetBytes(identity);
             replierSocket.SendHighWatermark = 10000;
             replierSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(replierSocket);
             replierSocket.ReceiveReady += (s, e) => ReceiveFromRouter(e, receivingQueue, servicePeerName);
-           // replierSocket.SendReady += (s, e) => SendFromRouter(e, sendingQueue);
             _poller.AddSocket(replierSocket);
             replierSocket.Bind(endpoint);
             Console.WriteLine("Command replier socket bound to {0}", endpoint);
             if (_pollingThread == null)
                 CreatePollingThread();
         }
-
-        //private void SendFromRouter(SocketEventArgs socketEventArgs, BlockingCollection<ITransportMessage> sendingQueue)
-        //{
-        //    ITransportMessage message;
-        //    if (!sendingQueue.TryTake(out message))
-        //        return;
-        //    var zmqSocket = socketEventArgs.Socket;
-        //    if (message.SendingSocketId == null || message.SendingSocketId.Length == 0)
-        //        throw new ArgumentException("Router socket has received an unroutable transport message");
-
-        //    zmqSocket.SendMore(message.SendingSocketId);
-        //    zmqSocket.SendMore(new byte[0]);
-        //    zmqSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));
-        //    zmqSocket.SendMore(message.MessageIdentity.ToByteArray());
-        //    zmqSocket.Send(message.Data);
-
-        //}
 
         private void ReceiveFromRouter(SocketEventArgs socketEventArgs, BlockingCollection<IReceivedTransportMessage> receivingQueue, string servicePeerName)
         {

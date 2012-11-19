@@ -1,7 +1,6 @@
-﻿using Shared;
-using ZmqServiceBus.Contracts;
+﻿using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Bus
+namespace ZmqServiceBus.Bus.Dispatch
 {
     public interface IMessageDispatcher
     {

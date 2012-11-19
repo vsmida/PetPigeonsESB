@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using Moq;
 using NUnit.Framework;
@@ -6,6 +8,9 @@ using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
 using Serializer = Shared.Serializer;
 using Shared.TestTools;
@@ -15,9 +20,7 @@ namespace ZmqServiceBus.Tests.Transport
     [TestFixture]
     public class EndpointManagerTests
     {
-        private EndpointManager _endpointManager;
-        private Mock<IZmqSocketManager> _socketManagerMock;
-        private FakeTransportConfiguration _configuration;
+
         [ProtoContract]
         private class FakeCommand : ICommand
         {
@@ -67,14 +70,20 @@ namespace ZmqServiceBus.Tests.Transport
 
             }
         }
-
+        private EndpointManager _endpointManager;
+        private Mock<IZmqSocketManager> _socketManagerMock;
+        private Mock<IPeerManager> _peerManagerMock;
+        private Mock<ISubscriptionManager> _subscriptionManagerMock;
+        private FakeTransportConfiguration _configuration;
 
         [SetUp]
         public void setup()
         {
             _configuration = new FakeTransportConfiguration();
             _socketManagerMock = new Mock<IZmqSocketManager>();
-            _endpointManager = new EndpointManager(_configuration, _socketManagerMock.Object);
+            _peerManagerMock = new Mock<IPeerManager>();
+            _subscriptionManagerMock = new Mock<ISubscriptionManager>();
+            _endpointManager = new EndpointManager(_configuration, _socketManagerMock.Object, _peerManagerMock.Object, _subscriptionManagerMock.Object);
         }
 
         [Test]
@@ -116,7 +125,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _endpointManager.Initialize();
             var endpoint = "endpoint";
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof (FakeCommand).FullName)).Returns(new List<string>{endpoint});
 
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(),
                 It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
@@ -148,8 +157,7 @@ namespace ZmqServiceBus.Tests.Transport
                 .Callback<BlockingCollection<ISendingTransportMessage>, BlockingCollection<IReceivedTransportMessage>, string, string>(
                     (x, y, z, t) => sendQueue2 = x);
 
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint2));
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string> { endpoint, endpoint2 });
             var fakeCommand = new FakeCommand(2);
             var transportMessage = TestData.GenerateDummySendingMessage(fakeCommand);
 
@@ -179,8 +187,8 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Setup(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(), It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), endpoint, _configuration.PeerName))
                   .Callback<BlockingCollection<ISendingTransportMessage>, BlockingCollection<IReceivedTransportMessage>, string, string>((x, y, z, t) => sendQueueForFakeCommand = x);
 
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint, "P1"));
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint2, "P2"));
+            _peerManagerMock.Setup(x => x.GetPeerEndpointFor(typeof(FakeCommand).FullName, "P1")).Returns(endpoint);
+            _peerManagerMock.Setup(x => x.GetPeerEndpointFor(typeof(FakeCommand).FullName, "P2")).Returns(endpoint2);
 
             var transportMessage = TestData.GenerateDummySendingMessage<FakeCommand>();
             _endpointManager.RouteMessage(transportMessage, "P1");
@@ -206,8 +214,8 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Setup(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(), It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), endpoint2, _configuration.PeerName))
                   .Callback<BlockingCollection<ISendingTransportMessage>, BlockingCollection<IReceivedTransportMessage>, string, string>((x, y, z, t) => sendQueueForFakeCommand2 = x);
             _endpointManager.Initialize();
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand2>(endpoint2));
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string>{endpoint});
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand2).FullName)).Returns(new List<string>{endpoint2});
 
             var command1 = new FakeCommand(2);
             var transportMessage = TestData.GenerateDummySendingMessage(command1);
@@ -228,9 +236,8 @@ namespace ZmqServiceBus.Tests.Transport
             _endpointManager.Initialize();
             var endpoint = "endpoint";
 
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand2>(endpoint));
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string> { endpoint });
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand2).FullName)).Returns(new List<string> { endpoint });
 
             _endpointManager.SendMessage(TestData.GenerateDummySendingMessage<FakeCommand>());
             _endpointManager.SendMessage(TestData.GenerateDummySendingMessage<FakeCommand2>());
@@ -265,10 +272,15 @@ namespace ZmqServiceBus.Tests.Transport
             _endpointManager.Initialize();
             string endpoint = "endpoint";
 
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatPublishes<FakeEvent>(endpoint));
-            _endpointManager.ListenTo<FakeEvent>();
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns(new List<string> { endpoint });
+            _subscriptionManagerMock.Raise(x => x.OnNewEventSubscription+=OnNewEventSubscription,typeof(FakeEvent));
 
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
+        }
+
+        private void OnNewEventSubscription(Type obj)
+        {
+            
         }
 
         [Test]
@@ -277,8 +289,8 @@ namespace ZmqServiceBus.Tests.Transport
             _endpointManager.Initialize();
             string endpoint = "endpoint";
 
-            _endpointManager.ListenTo<FakeEvent>();
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatPublishes<FakeEvent>(endpoint));
+        //    _endpointManager.ListenTo<FakeEvent>();
+        //      _endpointManager.RegisterPeer(TestData.CreatePeerThatPublishes<FakeEvent>(endpoint));
 
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }
@@ -303,7 +315,7 @@ namespace ZmqServiceBus.Tests.Transport
                                                     waitForEvent.Set();
                                                 };
             string endpoint = "endpoint";
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatPublishes<FakeEvent>(endpoint));
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns(new List<string> { endpoint });
             messagesReceived.Add(transportMessage);
 
             waitForEvent.WaitOne();
@@ -327,7 +339,9 @@ namespace ZmqServiceBus.Tests.Transport
                 waitForEvent.Set();
             };
             string endpoint = "endpoint";
-            _endpointManager.RegisterPeer(TestData.CreatePeerThatHandles<FakeCommand>(endpoint));
+
+
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string> { endpoint });
             _endpointManager.SendMessage(TestData.GenerateDummySendingMessage<FakeCommand>());
             messagesReceived.Add(transportMessage);
 

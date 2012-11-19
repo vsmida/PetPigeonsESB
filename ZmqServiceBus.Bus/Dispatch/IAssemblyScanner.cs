@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Shared;
 using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Bus
+namespace ZmqServiceBus.Bus.Dispatch
 {
     public interface IAssemblyScanner
     {

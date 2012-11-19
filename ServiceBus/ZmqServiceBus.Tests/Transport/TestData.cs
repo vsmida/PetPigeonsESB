@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Tests.Transport
 {

@@ -1,4 +1,6 @@
+using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 
 namespace ZmqServiceBus.Bus.Startup
 {
@@ -12,7 +14,7 @@ namespace ZmqServiceBus.Bus.Startup
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly ITransportConfiguration _transportConfiguration;
         private readonly IBusBootstrapperConfiguration _bootstrapperConfiguration;
-        private readonly IReliabilityLayer _reliabilityLayer;
+        private readonly IReceptionLayer _receptionLayer;
         //private readonly I
 
         public void BootStrapTopology()

@@ -3,6 +3,7 @@ using NUnit.Framework;
 using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests

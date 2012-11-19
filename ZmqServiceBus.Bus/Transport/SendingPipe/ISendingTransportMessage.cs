@@ -1,6 +1,6 @@
 using System;
 
-namespace ZmqServiceBus.Bus.Transport
+namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
     public interface ISendingTransportMessage
     {
