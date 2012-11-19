@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
@@ -44,6 +45,8 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             }
         }
 
+        private ConcurrentDictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new ConcurrentDictionary<StartUpKey,IStartupReliabilityStrategy>();
+
         public IEnumerable<ReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage)
         {
             throw new NotImplementedException();
@@ -51,7 +54,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         public void RegisterStrategy(IStartupReliabilityStrategy strategy)
         {
-            throw new NotImplementedException();
+
         }
     }
 }

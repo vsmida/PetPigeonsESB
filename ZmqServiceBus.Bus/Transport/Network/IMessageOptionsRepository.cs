@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using Shared;
 
 namespace ZmqServiceBus.Bus.Transport.Network
@@ -13,14 +14,19 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public class MessageOptionsRepository : IMessageOptionsRepository
     {
         public event Action<MessageOptions> OptionsUpdated;
+        private readonly ConcurrentDictionary<string, MessageOptions> _options = new ConcurrentDictionary<string, MessageOptions>();
+        
         public void RegisterOptions(MessageOptions options)
         {
-            throw new NotImplementedException();
+            _options.AddOrUpdate(options.MessageType, options, (key, oldValue) => options);
+            OptionsUpdated(options);
         }
 
         public MessageOptions GetOptionsFor(string messageType)
         {
-            throw new NotImplementedException();
+            MessageOptions option;
+            _options.TryGetValue(messageType, out option);
+            return option;
         }
     }
 }
