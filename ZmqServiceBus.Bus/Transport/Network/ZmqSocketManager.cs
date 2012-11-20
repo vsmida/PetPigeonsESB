@@ -62,7 +62,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var senderServiceId = zmqSocket.Receive(Encoding.ASCII);
             var id = new Guid(zmqSocket.Receive());
             var data = zmqSocket.Receive();
-            receiveQueue.Add(new ReceivedTransportMessage(type, senderServiceId, id, data));
+            receiveQueue.Add(new ReceptionPipe.ReceivedTransportMessage(type, senderServiceId, id, data));
         }
 
 
@@ -103,7 +103,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var servicePeerName = zmqSocket.Receive(Encoding.ASCII);
             var id = new Guid(zmqSocket.Receive());
             var serializedItem = zmqSocket.Receive();
-            acknowledgementQueue.Add(new ReceivedTransportMessage(type,servicePeerName,id, serializedItem));
+            acknowledgementQueue.Add(new ReceptionPipe.ReceivedTransportMessage(type,servicePeerName,id, serializedItem));
         }
 
         public void CreatePublisherSocket(BlockingCollection<ISendingTransportMessage> sendingQueue, string endpoint, string servicePeerName)
@@ -157,7 +157,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var serializedId = zmqSocket.Receive();
             var messageId = new Guid(serializedId);
             var serializedItem = zmqSocket.Receive();
-            receivingQueue.Add(new ReceivedTransportMessage(type,peerName, messageId, serializedItem));
+            receivingQueue.Add(new ReceptionPipe.ReceivedTransportMessage(type,peerName, messageId, serializedItem));
 
             if (type == typeof(ReceivedOnTransportAcknowledgement).FullName)
                 return;

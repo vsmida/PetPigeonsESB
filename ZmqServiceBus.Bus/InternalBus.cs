@@ -6,6 +6,7 @@ using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
+using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransportMessage;
 
 namespace ZmqServiceBus.Bus
 {

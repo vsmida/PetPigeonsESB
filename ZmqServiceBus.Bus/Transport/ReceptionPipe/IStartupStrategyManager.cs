@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 {
     public interface IStartupStrategyManager
     {
-        IEnumerable<ReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage);
-        void RegisterStrategy(IStartupReliabilityStrategy strategy);
+        IEnumerable<IReceivedTransportMessage> CheckMessage(Transport.IReceivedTransportMessage transportMessage);
     }
 
     public class StartupStrategyManager : IStartupStrategyManager
@@ -45,16 +45,29 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             }
         }
 
-        private ConcurrentDictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new ConcurrentDictionary<StartUpKey,IStartupReliabilityStrategy>();
+        private readonly IReliabilityStrategyFactory _factory;
+        private readonly IMessageOptionsRepository _optionsRepository;
+        private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new Dictionary<StartUpKey,IStartupReliabilityStrategy>();
 
-        public IEnumerable<ReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage)
+        public StartupStrategyManager(IReliabilityStrategyFactory factory, IMessageOptionsRepository optionsRepository)
         {
-            throw new NotImplementedException();
+            _factory = factory;
+            _optionsRepository = optionsRepository;
         }
 
-        public void RegisterStrategy(IStartupReliabilityStrategy strategy)
+        public IEnumerable<IReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage)
         {
+            IStartupReliabilityStrategy strategy;
+            var startUpKey = new StartUpKey(transportMessage.PeerName, transportMessage.MessageType);
+            if(!_strategies.TryGetValue(startUpKey,out strategy ))
+            {
+                var optionsForMessageType = _optionsRepository.GetOptionsFor(transportMessage.MessageType);
+                strategy = _factory.GetStartupStrategy(optionsForMessageType, transportMessage.PeerName,
+                                            transportMessage.MessageType);
+                _strategies.Add(startUpKey, strategy);
+            }
 
+            return strategy.GetMessagesToBubbleUp(transportMessage);
         }
     }
 }

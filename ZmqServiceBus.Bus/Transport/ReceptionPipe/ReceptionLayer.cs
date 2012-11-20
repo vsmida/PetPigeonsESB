@@ -10,9 +10,9 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
     {
         private readonly ISendingStrategyStateManager _sendingStrategyStateManager;
         private readonly IStartupStrategyManager _startupStrategyManager;
-        private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
+        private readonly BlockingCollection<Transport.IReceivedTransportMessage> _messagesToForward = new BlockingCollection<Transport.IReceivedTransportMessage>();
         private readonly IEndpointManager _endpointManager;
-        public event Action<IReceivedTransportMessage> OnMessageReceived = delegate { };
+        public event Action<Transport.IReceivedTransportMessage> OnMessageReceived = delegate { };
         public void Initialize()
         {
             _endpointManager.Initialize();
@@ -37,7 +37,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
                                      {
                                          while (_running)
                                          {
-                                             IReceivedTransportMessage message;
+                                             Transport.IReceivedTransportMessage message;
                                              if (_messagesToForward.TryTake(out message, TimeSpan.FromSeconds(1)))
                                              {
                                                  OnMessageReceived(message);
@@ -46,7 +46,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
                                      }).Start();
         }
 
-        private void OnEndpointManagerMessageReceived(IReceivedTransportMessage receivedTransportMessage)
+        private void OnEndpointManagerMessageReceived(Transport.IReceivedTransportMessage receivedTransportMessage)
         {
             _sendingStrategyStateManager.CheckMessage(receivedTransportMessage);
 
@@ -58,7 +58,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             }
         }
 
-        private static bool IsTransportAck(IReceivedTransportMessage receivedTransportMessage)
+        private static bool IsTransportAck(Transport.IReceivedTransportMessage receivedTransportMessage)
         {
             return receivedTransportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName;
         }

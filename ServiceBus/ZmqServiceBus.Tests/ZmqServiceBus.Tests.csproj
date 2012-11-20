@@ -92,6 +92,7 @@
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReliabilityLayerTests.cs" />
+    <Compile Include="StartupStrategyManagerTests.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />
     <Compile Include="Transport\MessageSenderTests.cs" />
     <Compile Include="Transport\PeerManagerTests.cs" />

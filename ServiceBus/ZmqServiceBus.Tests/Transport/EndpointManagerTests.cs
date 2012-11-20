@@ -14,6 +14,7 @@ using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
 using Serializer = Shared.Serializer;
 using Shared.TestTools;
+using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransportMessage;
 
 namespace ZmqServiceBus.Tests.Transport
 {

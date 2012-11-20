@@ -43,7 +43,7 @@ namespace ZmqServiceBus.Tests
             _reliabilityStrategyFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(_sendingReliabilityStrategyMock.Object);
             _reliabilityStrategyFactoryMock.Setup(x => x.GetStartupStrategy(It.IsAny<MessageOptions>(), It.IsAny<string>(), It.IsAny<string>())).Returns(_startupStrategyMock.Object);
             _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<ReceivedTransportMessage>())).Returns
-                <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
+                <Bus.Transport.IReceivedTransportMessage>(x => new List<Bus.Transport.IReceivedTransportMessage> { x });
             _sendingStrategyManagerMock = new Mock<ISendingStrategyStateManager>();
             _startupStrategyManagerMock = new Mock<IStartupStrategyManager>();
             _receptionLayer = new ReceptionLayer(_endpointManagerMock.Object, _sendingStrategyManagerMock.Object, _startupStrategyManagerMock.Object);
@@ -54,7 +54,7 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_only_allow_messages_checked_by_startup_strategy_to_bubble_up()
         {
-            IReceivedTransportMessage capturedMessage = null;
+            Bus.Transport.IReceivedTransportMessage capturedMessage = null;
             AutoResetEvent waitForProcessing = new AutoResetEvent(false);
             _receptionLayer.OnMessageReceived += x =>
             {
@@ -62,7 +62,7 @@ namespace ZmqServiceBus.Tests
                 waitForProcessing.Set();
             };
             var otherMessage = TestData.GenerateDummyReceivedMessage<FakeMessage>();
-            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<ReceivedTransportMessage>())).Returns(new List<IReceivedTransportMessage> { otherMessage });
+            _startupStrategyMock.Setup(x => x.GetMessagesToBubbleUp(It.IsAny<ReceivedTransportMessage>())).Returns(new List<Bus.Transport.IReceivedTransportMessage> { otherMessage });
             var sentMessage = TestData.GenerateDummyReceivedMessage<FakeMessage>();
 
             _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, sentMessage);
@@ -112,7 +112,7 @@ namespace ZmqServiceBus.Tests
         [Test, Timeout(1000)]
         public void should_raise_message_received()
         {
-            IReceivedTransportMessage capturedMessage = null;
+            Bus.Transport.IReceivedTransportMessage capturedMessage = null;
             AutoResetEvent waitForProcessing = new AutoResetEvent(false);
             _receptionLayer.OnMessageReceived += x =>
             {
@@ -142,7 +142,7 @@ namespace ZmqServiceBus.Tests
         }
 
 
-        private void OnMessageReceived(IReceivedTransportMessage obj)
+        private void OnMessageReceived(Bus.Transport.IReceivedTransportMessage obj)
         {
 
         }
