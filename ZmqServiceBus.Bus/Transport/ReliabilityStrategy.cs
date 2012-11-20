@@ -32,7 +32,6 @@ namespace ZmqServiceBus.Bus.Transport
         }
     }
 
-
     public abstract class StartupReliabilityStrategy : IStartupReliabilityStrategy
     {
         public string PeerName { get; private set; }
@@ -54,12 +53,14 @@ namespace ZmqServiceBus.Bus.Transport
         private readonly string _messageType;
         private readonly Queue<IReceivedTransportMessage> _bufferizedMessages = new Queue<IReceivedTransportMessage>();
         private readonly int _bufferSize = 500;
+        private readonly IPersistenceSynchronizer _persistenceSynchronizer;
 
-        public SynchronizeWithBrokerStartupStrategy(string peerName, string messageType)
+        public SynchronizeWithBrokerStartupStrategy(string peerName, string messageType, IPersistenceSynchronizer persistenceSynchronizer)
             : base(peerName, messageType)
         {
             _peerName = peerName;
             _messageType = messageType;
+            _persistenceSynchronizer = persistenceSynchronizer;
         }
 
         public override IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message)

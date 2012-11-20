@@ -35,7 +35,7 @@ namespace ZmqServiceBus.Bus.Transport
             }
         }
 
-        public IStartupReliabilityStrategy GetStartupStrategy(MessageOptions messageOptions, string peerName, string messageType)
+        public IStartupReliabilityStrategy GetStartupStrategy(MessageOptions messageOptions, string peerName, string messageType, IPersistenceSynchronizer synchronizer)
         {
             switch (messageOptions.ReliabilityLevel)
             {
@@ -44,7 +44,7 @@ namespace ZmqServiceBus.Bus.Transport
                 case ReliabilityLevel.SendToClientAndBrokerNoAck:
                 case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
                 case ReliabilityLevel.ClientAndBrokerReceivedOnTransport:
-                    return new SynchronizeWithBrokerStartupStrategy(peerName, messageType);
+                    return new SynchronizeWithBrokerStartupStrategy(peerName, messageType, synchronizer);
                 default:
                     throw new ArgumentOutOfRangeException("messageOptions");
             }

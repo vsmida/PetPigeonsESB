@@ -23,19 +23,19 @@ namespace ZmqServiceBus.Tests
         private Mock<IReliabilityStrategyFactory> _factoryMock;
         private Mock<IStartupReliabilityStrategy> _stratMock;
         private Mock<IMessageOptionsRepository> _optionsRepoMock;
+        private Mock<IPersistenceSynchronizer> _persistenceSyncMock;
 
         [SetUp]
         public void setup()
         {
             _factoryMock = new Mock<IReliabilityStrategyFactory>();
             _stratMock = new Mock<IStartupReliabilityStrategy>();
+            _persistenceSyncMock = new Mock<IPersistenceSynchronizer>();
             _optionsRepoMock = new Mock<IMessageOptionsRepository>();
             _optionsRepoMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns<string>(
                 x => new MessageOptions(x, ReliabilityLevel.FireAndForget, "broker"));
-            _factoryMock.Setup(
-                x => x.GetStartupStrategy(It.IsAny<MessageOptions>(), It.IsAny<string>(), It.IsAny<string>())).Returns(
-                    _stratMock.Object);
-            _manager = new StartupStrategyManager(_factoryMock.Object, _optionsRepoMock.Object);
+            _factoryMock.Setup(x => x.GetStartupStrategy(It.IsAny<MessageOptions>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IPersistenceSynchronizer>())).Returns(_stratMock.Object);
+            _manager = new StartupStrategyManager(_factoryMock.Object, _optionsRepoMock.Object, _persistenceSyncMock.Object);
         }
 
         [Test]

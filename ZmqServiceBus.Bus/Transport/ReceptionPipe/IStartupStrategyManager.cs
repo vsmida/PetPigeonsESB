@@ -47,12 +47,14 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         private readonly IReliabilityStrategyFactory _factory;
         private readonly IMessageOptionsRepository _optionsRepository;
+        private readonly IPersistenceSynchronizer _persistenceSynchronizer;
         private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new Dictionary<StartUpKey,IStartupReliabilityStrategy>();
 
-        public StartupStrategyManager(IReliabilityStrategyFactory factory, IMessageOptionsRepository optionsRepository)
+        public StartupStrategyManager(IReliabilityStrategyFactory factory, IMessageOptionsRepository optionsRepository, IPersistenceSynchronizer persistenceSynchronizer)
         {
             _factory = factory;
             _optionsRepository = optionsRepository;
+            _persistenceSynchronizer = persistenceSynchronizer;
         }
 
         public IEnumerable<IReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage)
@@ -62,8 +64,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             if(!_strategies.TryGetValue(startUpKey,out strategy ))
             {
                 var optionsForMessageType = _optionsRepository.GetOptionsFor(transportMessage.MessageType);
-                strategy = _factory.GetStartupStrategy(optionsForMessageType, transportMessage.PeerName,
-                                            transportMessage.MessageType);
+                strategy = _factory.GetStartupStrategy(optionsForMessageType, transportMessage.PeerName,transportMessage.MessageType, _persistenceSynchronizer);
                 _strategies.Add(startUpKey, strategy);
             }
 

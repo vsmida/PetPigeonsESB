@@ -65,6 +65,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Startup\IBusBootstrapper.cs" />
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
+    <Compile Include="Transport\IPersistenceSynchronizer.cs" />
     <Compile Include="Transport\Network\EndpointManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
