@@ -38,6 +38,7 @@ namespace ZmqServiceBus.Bus.Transport
         public string MessageType { get; private set; }
         public bool IsInitialized { get; protected set; }
         public abstract IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message);
+        public abstract IEnumerable<IReceivedTransportMessage> SetEndOfBrokerQueue();
 
         protected StartupReliabilityStrategy(string peerName, string messageType)
         {
@@ -67,11 +68,14 @@ namespace ZmqServiceBus.Bus.Transport
         {
             if (IsInitialized)
             {
-                yield return message;
+                yield return message; 
                 yield break;
             }
 
             var firstElement = _bufferizedMessages.Peek();
+            if(firstElement == null)
+            _persistenceSynchronizer.SynchronizeMessageType(_messageType, _peerName);
+
             if (firstElement == null || firstElement.MessageIdentity != message.MessageIdentity)
                 EnqueueMessage(message);
 
@@ -79,6 +83,11 @@ namespace ZmqServiceBus.Bus.Transport
                 foreach (var transportMessage in SetInitialized())
                     yield return transportMessage;
 
+        }
+
+        public override IEnumerable<IReceivedTransportMessage> SetEndOfBrokerQueue()
+        {
+            return SetInitialized();
         }
 
         private IEnumerable<IReceivedTransportMessage> SetInitialized()
@@ -111,6 +120,11 @@ namespace ZmqServiceBus.Bus.Transport
         public override IEnumerable<IReceivedTransportMessage> GetMessagesToBubbleUp(IReceivedTransportMessage message)
         {
             yield return message;
+        }
+
+        public override IEnumerable<IReceivedTransportMessage> SetEndOfBrokerQueue()
+        {
+            yield break;
         }
     }
 }

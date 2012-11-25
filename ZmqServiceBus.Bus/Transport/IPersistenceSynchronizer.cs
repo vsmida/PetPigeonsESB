@@ -7,6 +7,6 @@ namespace ZmqServiceBus.Bus.Transport
         event Action<string> MessageTypeSynchronizationRequested;
         event Action<string, string> MessageTypeForPeerSynchronizationRequested;
         void SynchronizeMessageType(string messageType);
-        Void SynchronizeMessageType(string messageType, string peer);
+        void SynchronizeMessageType(string messageType, string peer);
     }
 }

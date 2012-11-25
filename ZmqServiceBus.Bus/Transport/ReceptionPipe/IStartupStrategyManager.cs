@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using PersistenceService.Commands;
+using Shared;
 using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
@@ -25,7 +28,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
             protected bool Equals(StartUpKey other)
             {
-                return String.Equals(PeerName, (string) other.PeerName) && String.Equals(MessageType, (string) other.MessageType);
+                return String.Equals(PeerName, (string)other.PeerName) && String.Equals(MessageType, (string)other.MessageType);
             }
 
             public override bool Equals(object obj)
@@ -48,7 +51,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
         private readonly IReliabilityStrategyFactory _factory;
         private readonly IMessageOptionsRepository _optionsRepository;
         private readonly IPersistenceSynchronizer _persistenceSynchronizer;
-        private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new Dictionary<StartUpKey,IStartupReliabilityStrategy>();
+        private readonly Dictionary<StartUpKey, IStartupReliabilityStrategy> _strategies = new Dictionary<StartUpKey, IStartupReliabilityStrategy>();
 
         public StartupStrategyManager(IReliabilityStrategyFactory factory, IMessageOptionsRepository optionsRepository, IPersistenceSynchronizer persistenceSynchronizer)
         {
@@ -59,16 +62,39 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         public IEnumerable<IReceivedTransportMessage> CheckMessage(IReceivedTransportMessage transportMessage)
         {
-            IStartupReliabilityStrategy strategy;
-            var startUpKey = new StartUpKey(transportMessage.PeerName, transportMessage.MessageType);
-            if(!_strategies.TryGetValue(startUpKey,out strategy ))
+            if (transportMessage.MessageType == typeof(ProcessMessagesCommand).FullName)
             {
-                var optionsForMessageType = _optionsRepository.GetOptionsFor(transportMessage.MessageType);
-                strategy = _factory.GetStartupStrategy(optionsForMessageType, transportMessage.PeerName,transportMessage.MessageType, _persistenceSynchronizer);
+                return HandleBrokerMessage(transportMessage);
+            }
+            
+            var startUpKey = new StartUpKey(transportMessage.PeerName, transportMessage.MessageType);
+            var strategy = GetStrategy(startUpKey);
+            return strategy.GetMessagesToBubbleUp(transportMessage);
+        }
+
+        private IEnumerable<IReceivedTransportMessage> HandleBrokerMessage(IReceivedTransportMessage transportMessage)
+        {
+            var deserializedMessage = Serializer.Deserialize<ProcessMessagesCommand>(transportMessage.Data);
+            var startUpKey = new StartUpKey(deserializedMessage.OriginatingPeer, deserializedMessage.MessageType);
+            var strategy = GetStrategy(startUpKey);
+            var result = deserializedMessage.MessagesToProcess.Aggregate(Enumerable.Empty<IReceivedTransportMessage>(),
+                                                                         (current, receivedTransportMessage) => current.Concat(strategy.GetMessagesToBubbleUp(receivedTransportMessage)));
+            if (deserializedMessage.IsEndOfQueue)
+                result = result.Concat(strategy.SetEndOfBrokerQueue());
+            return result;
+        }
+
+        private IStartupReliabilityStrategy GetStrategy(StartUpKey startUpKey)
+        {
+            IStartupReliabilityStrategy strategy;
+            if (!_strategies.TryGetValue(startUpKey, out strategy))
+            {
+                var optionsForMessageType = _optionsRepository.GetOptionsFor(startUpKey.MessageType);
+                strategy = _factory.GetStartupStrategy(optionsForMessageType, startUpKey.PeerName,
+                                                       startUpKey.MessageType, _persistenceSynchronizer);
                 _strategies.Add(startUpKey, strategy);
             }
-
-            return strategy.GetMessagesToBubbleUp(transportMessage);
+            return strategy;
         }
     }
 }

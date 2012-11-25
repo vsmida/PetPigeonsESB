@@ -56,6 +56,7 @@
     <Compile Include="IEventHandler.cs" />
     <Compile Include="IMessageHandler.cs" />
     <Compile Include="InfrastructureMessages\PersistMessageCommand.cs" />
+    <Compile Include="InfrastructureMessages\ProcessMessagesCommand.cs" />
     <Compile Include="InternalBus.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="Dispatch\IMessageDispatcher.cs" />
@@ -65,6 +66,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Startup\IBusBootstrapper.cs" />
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
+    <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Transport\IPersistenceSynchronizer.cs" />
     <Compile Include="Transport\Network\EndpointManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />

@@ -58,7 +58,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             }
         }
 
-        private static bool IsTransportAck(Transport.IReceivedTransportMessage receivedTransportMessage)
+        private static bool IsTransportAck(IReceivedTransportMessage receivedTransportMessage)
         {
             return receivedTransportMessage.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName;
         }

@@ -1,5 +1,7 @@
-﻿using Moq;
+﻿using System;
+using Moq;
 using NUnit.Framework;
+using PersistenceService.Commands;
 using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus.Transport;
@@ -7,6 +9,7 @@ using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
+using Serializer = Shared.Serializer;
 
 namespace ZmqServiceBus.Tests
 {
@@ -59,6 +62,32 @@ namespace ZmqServiceBus.Tests
 
             _optionsRepoMock.Verify(x => x.GetOptionsFor(message.MessageType), Times.Exactly(1));
             _stratMock.Verify(x => x.GetMessagesToBubbleUp(message), Times.Exactly(2));
+        }
+
+        [Test]
+        public void should_handle_process_message_command()
+        {
+            var message = new ProcessMessagesCommand(typeof(FakeEvent).FullName, "Peer", new[] { TestData.GenerateDummyReceivedMessage<FakeEvent>(), TestData.GenerateDummyReceivedMessage<FakeEvent>() }, false);
+
+            _manager.CheckMessage(new ReceivedTransportMessage(typeof(ProcessMessagesCommand).FullName, "Broker", Guid.NewGuid(), Serializer.Serialize(message)));
+
+            _optionsRepoMock.Verify(x => x.GetOptionsFor(typeof(FakeEvent).FullName), Times.Exactly(1));
+            _stratMock.Verify(x => x.GetMessagesToBubbleUp(It.Is<ReceivedTransportMessage>(y => y.MessageType == typeof(FakeEvent).FullName)), Times.Exactly(2));
+            _stratMock.Verify(x => x.SetEndOfBrokerQueue(), Times.Never());
+
+        }
+
+        [Test]
+        public void should_set_init_to_true_when_end_of_broker_queue()
+        {
+            var message = new ProcessMessagesCommand(typeof(FakeEvent).FullName, "Peer", new[] { TestData.GenerateDummyReceivedMessage<FakeEvent>(), TestData.GenerateDummyReceivedMessage<FakeEvent>() }, true);
+
+            _manager.CheckMessage(new ReceivedTransportMessage(typeof(ProcessMessagesCommand).FullName, "Broker", Guid.NewGuid(), Serializer.Serialize(message)));
+
+            _optionsRepoMock.Verify(x => x.GetOptionsFor(typeof(FakeEvent).FullName), Times.Exactly(1));
+            _stratMock.Verify(x => x.GetMessagesToBubbleUp(It.Is<ReceivedTransportMessage>(y => y.MessageType == typeof(FakeEvent).FullName)), Times.Exactly(2));
+            _stratMock.Verify(x => x.SetEndOfBrokerQueue(), Times.Once());
+
         }
     }
 }

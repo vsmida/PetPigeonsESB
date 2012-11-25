@@ -3,6 +3,7 @@ using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBusHost
 {
@@ -10,10 +11,7 @@ namespace ZmqServiceBusHost
     {
          public ServiceRegistry()
          {
-             For<IObjectFactory>().Use<ObjectFactory>();
-             For<IZmqSocketManager>().Use<ZmqSocketManager>();
-             For<IEndpointManager>().Use<EndpointManager>();
-             For<IReceptionLayer>().Use<ReceptionLayer>();
+
 
 
          }

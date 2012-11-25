@@ -39,10 +39,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _socketManager = socketManager;
             _peerManager = peerManager;
             _subscriptionManager = subscriptionManager;
-            _subscriptionManager.OnNewEventSubscription += OnNewSubscription;
+            _subscriptionManager.NewEventSubscription += NewSubscription;
         }
 
-        private void OnNewSubscription(Type eventType)
+        private void NewSubscription(Type eventType)
         {
             var publishingEndpoints = _peerManager.GetEndpointsForMessageType(eventType.FullName);
             foreach (var publishingEndpoint in publishingEndpoints)

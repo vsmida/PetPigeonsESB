@@ -82,6 +82,7 @@
   <ItemGroup>
     <Compile Include="Attributes\InfrastructureMessageAttribute.cs" />
     <Compile Include="BackgroundThread.cs" />
+    <Compile Include="DisposableAction.cs" />
     <Compile Include="ExtendDictionary.cs" />
     <Compile Include="ExtendEnumerable.cs" />
     <Compile Include="ExtendSocket.cs" />

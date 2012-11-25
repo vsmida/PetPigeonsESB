@@ -274,7 +274,7 @@ namespace ZmqServiceBus.Tests.Transport
             string endpoint = "endpoint";
 
             _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns(new List<string> { endpoint });
-            _subscriptionManagerMock.Raise(x => x.OnNewEventSubscription+=OnNewEventSubscription,typeof(FakeEvent));
+            _subscriptionManagerMock.Raise(x => x.NewEventSubscription+=OnNewEventSubscription,typeof(FakeEvent));
 
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }
