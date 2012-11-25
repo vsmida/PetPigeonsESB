@@ -25,7 +25,7 @@ namespace ZmqServiceBus.Bus
 
         public void Send(ICommand command)
         {
-           _messageSender.Send(command);
+            _messageSender.Send(command);
         }
 
         public void Publish(IEvent message)
@@ -46,13 +46,15 @@ namespace ZmqServiceBus.Bus
 
         private void OnTransportMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {
-            var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
             try
             {
+                var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
+                _messageSender.Route(new AcknowledgementMessage(receivedTransportMessage.MessageIdentity, true), receivedTransportMessage.PeerName);
             }
             catch (Exception)
             {
+                _messageSender.Route(new AcknowledgementMessage(receivedTransportMessage.MessageIdentity, false), receivedTransportMessage.PeerName);
             }
 
         }

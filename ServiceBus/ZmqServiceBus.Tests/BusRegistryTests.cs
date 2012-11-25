@@ -12,6 +12,7 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_be_able_to_instantiate_bus()
         {
+
             ObjectFactory.Initialize(x => x.AddRegistry<BusRegistry>());
             Assert.DoesNotThrow(() =>ObjectFactory.GetInstance<IBus>());
         }

@@ -44,7 +44,6 @@ namespace ZmqServiceBus.Tests
         private Mock<IReceptionLayer> _startupLayerMock;
         private Mock<IMessageDispatcher> _dispatcherMock;
         private FakeIBusConfig _config;
-        private FakeTransportConfiguration _transportConfig;
         private Mock<IMessageSender> _messageSenderMock;
 
         [SetUp]
@@ -53,7 +52,6 @@ namespace ZmqServiceBus.Tests
             _startupLayerMock = new Mock<IReceptionLayer>();
             _dispatcherMock = new Mock<IMessageDispatcher>();
             _config = new FakeIBusConfig();
-            _transportConfig = new FakeTransportConfiguration();
             _messageSenderMock = new Mock<IMessageSender>();
             _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _messageSenderMock.Object);
         }
@@ -77,27 +75,26 @@ namespace ZmqServiceBus.Tests
             _dispatcherMock.Verify(x => x.Dispatch(It.Is<FakeCommand>(y => y.Number == 5)));
         }
 
-        //[Test]
-        //public void should_send_positive_acknowledgement_message_after_successful_dispatch()
-        //{
-        //    _bus.Initialize();
-        //    var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
-        //    _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+        [Test]
+        public void should_send_positive_acknowledgement_message_after_successful_dispatch()
+        {
+            _bus.Initialize();
+            var transportMessage = TestData.GenerateDummyReceivedMessage(new FakeCommand(5));
+            _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-        //    _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, true));
-        //}
+            _messageSenderMock.Verify(y => y.Route(It.Is<AcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == true), transportMessage.PeerName));
+        }
 
-        //[Test]
-        //public void should_send_negative_ack_after_unsuccessful_dispatch()
-        //{
-        //    _bus.Initialize();
-        //    var transportMessage = TestData.GenerateDummyMessage(new FakeCommand(5));
-        //    _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<IMessage>())).Callback<IMessage>(x => { throw new Exception(); });
-        //    _transportMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+        [Test]
+        public void should_send_negative_ack_after_unsuccessful_dispatch()
+        {
+            _bus.Initialize();
+            var transportMessage = TestData.GenerateDummyReceivedMessage(new FakeCommand(5));
+            _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<IMessage>())).Callback<IMessage>(x => { throw new Exception(); });
+            _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-        //    _transportMock.Verify(x => x.AckMessage(transportMessage.SendingSocketId, transportMessage.MessageIdentity, false));
-
-        //}
+            _messageSenderMock.Verify(y => y.Route(It.Is<AcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == false), transportMessage.PeerName));
+        }
 
 
 

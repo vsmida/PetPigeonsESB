@@ -126,7 +126,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _endpointManager.Initialize();
             var endpoint = "endpoint";
-            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof (FakeCommand).FullName)).Returns(new List<string>{endpoint});
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string> { endpoint });
 
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(),
                 It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
@@ -137,7 +137,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _socketManagerMock.VerifyAll();
             var sentTransportMessage = sendQueue.Take();
-          //  Assert.AreEqual(transportMessage.PeerName, sentTransportMessage.PeerName);
+            //  Assert.AreEqual(transportMessage.PeerName, sentTransportMessage.PeerName);
             Assert.AreEqual(typeof(FakeCommand).FullName, sentTransportMessage.MessageType);
             Assert.AreEqual(2, Serializer.Deserialize<FakeCommand>(sentTransportMessage.Data).Test);
         }
@@ -171,7 +171,7 @@ namespace ZmqServiceBus.Tests.Transport
             Assert.AreEqual(2, Serializer.Deserialize<FakeCommand>(sentTransportMessage1.Data).Test);
 
             var sentTransportMessage2 = sendQueue2.Take();
-           // Assert.AreEqual(transportMessage.PeerName, sentTransportMessage2.PeerName);
+            // Assert.AreEqual(transportMessage.PeerName, sentTransportMessage2.PeerName);
             Assert.AreEqual(typeof(FakeCommand).FullName, sentTransportMessage2.MessageType);
             Assert.AreEqual(2, Serializer.Deserialize<FakeCommand>(sentTransportMessage2.Data).Test);
 
@@ -196,10 +196,10 @@ namespace ZmqServiceBus.Tests.Transport
 
             _socketManagerMock.Verify(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(), It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once());
             var sentMessage = sendQueueForFakeCommand.Take();
-            Assert.AreEqual(transportMessage.Data,sentMessage.Data);
-            Assert.AreEqual(transportMessage.MessageIdentity,sentMessage.MessageIdentity);
-            Assert.AreEqual(transportMessage.MessageType,sentMessage.MessageType);
-         //   Assert.AreEqual(transportMessage.PeerName, sentMessage.PeerName);
+            Assert.AreEqual(transportMessage.Data, sentMessage.Data);
+            Assert.AreEqual(transportMessage.MessageIdentity, sentMessage.MessageIdentity);
+            Assert.AreEqual(transportMessage.MessageType, sentMessage.MessageType);
+            //   Assert.AreEqual(transportMessage.PeerName, sentMessage.PeerName);
         }
 
 
@@ -215,8 +215,8 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Setup(x => x.CreateRequestSocket(It.IsAny<BlockingCollection<ISendingTransportMessage>>(), It.IsAny<BlockingCollection<IReceivedTransportMessage>>(), endpoint2, _configuration.PeerName))
                   .Callback<BlockingCollection<ISendingTransportMessage>, BlockingCollection<IReceivedTransportMessage>, string, string>((x, y, z, t) => sendQueueForFakeCommand2 = x);
             _endpointManager.Initialize();
-            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string>{endpoint});
-            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand2).FullName)).Returns(new List<string>{endpoint2});
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand).FullName)).Returns(new List<string> { endpoint });
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeCommand2).FullName)).Returns(new List<string> { endpoint2 });
 
             var command1 = new FakeCommand(2);
             var transportMessage = TestData.GenerateDummySendingMessage(command1);
@@ -257,13 +257,13 @@ namespace ZmqServiceBus.Tests.Transport
             _endpointManager.Initialize();
             var fakeEvent = new FakeEvent(2);
             var transportMessage = TestData.GenerateDummySendingMessage(fakeEvent);
-           
+
             _endpointManager.PublishMessage(transportMessage);
 
             var sentMessage = messagesToSend.Take();
             Assert.AreEqual(typeof(FakeEvent).FullName, sentMessage.MessageType);
             Assert.AreEqual(transportMessage.MessageIdentity, sentMessage.MessageIdentity);
-         //   Assert.AreEqual(transportMessage.PeerName, sentMessage.PeerName);
+            //   Assert.AreEqual(transportMessage.PeerName, sentMessage.PeerName);
             Assert.AreEqual(2, Serializer.Deserialize<FakeEvent>(sentMessage.Data).Test);
         }
 
@@ -274,14 +274,14 @@ namespace ZmqServiceBus.Tests.Transport
             string endpoint = "endpoint";
 
             _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns(new List<string> { endpoint });
-            _subscriptionManagerMock.Raise(x => x.NewEventSubscription+=OnNewEventSubscription,typeof(FakeEvent));
+            _subscriptionManagerMock.Raise(x => x.NewEventSubscription += OnNewEventSubscription, typeof(FakeEvent));
 
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }
 
         private void OnNewEventSubscription(Type obj)
         {
-            
+
         }
 
         [Test]
@@ -289,9 +289,10 @@ namespace ZmqServiceBus.Tests.Transport
         {
             _endpointManager.Initialize();
             string endpoint = "endpoint";
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns(
+    new List<string> { endpoint });
+            _subscriptionManagerMock.Raise(x => x.NewEventSubscription += y => { }, typeof(FakeEvent));
 
-        //    _endpointManager.ListenTo<FakeEvent>();
-        //      _endpointManager.RegisterPeer(TestData.CreatePeerThatPublishes<FakeEvent>(endpoint));
 
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }

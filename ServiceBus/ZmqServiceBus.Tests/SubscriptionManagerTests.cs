@@ -56,7 +56,7 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_raise_subscribe_event_when_relevant_peer_publisher_connects()
         {
-            var subscription = _subscriptionManager.StartListeningTo<FakeMessage>();
+            _subscriptionManager.StartListeningTo<FakeMessage>();
             Type eventType = null;
             _subscriptionManager.NewEventSubscription += x => eventType = x;
 

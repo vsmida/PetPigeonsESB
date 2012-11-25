@@ -1,12 +1,13 @@
 using System;
 using ProtoBuf;
 using Shared.Attributes;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus
 {
     [ProtoContract]
     [InfrastructureMessage]
-    public class AcknowledgementMessage
+    public class AcknowledgementMessage : IMessage
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly Guid MessageId;
