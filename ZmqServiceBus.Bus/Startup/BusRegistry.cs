@@ -13,22 +13,22 @@ namespace ZmqServiceBus.Bus.Startup
     {
          public BusRegistry()
          {
-             For<IObjectFactory>().Use<ObjectFactory>();
+             ForSingletonOf<IObjectFactory>().Use<ObjectFactory>();
              For<IAssemblyScanner>().Use<AssemblyScanner>();
-             For<TransportConfiguration>().Use<TransportConfigurationRandomPort>();
-             For<IZmqSocketManager>().Use<ZmqSocketManager>().Ctor<ZmqContext>().Is(ZmqContext.Create());
-             For<IEndpointManager>().Use<EndpointManager>();
-             For<IPeerManager>().Use<PeerManager>();
-             For<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
-             For<IReceptionLayer>().Use<ReceptionLayer>();
-             For<IMessageSender>().Use<MessageSender>();
-             For<IMessageDispatcher>().Use<MessageDispatcher>();
-             For<IPersistenceSynchronizer>().Use<BrokerPersistenceSynchronizer>();
-             For<IStartupStrategyManager>().Use<StartupStrategyManager>();
-             For<ISendingStrategyStateManager>().Use<SendingStrategyStateManager>();
-             For<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
-             For<ISubscriptionManager>().Use<SubscriptionManager>();
-             For<IBus>().Use<InternalBus>();
+             ForSingletonOf<TransportConfiguration>().Use<TransportConfigurationRandomPort>();
+             ForSingletonOf<IZmqSocketManager>().Use<ZmqSocketManager>().Ctor<ZmqContext>().Is(ZmqContext.Create());
+             ForSingletonOf<IEndpointManager>().Use<EndpointManager>();
+             ForSingletonOf<IPeerManager>().Use<PeerManager>();
+             ForSingletonOf<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
+             ForSingletonOf<IReceptionLayer>().Use<ReceptionLayer>();
+             ForSingletonOf<IMessageSender>().Use<MessageSender>();
+             ForSingletonOf<IMessageDispatcher>().Use<MessageDispatcher>();
+             ForSingletonOf<IPersistenceSynchronizer>().Use<BrokerPersistenceSynchronizer>();
+             ForSingletonOf<IStartupStrategyManager>().Use<StartupStrategyManager>();
+             ForSingletonOf<ISendingStrategyStateManager>().Use<SendingStrategyStateManager>();
+             ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
+             ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
+             ForSingletonOf<IBus>().Use<InternalBus>();
              
          }
     }
