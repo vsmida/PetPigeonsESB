@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Shared;
 using ZmqServiceBus.Bus.InfrastructureMessages;
@@ -11,6 +12,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
         private readonly string _brokerPeerName;
         private readonly ISendingStrategyStateManager _stateManager;
 
+        //todo: special case when acknowledgement message. special message to broker to flush from queue? only for routing?
         public WaitForClientOrBrokerAck(string brokerPeerName, ISendingStrategyStateManager stateManager)
         {
             _brokerPeerName = brokerPeerName;
@@ -19,7 +21,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 
         public void SendOn(IEndpointManager endpointManager, ISendingTransportMessage message)
         {
-            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(message));
+            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);
@@ -31,7 +33,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 
         public void PublishOn(IEndpointManager endpointManager, ISendingTransportMessage message)
         {
-            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(message));
+            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);
@@ -43,7 +45,11 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 
         public void RouteOn(IEndpointManager endpointManager, ISendingTransportMessage message, string destinationPeer)
         {
-            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(message));
+            SendingTransportMessage brokerMessage;
+            if (message.MessageType == typeof(AcknowledgementMessage).FullName)
+                brokerMessage = new SendingTransportMessage(typeof(ForgetMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(new ForgetMessageCommand(message.MessageType, message.MessageIdentity)));
+            else
+                brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);

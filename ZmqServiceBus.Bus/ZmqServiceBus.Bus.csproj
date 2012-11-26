@@ -58,6 +58,8 @@
     <Compile Include="IMessageHandler.cs" />
     <Compile Include="InfrastructureMessages\PersistMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessagesCommand.cs" />
+    <Compile Include="InfrastructureMessages\SynchronizeMessageCommand.cs" />
+    <Compile Include="InfrastructureMessages\SynchronizePeerMessageCommand.cs" />
     <Compile Include="InternalBus.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="Dispatch\IMessageDispatcher.cs" />

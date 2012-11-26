@@ -1,5 +1,6 @@
 ﻿using StructureMap.Configuration.DSL;
 using ZeroMQ;
+using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
@@ -13,6 +14,7 @@ namespace ZmqServiceBus.Bus.Startup
          public BusRegistry()
          {
              For<IObjectFactory>().Use<ObjectFactory>();
+             For<IAssemblyScanner>().Use<AssemblyScanner>();
              For<TransportConfiguration>().Use<TransportConfigurationRandomPort>();
              For<IZmqSocketManager>().Use<ZmqSocketManager>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              For<IEndpointManager>().Use<EndpointManager>();
@@ -20,6 +22,8 @@ namespace ZmqServiceBus.Bus.Startup
              For<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
              For<IReceptionLayer>().Use<ReceptionLayer>();
              For<IMessageSender>().Use<MessageSender>();
+             For<IMessageDispatcher>().Use<MessageDispatcher>();
+             For<IPersistenceSynchronizer>().Use<BrokerPersistenceSynchronizer>();
              For<IStartupStrategyManager>().Use<StartupStrategyManager>();
              For<ISendingStrategyStateManager>().Use<SendingStrategyStateManager>();
              For<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
