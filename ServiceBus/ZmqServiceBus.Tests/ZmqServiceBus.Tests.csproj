@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyScannerTests.cs" />
+    <Compile Include="BusBootStrapperTests.cs" />
     <Compile Include="BusRegistryTests.cs" />
     <Compile Include="BusTests.cs" />
     <Compile Include="MessageDispatcherTests.cs" />

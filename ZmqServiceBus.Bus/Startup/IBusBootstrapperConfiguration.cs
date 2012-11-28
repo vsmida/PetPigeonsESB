@@ -4,5 +4,6 @@ namespace ZmqServiceBus.Bus.Startup
     {
         string DirectoryServiceCommandEndpoint { get; }
         string DirectoryServiceEventEndpoint { get; }
+        string DirectoryServiceName { get; }
     }
 }

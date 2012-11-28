@@ -16,9 +16,9 @@ namespace ZmqServiceBus.Bus.Transport
             _stateManager = stateManager;
         }
 
-        public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptionses)
+        public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptions)
         {
-            switch (messageOptionses.ReliabilityLevel)
+            switch (messageOptions.ReliabilityInfo.ReliabilityLevel)
             {
                 case ReliabilityLevel.FireAndForget:
                     return new FireAndForget();
@@ -26,7 +26,7 @@ namespace ZmqServiceBus.Bus.Transport
                     //case ReliabilityOption.SendToClientAndBrokerNoAck:
                     //    break;
                 case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
-                    return new WaitForClientOrBrokerAck(messageOptionses.BrokerName, _stateManager);
+                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerName, _stateManager);
                     break;
                     //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                     //    break;
@@ -37,7 +37,7 @@ namespace ZmqServiceBus.Bus.Transport
 
         public IStartupReliabilityStrategy GetStartupStrategy(MessageOptions messageOptions, string peerName, string messageType, IPersistenceSynchronizer synchronizer)
         {
-            switch (messageOptions.ReliabilityLevel)
+            switch (messageOptions.ReliabilityInfo.ReliabilityLevel)
             {
                 case ReliabilityLevel.FireAndForget:
                     return new FireAndForgetStartupStrategy(null, null);

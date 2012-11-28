@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using ProtoBuf;
 using Shared;
 
-namespace DirectoryService.Event
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
+    [ProtoContract]
+    [ProtoInclude(1, typeof(ServicePeer))]
     public class PeerConnected
     {
+        [ProtoMember(1, IsRequired = true)]
         public readonly IServicePeer Peer;
 
         public PeerConnected(IServicePeer peer)

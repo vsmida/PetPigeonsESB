@@ -47,7 +47,7 @@ namespace ZmqServiceBus.Tests.Transport
             var stratMock = new Mock<ISendingReliabilityStrategy>();
             _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
                 stratMock.Object);
-            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",ReliabilityLevel.SendToClientAndBrokerNoAck,""));
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck,"")));
 
             _messageSender.Send(new FakeCommand());
 
@@ -60,7 +60,7 @@ namespace ZmqServiceBus.Tests.Transport
             var stratMock = new Mock<ISendingReliabilityStrategy>();
             _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
                 stratMock.Object);
-            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", ReliabilityLevel.SendToClientAndBrokerNoAck, ""));
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityInfo( ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
 
             _messageSender.Route(new FakeCommand(),"Test");
 
@@ -73,7 +73,7 @@ namespace ZmqServiceBus.Tests.Transport
             var stratMock = new Mock<ISendingReliabilityStrategy>();
             _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
                 stratMock.Object);
-            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", ReliabilityLevel.SendToClientAndBrokerNoAck, ""));
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
 
             _messageSender.Publish(new FakeEvent());
 

@@ -7,16 +7,13 @@ namespace Shared
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly string MessageType;
-        [ProtoMember(2, IsRequired = true)]
-        public readonly ReliabilityLevel ReliabilityLevel;
         [ProtoMember(3, IsRequired = true)]
-        public readonly string BrokerName;
+        public readonly ReliabilityInfo ReliabilityInfo;
 
-        public MessageOptions(string messageType, ReliabilityLevel reliabilityLevel, string brokerName)
+        public MessageOptions(string messageType, ReliabilityInfo reliabilityInfo)
         {
             MessageType = messageType;
-            ReliabilityLevel = reliabilityLevel;
-            BrokerName = brokerName;
+            ReliabilityInfo = reliabilityInfo;
         }
     }
 }

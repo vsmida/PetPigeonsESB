@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Shared;
 using ZmqServiceBus.Contracts;
 
-namespace DirectoryService.Commands
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     public class InitializeTopologyAndMessageSettings : ICommand
     {

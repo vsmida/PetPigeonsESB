@@ -56,8 +56,11 @@
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="IEventHandler.cs" />
     <Compile Include="IMessageHandler.cs" />
+    <Compile Include="InfrastructureMessages\InitializeTopologyAndMessageSettings.cs" />
+    <Compile Include="InfrastructureMessages\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\PersistMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessagesCommand.cs" />
+    <Compile Include="InfrastructureMessages\RegisterPeerCommand.cs" />
     <Compile Include="InfrastructureMessages\SynchronizeMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\SynchronizePeerMessageCommand.cs" />
     <Compile Include="InternalBus.cs" />

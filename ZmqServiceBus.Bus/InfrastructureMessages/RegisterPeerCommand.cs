@@ -2,7 +2,7 @@
 using Shared;
 using ZmqServiceBus.Contracts;
 
-namespace DirectoryService.Commands
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
     public class RegisterPeerCommand : ICommand
