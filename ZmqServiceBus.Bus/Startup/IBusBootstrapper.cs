@@ -21,7 +21,17 @@ namespace ZmqServiceBus.Bus.Startup
         private readonly IBusBootstrapperConfiguration _bootstrapperConfiguration;
         private readonly IMessageOptionsRepository _optionsRepo;
         private readonly IMessageSender _messageSender;
-        private readonly PeerManager _peerManager;
+        private readonly IPeerManager _peerManager;
+
+        public BusBootstrapper(IAssemblyScanner assemblyScanner, TransportConfiguration transportConfiguration, IBusBootstrapperConfiguration bootstrapperConfiguration, IMessageOptionsRepository optionsRepo, IMessageSender messageSender, IPeerManager peerManager)
+        {
+            _assemblyScanner = assemblyScanner;
+            _transportConfiguration = transportConfiguration;
+            _bootstrapperConfiguration = bootstrapperConfiguration;
+            _optionsRepo = optionsRepo;
+            _messageSender = messageSender;
+            _peerManager = peerManager;
+        }
 
         public void BootStrapTopology()
         {
