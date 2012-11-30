@@ -1,22 +1,15 @@
 ﻿using System;
-using System.Threading;
-using DirectoryService.Commands;
-using DirectoryService.Event;
 using Moq;
 using NUnit.Framework;
 using ProtoBuf;
-using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
-using ZmqServiceBus.Bus.Startup;
-using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
 using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransportMessage;
-using Serializer = Shared.Serializer;
 
 namespace ZmqServiceBus.Tests
 {

@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using DirectoryService.Commands;
 using Moq;
 using NUnit.Framework;
-using PersistenceService.Commands;
 using Shared;
-using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;

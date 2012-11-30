@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using DirectoryService.Commands;
-using DirectoryService.Core;
+﻿using DirectoryService.Core;
 using NUnit.Framework;
 
 namespace DirectoryService.Event
