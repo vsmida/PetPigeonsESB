@@ -15,12 +15,14 @@ namespace ZmqServiceBus.Bus
         private readonly IReceptionLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;
         private readonly IMessageSender _messageSender;
+        private readonly IBusBootstrapper _busBootstrapper;
 
-        public InternalBus(IReceptionLayer startupLayer, IMessageDispatcher dispatcher, IMessageSender messageSender)
+        public InternalBus(IReceptionLayer startupLayer, IMessageDispatcher dispatcher, IMessageSender messageSender, IBusBootstrapper busBootstrapper)
         {
             _startupLayer = startupLayer;
             _dispatcher = dispatcher;
             _messageSender = messageSender;
+            _busBootstrapper = busBootstrapper;
         }
 
         public void Send(ICommand command)
@@ -37,6 +39,7 @@ namespace ZmqServiceBus.Bus
         {
             _startupLayer.Initialize();
             _startupLayer.OnMessageReceived += OnTransportMessageReceived;
+            _busBootstrapper.BootStrapTopology();
         }
 
         public void Reply(IMessage message)

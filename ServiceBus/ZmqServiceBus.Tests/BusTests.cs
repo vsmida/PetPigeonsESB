@@ -5,6 +5,7 @@ using ProtoBuf;
 using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
@@ -38,21 +39,24 @@ namespace ZmqServiceBus.Tests
         private Mock<IMessageDispatcher> _dispatcherMock;
         private FakeIBusConfig _config;
         private Mock<IMessageSender> _messageSenderMock;
+        private Mock<IBusBootstrapper> _bootstrapperMock;
 
         [SetUp]
         public void setup()
         {
+            _bootstrapperMock = new Mock<IBusBootstrapper>();
             _startupLayerMock = new Mock<IReceptionLayer>();
             _dispatcherMock = new Mock<IMessageDispatcher>();
             _config = new FakeIBusConfig();
             _messageSenderMock = new Mock<IMessageSender>();
-            _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _messageSenderMock.Object);
+            _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _messageSenderMock.Object, _bootstrapperMock.Object);
         }
         [Test]
-        public void should_initialize_transport_on_start()
+        public void should_initialize_transport_and_bootstrap_on_start()
         {
             _bus.Initialize();
             _startupLayerMock.Verify(x => x.Initialize());
+            _bootstrapperMock.Verify(x => x.BootStrapTopology());
         }
 
 
