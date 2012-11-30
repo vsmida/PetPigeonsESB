@@ -1,12 +1,7 @@
-using ZmqServiceBus.Contracts;
-
-namespace ZmqServiceBus.Bus
+﻿namespace ZmqServiceBus.Bus
 {
-    public interface IMessageHandler<in T> where T : IMessage
+    public interface IMessageHandler
     {
-        void Handle(T message);
+         
     }
-
-
-
 }

@@ -52,6 +52,7 @@
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
+    <Compile Include="Handlers\DirectoryServiceMessagesHandler.cs" />
     <Compile Include="IBusConfiguration.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="IEventHandler.cs" />

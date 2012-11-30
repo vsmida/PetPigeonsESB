@@ -10,6 +10,17 @@ namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
+        private class FakeCommand
+        { }
+
+        private class FakeEvent
+        { }
+
+        public static IServicePeer GenerateServicePeer()
+        {
+            return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) }, new List<Type> { typeof(FakeEvent) });
+        }
+
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
         {
             return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), new byte[0]);
