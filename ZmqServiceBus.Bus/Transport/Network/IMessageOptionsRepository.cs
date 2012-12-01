@@ -13,7 +13,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
     public class MessageOptionsRepository : IMessageOptionsRepository
     {
-        public event Action<MessageOptions> OptionsUpdated;
+        public event Action<MessageOptions> OptionsUpdated = delegate{};
         private readonly ConcurrentDictionary<string, MessageOptions> _options = new ConcurrentDictionary<string, MessageOptions>();
         
         public void RegisterOptions(MessageOptions options)

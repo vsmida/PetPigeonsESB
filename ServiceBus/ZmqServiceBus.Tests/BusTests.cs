@@ -18,26 +18,9 @@ namespace ZmqServiceBus.Tests
     public class BusTests
     {
 
-        private class FakeIBusConfig : IBusConfiguration
-        {
-            public string DirectoryServiceCommandEndpoint
-            {
-                get { return "CEndpoint"; }
-            }
-
-            public string DirectoryServiceEventEndpoint
-            {
-                get { return "EEndpoint"; }
-            }
-
-            public string ServiceIdentity { get { return "Identity"; } }
-        }
-
-
         private InternalBus _bus;
         private Mock<IReceptionLayer> _startupLayerMock;
         private Mock<IMessageDispatcher> _dispatcherMock;
-        private FakeIBusConfig _config;
         private Mock<IMessageSender> _messageSenderMock;
         private Mock<IBusBootstrapper> _bootstrapperMock;
 
@@ -47,7 +30,6 @@ namespace ZmqServiceBus.Tests
             _bootstrapperMock = new Mock<IBusBootstrapper>();
             _startupLayerMock = new Mock<IReceptionLayer>();
             _dispatcherMock = new Mock<IMessageDispatcher>();
-            _config = new FakeIBusConfig();
             _messageSenderMock = new Mock<IMessageSender>();
             _bus = new InternalBus(_startupLayerMock.Object, _dispatcherMock.Object, _messageSenderMock.Object, _bootstrapperMock.Object);
         }

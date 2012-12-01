@@ -92,7 +92,9 @@
     <Compile Include="BusRegistryTests.cs" />
     <Compile Include="BusTests.cs" />
     <Compile Include="InfrastructureHandlers\DirectoryServiceMessagesHandlerTests.cs" />
+    <Compile Include="Integration\DummyConfigs.cs" />
     <Compile Include="Integration\SimpleMessageExchange.cs" />
+    <Compile Include="Integration\TestBusCreator.cs" />
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="BrokerPersistenceSynchronizerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

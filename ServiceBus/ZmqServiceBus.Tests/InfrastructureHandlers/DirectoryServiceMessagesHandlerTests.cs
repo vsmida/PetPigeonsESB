@@ -41,7 +41,7 @@ namespace ZmqServiceBus.Tests.InfrastructureHandlers
         {
             var peer = TestData.GenerateServicePeer();
             var option = new MessageOptions("type", new ReliabilityInfo(ReliabilityLevel.FireAndForget));
-            var command = new InitializeTopologyAndMessageSettings(new List<IServicePeer> {peer},
+            var command = new InitializeTopologyAndMessageSettings(new List<ServicePeer> { (ServicePeer)peer },
                                                                     new List<MessageOptions> {option});
 
             _handler.Handle(command);

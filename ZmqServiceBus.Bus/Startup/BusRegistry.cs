@@ -28,6 +28,8 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<ISendingStrategyStateManager>().Use<SendingStrategyStateManager>();
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
+             ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
+         //    ForSingletonOf<IBusBootstrapperConfiguration>().Use<BootstrapperCOn>()
              ForSingletonOf<IBus>().Use<InternalBus>();
              
          }

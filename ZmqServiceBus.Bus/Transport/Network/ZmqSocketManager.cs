@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using Shared;
 using ZeroMQ;
-using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Transport.Network

@@ -45,5 +45,8 @@ namespace Shared
             _handledMessages = handledMessages;
             _publishedMessages = publishedMessages;
         }
+
+        private ServicePeer()
+        {}
     }
 }

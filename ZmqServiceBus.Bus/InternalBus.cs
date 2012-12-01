@@ -2,7 +2,6 @@
 using Shared;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.Startup;
-using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
@@ -10,7 +9,7 @@ using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransport
 
 namespace ZmqServiceBus.Bus
 {
-    public class InternalBus : IBus, IReplier
+    public class InternalBus : MarshalByRefObject, IBus, IReplier
     {
         private readonly IReceptionLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;

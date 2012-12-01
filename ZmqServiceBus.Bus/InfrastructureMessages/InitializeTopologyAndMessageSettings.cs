@@ -7,15 +7,14 @@ using ZmqServiceBus.Contracts;
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
-    [ProtoInclude(1, typeof(ServicePeer))]
     public class InitializeTopologyAndMessageSettings : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly List<IServicePeer> KnownPeers;
+        public readonly List<ServicePeer> KnownPeers;
         [ProtoMember(2, IsRequired = true)]
         public readonly List<MessageOptions> MessageOptions;
 
-        public InitializeTopologyAndMessageSettings(List<IServicePeer> knownPeers, List<MessageOptions> messageOptions)
+        public InitializeTopologyAndMessageSettings(List<ServicePeer> knownPeers, List<MessageOptions> messageOptions)
         {
             KnownPeers = knownPeers;
             MessageOptions = messageOptions;
