@@ -4,6 +4,7 @@ using System.Linq;
 using Moq;
 using NUnit.Framework;
 using Shared;
+using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
@@ -64,7 +65,7 @@ namespace ZmqServiceBus.Tests
         public void should_register_with_directory_service()
         {
             RegisterPeerCommand command = null;
-            _senderMock.Setup(x => x.Send(It.IsAny<ICommand>())).Callback<ICommand>(y => command = (RegisterPeerCommand)y);
+            _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Callback<ICommand, ICompletionCallback>((y,z) => command = (RegisterPeerCommand)y);
             _assemblyScannerMock.Setup(x => x.GetHandledCommands()).Returns(new List<Type> { typeof(FakeCommand) });
             _assemblyScannerMock.Setup(x => x.GetSentEvents()).Returns(new List<Type> { typeof(FakeEvent) });
 

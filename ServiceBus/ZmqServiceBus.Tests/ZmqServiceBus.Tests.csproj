@@ -90,7 +90,7 @@
     <Compile Include="AssemblyScannerTests.cs" />
     <Compile Include="BusBootStrapperTests.cs" />
     <Compile Include="BusRegistryTests.cs" />
-    <Compile Include="BusTests.cs" />
+    <Compile Include="InternalBusTests.cs" />
     <Compile Include="InfrastructureHandlers\DirectoryServiceMessagesHandlerTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />
     <Compile Include="Integration\SimpleMessageExchange.cs" />

@@ -3,6 +3,7 @@ using Moq;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
@@ -31,14 +32,46 @@ namespace ZmqServiceBus.Tests.Transport
         private Mock<IEndpointManager> _endpointManagerMock;
         private Mock<IMessageOptionsRepository> _optionsRepositoryMock;
         private Mock<IReliabilityStrategyFactory> _reliabilityStratFactoryMock;
+        private Mock<ICallbackManager> _callbackManagerMock = new Mock<ICallbackManager>();
 
         [SetUp]
         public void setup()
         {
+            _callbackManagerMock = new Mock<ICallbackManager>();
             _endpointManagerMock = new Mock<IEndpointManager>();
             _optionsRepositoryMock = new Mock<IMessageOptionsRepository>();
             _reliabilityStratFactoryMock = new Mock<IReliabilityStrategyFactory>();
-            _messageSender = new MessageSender(_endpointManagerMock.Object, _optionsRepositoryMock.Object, _reliabilityStratFactoryMock.Object);
+            _messageSender = new MessageSender(_endpointManagerMock.Object, _optionsRepositoryMock.Object, _reliabilityStratFactoryMock.Object, _callbackManagerMock.Object);
+        }
+
+        [Test]
+        public void should_register_default_callback_when_none_supplied()
+        {
+            var stratMock = new Mock<ISendingReliabilityStrategy>();
+            _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
+                stratMock.Object);
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+
+            var blockableUntilCompletion = _messageSender.Send(new FakeCommand());
+
+           _callbackManagerMock.Verify(x => x.RegisterCallback(It.IsAny<Guid>(),
+               It.Is<DefaultCompletionCallback>(y => y!= null && y == blockableUntilCompletion )));
+
+        }
+
+        [Test]
+        public void should_register_callback_with_manager()
+        {
+            var stratMock = new Mock<ISendingReliabilityStrategy>();
+            _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
+                stratMock.Object);
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+
+            var defaultCompletionCallback = new DefaultCompletionCallback();
+            var blockableUntilCompletion = _messageSender.Send(new FakeCommand(), defaultCompletionCallback);
+
+            _callbackManagerMock.Verify(x => x.RegisterCallback(It.IsAny<Guid>(), defaultCompletionCallback));
+            Assert.AreEqual(defaultCompletionCallback, blockableUntilCompletion);
         }
 
         [Test]

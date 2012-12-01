@@ -52,7 +52,7 @@ namespace ZmqServiceBus.Tests.Integration
     {
 
 
-        [Test, Timeout(10000)]
+        [Test, Timeout(1000)]
         public void should_be_able_to_exchange_messages_between_services()
         {
             string location = Directory.GetCurrentDirectory();

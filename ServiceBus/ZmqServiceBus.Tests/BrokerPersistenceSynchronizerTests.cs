@@ -1,5 +1,6 @@
 ﻿using Moq;
 using NUnit.Framework;
+using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
@@ -23,8 +24,8 @@ namespace ZmqServiceBus.Tests
         public void should_ask_broker_for_peer_synchronization_when_requested()
         {
             SynchronizePeerMessageCommand command = null;
-            _messageSenderMock.Setup(x => x.Send(It.IsAny<ICommand>())).Callback<ICommand>(
-                x => command = (SynchronizePeerMessageCommand) x);
+            _messageSenderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Callback<ICommand, ICompletionCallback>(
+                (x,y) => command = (SynchronizePeerMessageCommand) x);
             string eventType = null;
             string eventPeer = null;
             _synchronizer.MessageTypeForPeerSynchronizationRequested += (type, peer) =>
@@ -45,8 +46,8 @@ namespace ZmqServiceBus.Tests
         public void should_ask_broker_for_synchronization_when_requested()
         {
             SynchronizeMessageCommand command = null;
-            _messageSenderMock.Setup(x => x.Send(It.IsAny<ICommand>())).Callback<ICommand>(
-                x => command = (SynchronizeMessageCommand)x);
+            _messageSenderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Callback<ICommand, ICompletionCallback>(
+                (x,y) => command = (SynchronizeMessageCommand)x);
             string eventType = null;
             _synchronizer.MessageTypeSynchronizationRequested += (type) =>
             {

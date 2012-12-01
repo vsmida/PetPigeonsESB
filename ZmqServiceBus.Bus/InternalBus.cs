@@ -24,9 +24,9 @@ namespace ZmqServiceBus.Bus
             _busBootstrapper = busBootstrapper;
         }
 
-        public void Send(ICommand command)
+        public IBlockableUntilCompletion Send(ICommand command)
         {
-            _messageSender.Send(command);
+           return _messageSender.Send(command);
         }
 
         public void Publish(IEvent message)
@@ -50,6 +50,9 @@ namespace ZmqServiceBus.Bus
         {
             try
             {
+                //if acknowledgement 
+                //calbackdispatcherManager.executeCallback(message)
+                //ok AddCallbaclk
                 var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
                 _messageSender.Route(new AcknowledgementMessage(receivedTransportMessage.MessageIdentity, true), receivedTransportMessage.PeerName);

@@ -6,7 +6,7 @@ namespace ZmqServiceBus.Bus
 {
     public interface IBus : IDisposable
     {
-        void Send(ICommand command);
+        IBlockableUntilCompletion Send(ICommand command);
         void Publish(IEvent message);
         void Initialize();
     }

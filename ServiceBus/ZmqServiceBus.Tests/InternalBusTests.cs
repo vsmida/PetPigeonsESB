@@ -15,7 +15,7 @@ using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransport
 namespace ZmqServiceBus.Tests
 {
     [TestFixture]
-    public class BusTests
+    public class InternalBusTests
     {
 
         private InternalBus _bus;
@@ -40,8 +40,6 @@ namespace ZmqServiceBus.Tests
             _startupLayerMock.Verify(x => x.Initialize());
             _bootstrapperMock.Verify(x => x.BootStrapTopology());
         }
-
-
 
         [Test]
         public void should_dispatch_messages_received()

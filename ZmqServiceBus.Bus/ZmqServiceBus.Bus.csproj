@@ -52,8 +52,11 @@
     <Compile Include="AcknowledgementMessage.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
+    <Compile Include="FailedMessageProcessingException.cs" />
     <Compile Include="Handlers\DirectoryServiceMessagesHandler.cs" />
+    <Compile Include="ICallbackManager.cs" />
     <Compile Include="ICommandHandler.cs" />
+    <Compile Include="ICompletionCallback.cs" />
     <Compile Include="IEventHandler.cs" />
     <Compile Include="IMessageHandler.cs" />
     <Compile Include="InfrastructureMessages\InitializeTopologyAndMessageSettings.cs" />
