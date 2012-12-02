@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using Moq;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
+using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Contracts;
@@ -22,17 +24,18 @@ namespace ZmqServiceBus.Tests
         {
             _objectFactoryMock = new Mock<IObjectFactory>();
             _assemblyScannerMock = new Mock<IAssemblyScanner>();
-            _objectFactoryMock.Setup(x => x.GetInstance(typeof (FakeCommandHandler))).Returns(new FakeCommandHandler());
+            _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeCommandHandler))).Returns(new FakeCommandHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler))).Returns(new FakeEventHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler_2))).Returns(new FakeEventHandler_2());
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand>())).Returns(
-                new List<MethodInfo> {typeof (FakeCommandHandler).GetMethod("Handle")});
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<MethodInfo> ());
-            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<MethodInfo> ());
+                new List<MethodInfo> { typeof(FakeCommandHandler).GetMethod("Handle") });
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<MethodInfo>());
+            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<MethodInfo>());
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand2>())).Returns(new List<MethodInfo> { typeof(FakeCommandHandler2_1).GetMethod("Handle"), typeof(FakeCommandHandler2_2).GetMethod("Handle") });
             _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeEvent>())).Returns(new List<MethodInfo> { typeof(FakeEventHandler).GetMethod("Handle"), typeof(FakeEventHandler_2).GetMethod("Handle") });
             _dispatcher = new MessageDispatcher(_objectFactoryMock.Object, _assemblyScannerMock.Object);
             FakeCommandHandler.NumberInMessage = null;
+            FakeCommandHandler.NumberSet.WaitOne();
         }
 
         [Test]
@@ -40,6 +43,7 @@ namespace ZmqServiceBus.Tests
         {
             _dispatcher.Dispatch(new FakeCommand(3));
 
+            FakeCommandHandler.NumberSet.WaitOne();
             Assert.AreEqual(3, FakeCommandHandler.NumberInMessage);
         }
 
@@ -47,12 +51,12 @@ namespace ZmqServiceBus.Tests
         public void should_do_nothing_when_receiving_command_with_no_handler()
         {
             Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownCommand(3)));
-       }
+        }
 
         [Test]
         public void should_throw_when_multiple_handlers_for_command()
         {
-           Assert.Throws<Exception>(() => _dispatcher.Dispatch(new FakeCommand2(3)));
+            Assert.Throws<Exception>(() => _dispatcher.Dispatch(new FakeCommand2(3)));
         }
 
         [Test]
@@ -60,14 +64,65 @@ namespace ZmqServiceBus.Tests
         {
             _dispatcher.Dispatch(new FakeEvent(10));
 
-            Assert.AreEqual(10,FakeEventHandler.NumberInMessage);
-            Assert.AreEqual(10,FakeEventHandler_2.NumberInMessage);
+            Assert.AreEqual(10, FakeEventHandler.NumberInMessage);
+            Assert.AreEqual(10, FakeEventHandler_2.NumberInMessage);
         }
 
         [Test]
         public void should_do_nothing_when_receiving_event_with_no_handler()
         {
             Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownEvent(3)));
+        }
+
+        [Test, Timeout(1000000)]
+        public void should_be_able_to_dispatch_infra_messages_while_doing_other_stuff()
+        {
+            _dispatcher.Dispatch(new FakeLongProcessingEvent(7));
+            _dispatcher.Dispatch(new FakeInfrastructureMessage());
+
+            FakeLongProcessingEventHandler.WaitForHandleCompleted.WaitOne();
+            Assert.AreEqual(7, FakeLongProcessingEvent.LastProcessedNumber);
+            
+        }
+
+
+        private class FakeLongProcessingEvent : IEvent
+        {
+            public static AutoResetEvent WaitHandle = new AutoResetEvent(false);
+            public static int LastProcessedNumber;
+
+            public int Number;
+
+            public FakeLongProcessingEvent(int number)
+            {
+                Number = number;
+            }
+        }
+
+        private class FakeLongProcessingEventHandler : IEventHandler<FakeLongProcessingEvent>
+        {
+            public static AutoResetEvent WaitForHandleCompleted = new AutoResetEvent(false);
+
+            public void Handle(FakeLongProcessingEvent message)
+            {
+                FakeLongProcessingEvent.WaitHandle.WaitOne();
+                FakeLongProcessingEvent.LastProcessedNumber = message.Number;
+                WaitForHandleCompleted.Set();
+            }
+        }
+
+        [InfrastructureMessage]
+        private class FakeInfrastructureMessage : ICommand
+        {
+
+        }
+
+        private class FakeInfrastructureMessageHandler : ICommandHandler<FakeInfrastructureMessage>
+        {
+            public void Handle(FakeInfrastructureMessage item)
+            {
+                FakeLongProcessingEvent.WaitHandle.Set();
+            }
         }
 
 
@@ -132,7 +187,7 @@ namespace ZmqServiceBus.Tests
             }
         }
 
-               private class FakeEventHandler : IEventHandler<FakeEvent>
+        private class FakeEventHandler : IEventHandler<FakeEvent>
         {
             public static int? NumberInMessage;
 
@@ -142,7 +197,7 @@ namespace ZmqServiceBus.Tests
             }
         }
 
-               private class FakeEventHandler_2 : IEventHandler<FakeEvent>
+        private class FakeEventHandler_2 : IEventHandler<FakeEvent>
         {
             public static int? NumberInMessage;
 
@@ -154,7 +209,16 @@ namespace ZmqServiceBus.Tests
 
         private class FakeCommandHandler : ICommandHandler<FakeCommand>
         {
-            public static int? NumberInMessage;
+            private static int? _numberInMessage;
+            
+            public static readonly AutoResetEvent NumberSet = new AutoResetEvent(false);
+            public static int? NumberInMessage
+            {
+                get { return _numberInMessage; }
+                set { _numberInMessage = value;
+                    NumberSet.Set();
+                }
+            }
 
             public void Handle(FakeCommand command)
             {
@@ -181,5 +245,7 @@ namespace ZmqServiceBus.Tests
                 NumberInMessage = command.Number;
             }
         }
+
+
     }
 }

@@ -76,13 +76,14 @@ namespace ZmqServiceBus.Tests
 
 
         [Test]
-        public void should_stop_transport_on_stop()
+        public void should_stop_transport_and_dispatcher_on_stop()
         {
             _bus.Initialize();
 
             _bus.Dispose();
 
             _startupLayerMock.Verify(x => x.Dispose());
+            _dispatcherMock.Verify(x => x.Dispose());
         }
 
         private void OnMessageReceived(IReceivedTransportMessage obj)

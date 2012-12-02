@@ -67,6 +67,7 @@ namespace ZmqServiceBus.Bus
         public void Dispose()
         {
             _startupLayer.Dispose();
+            _dispatcher.Dispose();
         }
     }
 }

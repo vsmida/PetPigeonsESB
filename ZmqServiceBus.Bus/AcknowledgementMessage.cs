@@ -7,7 +7,7 @@ namespace ZmqServiceBus.Bus
 {
     [ProtoContract]
     [InfrastructureMessage]
-    public class AcknowledgementMessage : IMessage
+    public class AcknowledgementMessage : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly Guid MessageId;
