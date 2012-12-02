@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Contracts;
@@ -32,6 +33,7 @@ namespace ZmqServiceBus.Bus.Dispatch
         private readonly Dictionary<Type, List<HandlerDispatcher>> _messageTypeToEventHandlers = new Dictionary<Type, List<HandlerDispatcher>>();
         private readonly BlockingCollection<IMessage> _standardMessagesToDispatch = new BlockingCollection<IMessage>();
         private readonly Dictionary<Type, bool> _messageTypeToInfrastructureCondition = new Dictionary<Type, bool>();
+        public event Action<IMessage, Exception> ErrorOccurred = delegate { };
 
 
         public MessageDispatcher(IObjectFactory objectFactory, IAssemblyScanner assemblyScanner)
@@ -39,7 +41,7 @@ namespace ZmqServiceBus.Bus.Dispatch
             _objectFactory = objectFactory;
             _assemblyScanner = assemblyScanner;
 
-            new BackgroundThread(() =>
+            new Thread(() =>
                                      {
                                          while (_running)
                                          {
@@ -50,6 +52,7 @@ namespace ZmqServiceBus.Bus.Dispatch
                                                  InvokeHandlers(message);
                                              }
                                          }
+
 
                                      }).Start();
         }
@@ -70,15 +73,24 @@ namespace ZmqServiceBus.Bus.Dispatch
 
         private void InvokeHandlers(IMessage message)
         {
-            if (message.IsICommand())
+
+            try
             {
-                InvokeCommandHandler(message);
+                if (message.IsICommand())
+                {
+                    InvokeCommandHandler(message);
+                }
+
+                if (message.IsIEvent())
+                {
+                    InvokeEventHandlers(message);
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorOccurred(message, e);
             }
 
-            if (message.IsIEvent())
-            {
-                InvokeEventHandlers(message);
-            }
         }
 
         private void InvokeEventHandlers(IMessage message)
