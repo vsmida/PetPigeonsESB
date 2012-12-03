@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace Shared
@@ -12,6 +14,19 @@ namespace Shared
             var port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
             return port;
-        } 
+        }
+ 
+        public static string GetOwnIp()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            throw new Exception("Cannot find IP");
+        }
     }
 }
