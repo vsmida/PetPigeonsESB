@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using Shared;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
@@ -44,7 +45,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         private void NewSubscription(Type eventType)
         {
-            var publishingEndpoints = _peerManager.GetEndpointsForMessageType(eventType.FullName);
+            var publishingEndpoints = _peerManager.GetEndpointsForMessageType(eventType.FullName) ?? Enumerable.Empty<string>();
             foreach (var publishingEndpoint in publishingEndpoints)
             {
                 _socketManager.SubscribeTo(publishingEndpoint, eventType.FullName);

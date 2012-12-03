@@ -279,6 +279,17 @@ namespace ZmqServiceBus.Tests.Transport
             _socketManagerMock.Verify(x => x.SubscribeTo(endpoint, typeof(FakeEvent).FullName));
         }
 
+        [Test]
+        public void should_not_crash_when_no_publiher()
+        {
+            _endpointManager.Initialize();
+            
+            _peerManagerMock.Setup(x => x.GetEndpointsForMessageType(typeof(FakeEvent).FullName)).Returns((List<string>)null);
+            
+            Assert.DoesNotThrow(() => _subscriptionManagerMock.Raise(x => x.NewEventSubscription += OnNewEventSubscription, typeof(FakeEvent)));
+
+        }
+
         private void OnNewEventSubscription(Type obj)
         {
 

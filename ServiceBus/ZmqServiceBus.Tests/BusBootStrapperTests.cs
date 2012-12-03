@@ -9,6 +9,7 @@ using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport.Network;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
@@ -34,6 +35,7 @@ namespace ZmqServiceBus.Tests
         private BusBootstrapper _bootstrapper;
         private Mock<IMessageOptionsRepository> _repoMock;
         private Mock<IMessageSender> _senderMock;
+        private Mock<ISubscriptionManager> _subscriptionManagerMock;
         private Mock<IAssemblyScanner> _assemblyScannerMock;
         private FakeBootstrapperConfig _config;
         private Mock<IPeerManager> _peerManagerMock;
@@ -48,11 +50,12 @@ namespace ZmqServiceBus.Tests
             _config = new FakeBootstrapperConfig();
             _assemblyScannerMock = new Mock<IAssemblyScanner>();
             _senderMock = new Mock<IMessageSender>();
+            _subscriptionManagerMock = new Mock<ISubscriptionManager>();
             _repoMock = new Mock<IMessageOptionsRepository>();
             _completionCallbackMock = new Mock<ICompletionCallback>();
             _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(
                 _completionCallbackMock.Object);
-            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object);
+            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object, _subscriptionManagerMock.Object);
         }
 
 
@@ -73,6 +76,17 @@ namespace ZmqServiceBus.Tests
             _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(CompletionAcknowledgementMessage).FullName && y.ReliabilityInfo.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
         }
 
+
+        [Test]
+        public void should_register_events_with_subscription_manager()
+        {
+            _assemblyScannerMock.Setup(x => x.GetHandledEvents()).Returns(new List<Type> { typeof(FakeEvent) });
+
+            _bootstrapper.BootStrapTopology();
+            
+            _subscriptionManagerMock.Verify(x => x.StartListeningTo(typeof(FakeEvent)));
+            
+        }
 
         [Test]
         public void should_register_with_directory_service_and_wait_for_completion()

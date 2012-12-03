@@ -29,9 +29,17 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         public IDisposable StartListeningTo<T>() where T : IEvent
         {
-            _subscriptions.Add(typeof(T));
-            NewEventSubscription(typeof(T));
-            return new DisposableAction(() => EventUnsubscibe(typeof(T)));
+            return StartListeningTo(typeof (T));
+        }
+
+        public IDisposable StartListeningTo(Type eventType)
+        {
+            if (!(typeof(IEvent).IsAssignableFrom(eventType)))
+                throw new ArgumentException("Type is not an event");
+
+            _subscriptions.Add(eventType);
+            NewEventSubscription(eventType);
+            return new DisposableAction(() => EventUnsubscibe(eventType));
         }
     }
 }

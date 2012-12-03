@@ -9,6 +9,6 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
         event Action<Type> NewEventSubscription;
         event Action<Type> EventUnsubscibe;
         IDisposable StartListeningTo<T>() where T : IEvent;
-
+        IDisposable StartListeningTo(Type eventType);
     }
 }
