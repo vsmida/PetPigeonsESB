@@ -53,8 +53,8 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void Initialize()
         {
-            _socketManager.CreateResponseSocket(_messagesToForward, _configuration.GetCommandsEnpoint(), _configuration.PeerName);
-            _socketManager.CreatePublisherSocket(_messagesToPublish, _configuration.GetEventsEndpoint(), _configuration.PeerName);
+            _socketManager.CreateResponseSocket(_messagesToForward, _configuration.GetCommandsBindEnpoint(), _configuration.PeerName);
+            _socketManager.CreatePublisherSocket(_messagesToPublish, _configuration.GetEventsBindEndpoint(), _configuration.PeerName);
             _socketManager.CreateSubscribeSocket(_messagesToForward);
             CreateTransportMessageProcessingThread();
         }

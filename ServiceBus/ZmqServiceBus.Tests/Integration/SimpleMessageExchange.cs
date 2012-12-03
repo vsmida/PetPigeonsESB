@@ -17,9 +17,6 @@ namespace ZmqServiceBus.Tests.Integration
     [Serializable]
     public class FakeCommand : ICommand
     {
-        private static int _lastNumber;
-        public static event Action<int> OnLastNumberModified = delegate { };
-
         [ProtoMember(1, IsRequired = true)]
         public readonly int Number;
 
@@ -28,31 +25,38 @@ namespace ZmqServiceBus.Tests.Integration
             Number = number;
         }
 
-        public static int LastNumber
+        private FakeCommand()
         {
-            get { return _lastNumber; }
-            set
-            {
-                _lastNumber = value;
-                OnLastNumberModified(_lastNumber);
-            }
+
         }
+
+
     }
 
-    public class FakeCommandHandler : ICommandHandler<FakeCommand>
+    public class FakeCommandHandler : MarshalByRefObject, ICommandHandler<FakeCommand>
     {
+        private static event Action<int> _onCommandReceived = delegate { };
+
         public void Handle(FakeCommand item)
         {
-            FakeCommand.LastNumber = item.Number;
+            _onCommandReceived(item.Number);
         }
+
+        public event Action<int> OnCommandReceived
+        {
+            add { _onCommandReceived += value; }
+            remove { _onCommandReceived -= value; }
+        }
+
     }
 
     [TestFixture]
-    public class SimpleMessageExchange
+    public class SimpleMessageExchange : MarshalByRefObject
     {
+        private AutoResetEvent _waitForCommandToBeHandled;
 
 
-        [Test, Timeout(1000)]
+        [Test, Timeout(10000000)]
         public void should_be_able_to_exchange_messages_between_services()
         {
             string location = Directory.GetCurrentDirectory();
@@ -65,9 +69,9 @@ namespace ZmqServiceBus.Tests.Integration
             {
                 try
                 {
-                    appDomain1.Load(AssemblyName.GetAssemblyName(assembly));
-                    appDomain2.Load(AssemblyName.GetAssemblyName(assembly));
-                    appDomainDirectoryService.Load(AssemblyName.GetAssemblyName(assembly));
+                  //  appDomain1.Load(AssemblyName.GetAssemblyName(assembly));
+                  //  appDomain2.Load(AssemblyName.GetAssemblyName(assembly));
+                 //   appDomainDirectoryService.Load(AssemblyName.GetAssemblyName(assembly));
                 }
                 catch (Exception e)
                 {
@@ -77,26 +81,28 @@ namespace ZmqServiceBus.Tests.Integration
             var testBusCreator1 = appDomain1.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
             var testBusCreator2 = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
             var testBusCreatorDirService = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
+
             testBusCreatorDirService.CreateFakeDirectoryService();
             var bus1 = testBusCreator1.GetBus("Service1");
             var bus2 = testBusCreator2.GetBus("Service2");
 
-            bus1.Initialize();
             bus2.Initialize();
-            var waitHandle = new AutoResetEvent(false);
-            FakeCommand.OnLastNumberModified += number =>
-                                                    {
-                                                        Assert.AreEqual(5, number);
-                                                        waitHandle.Set();
-                                                    };
+            bus1.Initialize();
+            _waitForCommandToBeHandled = new AutoResetEvent(false);
 
+            var appDomain2FakeCommandHandler  = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof (FakeCommandHandler)).FullName, typeof (FakeCommandHandler).FullName) as FakeCommandHandler;
+
+            appDomain2FakeCommandHandler.OnCommandReceived += OnCommandReceived;
+            
             bus1.Send(new FakeCommand(5));
-            waitHandle.WaitOne();
+
+            _waitForCommandToBeHandled.WaitOne();
         }
 
-        private void OnLastNumberModified(int obj)
+        private void OnCommandReceived(int number)
         {
-            
+            Assert.AreEqual(5, number);
+            _waitForCommandToBeHandled.Set();
         }
     }
 }

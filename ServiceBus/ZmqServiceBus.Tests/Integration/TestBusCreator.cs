@@ -27,8 +27,8 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                          peerName)));
             StructureMap.ObjectFactory.Configure(x => x.For<IBusBootstrapperConfiguration>().Use(new DummyBootstrapperConfig
             {
-                DirectoryServiceCommandEndpoint = "tcp://localhost:74",
-                DirectoryServiceEventEndpoint = "tcp://localhost:75",
+                DirectoryServiceCommandEndpoint = "tcp://localhost:111",
+                DirectoryServiceEventEndpoint = "tcp://localhost:222",
                 DirectoryServiceName = "DirectoryService"
             }));
             return StructureMap.ObjectFactory.GetInstance<IBus>();
@@ -46,12 +46,12 @@ namespace ZmqServiceBus.Tests.Integration
                                           var context = ZmqContext.Create();
                                           var receptionRouter = context.CreateSocket(SocketType.ROUTER);
                                           receptionRouter.Linger = TimeSpan.Zero;
-                                          receptionRouter.Bind("tcp://*:74");
+                                          receptionRouter.Bind("tcp://*:111");
                                           receptionRouter.ReceiveReady += OnReceptionRouterReceive;
 
                                           _pubSocket = context.CreateSocket(SocketType.PUB);
                                           _pubSocket.Linger = TimeSpan.Zero;
-                                          _pubSocket.Bind("tcp://*:75");
+                                          _pubSocket.Bind("tcp://*:222");
 
                                           Poller poller = new Poller();
                                           poller.AddSocket(receptionRouter);
@@ -108,7 +108,19 @@ namespace ZmqServiceBus.Tests.Integration
                 _pubSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
                 _pubSocket.SendMore(Guid.NewGuid().ToByteArray());
                 _pubSocket.Send(Serializer.Serialize(peerConnectedEvent));
+
+
+                var completionMess = new CompletionAcknowledgementMessage(messageId, true);
+                zmqSocket.SendMore(zmqIdentity);
+                zmqSocket.SendMore(new byte[0]);
+                zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(CompletionAcknowledgementMessage).FullName));
+                zmqSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
+                zmqSocket.SendMore(Guid.NewGuid().ToByteArray());
+                zmqSocket.Send(Serializer.Serialize(completionMess));
+
             }
+
+
         }
 
         private static void Ack(ZmqSocket zmqSocket, byte[] zmqIdentity, Guid messageId)

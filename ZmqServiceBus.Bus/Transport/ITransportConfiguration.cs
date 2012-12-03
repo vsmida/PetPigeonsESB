@@ -53,14 +53,24 @@ namespace ZmqServiceBus.Bus.Transport
 
     public abstract class TransportConfiguration : ITransportConfiguration
     {
-        public string GetCommandsEnpoint()
+        public string GetCommandsBindEnpoint()
         {
             return CommandsProtocol + "://*:" + CommandsPort;
         }
 
-        public string GetEventsEndpoint()
+        public string GetEventsBindEndpoint()
         {
             return EventsProtocol + "://*:" + EventsPort;
+        }
+
+        public string GetCommandsConnectEnpoint()
+        {
+            return CommandsProtocol + "://" + NetworkUtils.GetOwnIp() + ":" + CommandsPort;
+        }
+
+        public string GetEventsConnectEndpoint()
+        {
+            return EventsProtocol + "://" + NetworkUtils.GetOwnIp() + ":" + EventsPort;
         }
 
         public abstract int EventsPort { get; }
@@ -68,5 +78,6 @@ namespace ZmqServiceBus.Bus.Transport
         public abstract string EventsProtocol { get; }
         public abstract string CommandsProtocol { get; }
         public abstract string PeerName { get; }
+
     }
 }

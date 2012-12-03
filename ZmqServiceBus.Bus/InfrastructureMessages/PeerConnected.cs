@@ -9,9 +9,9 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
     public class PeerConnected : IEvent
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly IServicePeer Peer;
+        public readonly ServicePeer Peer;
 
-        public PeerConnected(IServicePeer peer)
+        public PeerConnected(ServicePeer peer)
         {
             Peer = peer;
         }

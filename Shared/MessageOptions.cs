@@ -7,7 +7,7 @@ namespace Shared
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly string MessageType;
-        [ProtoMember(3, IsRequired = true)]
+        [ProtoMember(2, IsRequired = true)]
         public readonly ReliabilityInfo ReliabilityInfo;
 
         public MessageOptions(string messageType, ReliabilityInfo reliabilityInfo)
@@ -15,5 +15,7 @@ namespace Shared
             MessageType = messageType;
             ReliabilityInfo = reliabilityInfo;
         }
+
+        private MessageOptions(){}
     }
 }

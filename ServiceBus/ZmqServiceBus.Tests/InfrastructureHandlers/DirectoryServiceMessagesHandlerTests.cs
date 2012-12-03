@@ -29,7 +29,7 @@ namespace ZmqServiceBus.Tests.InfrastructureHandlers
         public void should_register_connected_peer_with_peerManager()
         {
             var servicePeer = TestData.GenerateServicePeer();
-            var peerConnected = new PeerConnected(servicePeer);
+            var peerConnected = new PeerConnected(servicePeer as ServicePeer);
 
             _handler.Handle(peerConnected);
 

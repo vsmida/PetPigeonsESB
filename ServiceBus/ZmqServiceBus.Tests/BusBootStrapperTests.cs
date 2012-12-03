@@ -38,6 +38,7 @@ namespace ZmqServiceBus.Tests
         private FakeBootstrapperConfig _config;
         private Mock<IPeerManager> _peerManagerMock;
         private FakeTransportConfiguration _configTransport;
+        private Mock<ICompletionCallback> _completionCallbackMock;
 
         [SetUp]
         public void setup()
@@ -48,6 +49,9 @@ namespace ZmqServiceBus.Tests
             _assemblyScannerMock = new Mock<IAssemblyScanner>();
             _senderMock = new Mock<IMessageSender>();
             _repoMock = new Mock<IMessageOptionsRepository>();
+            _completionCallbackMock = new Mock<ICompletionCallback>();
+            _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(
+                _completionCallbackMock.Object);
             _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object);
         }
 
@@ -62,20 +66,32 @@ namespace ZmqServiceBus.Tests
         }
 
         [Test]
-        public void should_register_with_directory_service()
+        public void should_register_completion_acks_reliability()
+        {
+            _bootstrapper.BootStrapTopology();
+
+            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(CompletionAcknowledgementMessage).FullName && y.ReliabilityInfo.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
+        }
+
+
+        [Test]
+        public void should_register_with_directory_service_and_wait_for_completion()
         {
             RegisterPeerCommand command = null;
-            _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Callback<ICommand, ICompletionCallback>((y,z) => command = (RegisterPeerCommand)y);
+
+            _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(_completionCallbackMock.Object).Callback<ICommand, ICompletionCallback>((y, z) => command = (RegisterPeerCommand)y);
             _assemblyScannerMock.Setup(x => x.GetHandledCommands()).Returns(new List<Type> { typeof(FakeCommand) });
             _assemblyScannerMock.Setup(x => x.GetSentEvents()).Returns(new List<Type> { typeof(FakeEvent) });
 
             _bootstrapper.BootStrapTopology();
 
             Assert.AreEqual(_configTransport.PeerName, command.Peer.PeerName);
-            Assert.AreEqual(_configTransport.GetEventsEndpoint(), command.Peer.PublicationEndpoint);
-            Assert.AreEqual(_configTransport.GetCommandsEnpoint(), command.Peer.ReceptionEndpoint);
+            Assert.AreEqual(_configTransport.GetEventsConnectEndpoint(), command.Peer.PublicationEndpoint);
+            Assert.AreEqual(_configTransport.GetCommandsConnectEnpoint(), command.Peer.ReceptionEndpoint);
             Assert.AreEqual(typeof(FakeEvent), command.Peer.PublishedMessages.Single());
             Assert.AreEqual(typeof(FakeCommand), command.Peer.HandledMessages.Single());
+
+            _completionCallbackMock.Verify(x => x.WaitForCompletion());
         }
 
         [Test]
