@@ -18,7 +18,7 @@ namespace ZmqServiceBus.Bus.Dispatch
 
     public class AssemblyScanner : IAssemblyScanner
     {
-        private List<MethodInfo> FindMethodsInAssemblyFromTypes(Predicate<Type> typeCondition, string methodName)
+        private List<MethodInfo> FindMethodsInAssemblyFromTypes(Predicate<Type> typeCondition, string methodName, Func<Type, Type[]> genericTypeArguments)
         {
             var methods = new List<MethodInfo>();
             var assemblies = GetAssemblies();
@@ -27,7 +27,7 @@ namespace ZmqServiceBus.Bus.Dispatch
                 foreach (var type in assembly.GetTypes())
                 {
                     if (typeCondition(type))
-                        methods.Add(type.GetMethod(methodName));
+                        methods.Add(type.GetMethod(methodName, genericTypeArguments(type)));
                 }
             }
             return methods;
@@ -42,7 +42,7 @@ namespace ZmqServiceBus.Bus.Dispatch
         {
             return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
                                                            (type.GetInterfaces().SingleOrDefault(
-                                                               x => IsCommandHandler(x, message.GetType())) != null)), "Handle");
+                                                               x => IsCommandHandler(x, message.GetType())) != null)), "Handle", type => new[]{message.GetType()});
         }
         
         private static bool IsCommandHandler(Type type, Type messageType)
@@ -59,7 +59,7 @@ namespace ZmqServiceBus.Bus.Dispatch
         {
             return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
                                                (type.GetInterfaces().SingleOrDefault(
-                                                   x => IsEventHandler(x, message.GetType())) != null)), "Handle");
+                                                   x => IsEventHandler(x, message.GetType())) != null)), "Handle", type => new[] { message.GetType() });
         }
 
         public List<Type> GetHandledCommands()

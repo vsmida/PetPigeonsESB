@@ -25,13 +25,30 @@ namespace ZmqServiceBus.Tests
                 Number = number;
             }
         }
-        private class FakeEventHandler : IEventHandler<FakeEvent>
+
+        private class FakeEvent2 : IEvent
+        {
+            [ProtoMember(1, IsRequired = true)]
+            public int Number;
+
+            public FakeEvent2(int number)
+            {
+                Number = number;
+            }
+        }
+
+        private class FakeEventHandler : IEventHandler<FakeEvent>, IEventHandler<FakeEvent2>
         {
             public static int? NumberInMessage;
 
             public void Handle(FakeEvent command)
             {
                 NumberInMessage = command.Number;
+            }
+
+            public void Handle(FakeEvent2 message)
+            {
+                
             }
         }
 
@@ -73,11 +90,11 @@ namespace ZmqServiceBus.Tests
         }
 
         [Test]
-        public void should_find_event_handlers()
+        public void should_find_event_handlers_with_multiple_handle_methods()
         {
             var handleMethods = _scanner.FindEventHandlersInAssemblies(new FakeEvent(1));
             Assert.AreEqual(1, handleMethods.Count);
-            var method = typeof(FakeEventHandler).GetMethod("Handle");
+            var method = typeof(FakeEventHandler).GetMethod("Handle", new[]{typeof(FakeEvent)});
             Assert.AreEqual(method, handleMethods.Single());
         }
 
