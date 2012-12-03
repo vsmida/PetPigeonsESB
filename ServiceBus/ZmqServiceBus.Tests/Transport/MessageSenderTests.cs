@@ -32,12 +32,12 @@ namespace ZmqServiceBus.Tests.Transport
         private Mock<IEndpointManager> _endpointManagerMock;
         private Mock<IMessageOptionsRepository> _optionsRepositoryMock;
         private Mock<IReliabilityStrategyFactory> _reliabilityStratFactoryMock;
-        private Mock<ICallbackManager> _callbackManagerMock = new Mock<ICallbackManager>();
+        private Mock<ICallbackRepository> _callbackManagerMock = new Mock<ICallbackRepository>();
 
         [SetUp]
         public void setup()
         {
-            _callbackManagerMock = new Mock<ICallbackManager>();
+            _callbackManagerMock = new Mock<ICallbackRepository>();
             _endpointManagerMock = new Mock<IEndpointManager>();
             _optionsRepositoryMock = new Mock<IMessageOptionsRepository>();
             _reliabilityStratFactoryMock = new Mock<IReliabilityStrategyFactory>();

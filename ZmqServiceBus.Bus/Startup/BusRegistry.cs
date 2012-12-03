@@ -1,6 +1,7 @@
 ﻿using StructureMap.Configuration.DSL;
 using ZeroMQ;
 using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.Handlers;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
@@ -28,8 +29,11 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<ISendingStrategyStateManager>().Use<SendingStrategyStateManager>();
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
+             ForSingletonOf<ICallbackRepository>().Use<CallbackRepository>();
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
-         //    ForSingletonOf<IBusBootstrapperConfiguration>().Use<BootstrapperCOn>()
+             ForSingletonOf<IBusBootstrapperConfiguration>().Use<BusBootstrapperConfiguration>();
+             ForSingletonOf<CompletionMessagesHandler>().Use(
+                 ctx => new CompletionMessagesHandler(ctx.GetInstance<ICallbackRepository>()));
              ForSingletonOf<IBus>().Use<InternalBus>();
              
          }

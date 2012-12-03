@@ -10,14 +10,14 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         private readonly IEndpointManager _endpointManager;
         private readonly IMessageOptionsRepository _messageOptionsRepository;
         private readonly IReliabilityStrategyFactory _strategyFactory;
-        private readonly ICallbackManager _callbackManager;
+        private readonly ICallbackRepository _callbackRepository;
 
-        public MessageSender(IEndpointManager endpointManager, IMessageOptionsRepository messageOptionsRepository, IReliabilityStrategyFactory strategyFactory, ICallbackManager callbackManager)
+        public MessageSender(IEndpointManager endpointManager, IMessageOptionsRepository messageOptionsRepository, IReliabilityStrategyFactory strategyFactory, ICallbackRepository callbackRepository)
         {
             _endpointManager = endpointManager;
             _messageOptionsRepository = messageOptionsRepository;
             _strategyFactory = strategyFactory;
-            _callbackManager = callbackManager;
+            _callbackRepository = callbackRepository;
         }
 
         public IBlockableUntilCompletion Send(ICommand command, ICompletionCallback callback = null)
@@ -25,7 +25,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             var sendingStrat =_strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(command.GetType().FullName));
             ISendingTransportMessage sendingMessage = GetTransportMessage(command);
             var callbackToRegister = callback ?? new DefaultCompletionCallback();
-            _callbackManager.RegisterCallback(sendingMessage.MessageIdentity, callbackToRegister);
+            _callbackRepository.RegisterCallback(sendingMessage.MessageIdentity, callbackToRegister);
             sendingStrat.SendOn(_endpointManager, sendingMessage);
             return callbackToRegister;
           }

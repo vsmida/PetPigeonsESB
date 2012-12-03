@@ -59,7 +59,7 @@ namespace ZmqServiceBus.Tests
             var transportMessage = TestData.GenerateDummyReceivedMessage(new FakeCommand(5));
             _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-            _messageSenderMock.Verify(y => y.Route(It.Is<AcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == true), transportMessage.PeerName));
+            _messageSenderMock.Verify(y => y.Route(It.Is<CompletionAcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == true), transportMessage.PeerName));
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace ZmqServiceBus.Tests
             _dispatcherMock.Setup(x => x.Dispatch(It.IsAny<IMessage>())).Callback<IMessage>(x => { throw new Exception(); });
             _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
 
-            _messageSenderMock.Verify(y => y.Route(It.Is<AcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == false), transportMessage.PeerName));
+            _messageSenderMock.Verify(y => y.Route(It.Is<CompletionAcknowledgementMessage>(x => x.MessageId == transportMessage.MessageIdentity && x.ProcessingSuccessful == false), transportMessage.PeerName));
         }
 
 

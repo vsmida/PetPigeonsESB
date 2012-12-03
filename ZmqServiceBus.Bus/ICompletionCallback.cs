@@ -5,9 +5,8 @@ namespace ZmqServiceBus.Bus
 {
     public interface ICompletionCallback : IBlockableUntilCompletion
     {
-        void RegisterCallback(Action<AcknowledgementMessage> onCompletion);
-        void WaitForCompletion();
-        void ExecuteCallback(AcknowledgementMessage message);
+        void RegisterCallback(Action<CompletionAcknowledgementMessage> onCompletion);
+        void ExecuteCallback(CompletionAcknowledgementMessage message);
     }
 
     public interface IBlockableUntilCompletion
@@ -15,11 +14,11 @@ namespace ZmqServiceBus.Bus
         void WaitForCompletion();        
     }
 
-    public class DefaultCompletionCallback : ICompletionCallback, IBlockableUntilCompletion
+    public class DefaultCompletionCallback : ICompletionCallback
     {
-        private event Action<AcknowledgementMessage> _callbacks = delegate { };
+        private event Action<CompletionAcknowledgementMessage> _callbacks = delegate { };
         private AutoResetEvent _waitForCompletionHandle = new AutoResetEvent(false);
-        public void RegisterCallback(Action<AcknowledgementMessage> onCompletion)
+        public void RegisterCallback(Action<CompletionAcknowledgementMessage> onCompletion)
         {
             _callbacks += onCompletion;
         }
@@ -29,7 +28,7 @@ namespace ZmqServiceBus.Bus
             _waitForCompletionHandle.WaitOne();
         }
 
-        public void ExecuteCallback(AcknowledgementMessage message)
+        public void ExecuteCallback(CompletionAcknowledgementMessage message)
         {
             if (message.ProcessingSuccessful == false)
                 throw new FailedMessageProcessingException(message);

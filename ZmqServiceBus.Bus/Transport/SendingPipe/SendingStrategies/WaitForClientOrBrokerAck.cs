@@ -46,7 +46,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
         public void RouteOn(IEndpointManager endpointManager, ISendingTransportMessage message, string destinationPeer)
         {
             SendingTransportMessage brokerMessage;
-            if (message.MessageType == typeof(AcknowledgementMessage).FullName)
+            if (message.MessageType == typeof(CompletionAcknowledgementMessage).FullName)
                 brokerMessage = new SendingTransportMessage(typeof(ForgetMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(new ForgetMessageCommand(message.MessageType, message.MessageIdentity)));
             else
                 brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));

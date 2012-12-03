@@ -90,6 +90,9 @@
     <Compile Include="AssemblyScannerTests.cs" />
     <Compile Include="BusBootStrapperTests.cs" />
     <Compile Include="BusRegistryTests.cs" />
+    <Compile Include="CallbackRepositoryTests.cs" />
+    <Compile Include="DefaultCompletionCallbackTests.cs" />
+    <Compile Include="InfrastructureHandlers\CompletionMessageHandlerTests.cs" />
     <Compile Include="InternalBusTests.cs" />
     <Compile Include="InfrastructureHandlers\DirectoryServiceMessagesHandlerTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />

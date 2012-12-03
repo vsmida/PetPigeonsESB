@@ -53,6 +53,12 @@ namespace ZmqServiceBus.Tests
             Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownCommand(3)));
         }
 
+        [Test]
+        public void should_do_nothing_when_receiving_event_with_no_handler()
+        {
+            Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownEvent(3)));
+        }
+
         [Test, Timeout(1000)]
         public void should_throw_when_multiple_handlers_for_command()
         {
@@ -73,11 +79,6 @@ namespace ZmqServiceBus.Tests
             Assert.AreEqual(10, FakeEventHandler_2.NumberInMessage);
         }
 
-        [Test]
-        public void should_do_nothing_when_receiving_event_with_no_handler()
-        {
-            Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownEvent(3)));
-        }
 
         [Test, Timeout(1000)]
         public void should_be_able_to_dispatch_infra_messages_while_doing_other_stuff()

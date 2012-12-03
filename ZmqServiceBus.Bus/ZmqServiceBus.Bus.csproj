@@ -49,12 +49,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AcknowledgementMessage.cs" />
+    <Compile Include="CallbackRepository.cs" />
+    <Compile Include="CompletionAcknowledgementMessage.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
     <Compile Include="FailedMessageProcessingException.cs" />
+    <Compile Include="Handlers\CompletionMessagesHandler.cs" />
     <Compile Include="Handlers\DirectoryServiceMessagesHandler.cs" />
-    <Compile Include="ICallbackManager.cs" />
+    <Compile Include="ICallbackRepository.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="ICompletionCallback.cs" />
     <Compile Include="IEventHandler.cs" />

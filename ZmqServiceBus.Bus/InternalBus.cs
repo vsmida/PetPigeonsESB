@@ -55,11 +55,11 @@ namespace ZmqServiceBus.Bus
                 //ok AddCallbaclk
                 var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-                _messageSender.Route(new AcknowledgementMessage(receivedTransportMessage.MessageIdentity, true), receivedTransportMessage.PeerName);
+                _messageSender.Route(new CompletionAcknowledgementMessage(receivedTransportMessage.MessageIdentity, true), receivedTransportMessage.PeerName);
             }
             catch (Exception)
             {
-                _messageSender.Route(new AcknowledgementMessage(receivedTransportMessage.MessageIdentity, false), receivedTransportMessage.PeerName);
+                _messageSender.Route(new CompletionAcknowledgementMessage(receivedTransportMessage.MessageIdentity, false), receivedTransportMessage.PeerName);
             }
 
         }
