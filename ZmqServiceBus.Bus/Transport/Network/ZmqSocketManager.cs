@@ -17,6 +17,8 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private readonly Poller _poller = new Poller();
         private BackgroundThread _pollingThread;
         private ZmqSocket _subSocket;
+        private BlockingCollection<KeyValuePair<string, string>> _endpointsToConnectTo = new BlockingCollection<KeyValuePair<string, string>>();
+
 
         public ZmqSocketManager(ZmqContext context)
         {
@@ -28,7 +30,15 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _pollingThread = new BackgroundThread(() =>
                                                       {
                                                           while (_running)
+                                                          {
                                                               _poller.Poll(TimeSpan.FromMilliseconds(10));
+                                                              KeyValuePair<string, string> connect;
+                                                              if(_endpointsToConnectTo.TryTake(out connect))
+                                                              {
+                                                                   _subSocket.Connect(connect.Key);
+                                                                   _subSocket.Subscribe(Encoding.ASCII.GetBytes(connect.Value));
+                                                              }
+                                                          }
 
                                                           _poller.Dispose();
                                                       });
@@ -38,12 +48,16 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void SubscribeTo(string endpoint, string messageType)
         {
-            _subSocket.Connect(endpoint);
-            _subSocket.Subscribe(Encoding.ASCII.GetBytes(messageType));
+           // _subSocket.Connect(endpoint);
+           // _subSocket.Subscribe(Encoding.ASCII.GetBytes(messageType));
+
+            _endpointsToConnectTo.Add(new KeyValuePair<string, string>(endpoint, messageType));
         }
 
         public void CreateSubscribeSocket(BlockingCollection<IReceivedTransportMessage> receiveQueue)
         {
+
+
             _subSocket = _context.CreateSocket(SocketType.SUB);
             _socketsToDispose.Add(_subSocket);
             _subSocket.Linger = TimeSpan.FromSeconds(1);

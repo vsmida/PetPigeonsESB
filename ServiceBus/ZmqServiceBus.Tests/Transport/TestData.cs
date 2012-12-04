@@ -5,16 +5,41 @@ using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
-        private class FakeCommand
+        public class FakeCommand : ICommand
         { }
 
-        private class FakeEvent
+        public class FakeEvent
         { }
+
+        public class FakeCommandHandler : ICommandHandler<FakeCommand>
+        {
+            public static event Action<FakeCommand> HandlingCommand = delegate {};
+
+            public void Handle(FakeCommand item)
+            {
+                HandlingCommand(item);
+            }
+        }
+
+        public class CommandThatThrows : ICommand
+        {
+            
+        }
+
+        public class CommandThatThrowsHandler:ICommandHandler<CommandThatThrows>
+
+        {
+            public void Handle(CommandThatThrows item)
+            {
+                    throw new Exception("throwing");
+            }
+        }
 
         public static IServicePeer GenerateServicePeer()
         {
