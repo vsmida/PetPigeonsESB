@@ -94,9 +94,15 @@ namespace ZmqServiceBus.Tests.Integration
 
             appDomain2FakeCommandHandler.OnCommandReceived += OnCommandReceived;
             
+            Thread.Sleep(100);
+
             bus1.Send(new FakeCommand(5));
 
             _waitForCommandToBeHandled.WaitOne();
+
+            bus1.Dispose();
+            bus2.Dispose();
+            testBusCreatorDirService.StopDirectoryService();
         }
 
         private void OnCommandReceived(int number)
