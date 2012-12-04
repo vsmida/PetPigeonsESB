@@ -27,74 +27,36 @@ namespace ZmqServiceBus.Bus.Dispatch
 
 
         private readonly IObjectFactory _objectFactory;
-        private volatile bool _running = true;
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly Dictionary<Type, HandlerDispatcher> _messageTypeToCommandHandler = new Dictionary<Type, HandlerDispatcher>();
         private readonly Dictionary<Type, List<HandlerDispatcher>> _messageTypeToEventHandlers = new Dictionary<Type, List<HandlerDispatcher>>();
         private readonly BlockingCollection<IMessage> _standardMessagesToDispatch = new BlockingCollection<IMessage>();
-        private readonly Dictionary<Type, bool> _messageTypeToInfrastructureCondition = new Dictionary<Type, bool>();
-        public event Action<IMessage, Exception> ErrorOccurred = delegate { };
-        public event Action<IMessage> SuccessfulDispatch = delegate {};
 
 
         public MessageDispatcher(IObjectFactory objectFactory, IAssemblyScanner assemblyScanner)
         {
             _objectFactory = objectFactory;
             _assemblyScanner = assemblyScanner;
-
-            new Thread(() =>
-                                     {
-                                         while (_running)
-                                         {
-                                             IMessage message;
-                                             if (_standardMessagesToDispatch.TryTake(out message,
-                                                                                     TimeSpan.FromMilliseconds(500)))
-                                             {
-                                                 InvokeHandlers(message);
-                                             }
-                                         }
-
-
-                                     }).Start();
         }
 
         public void Dispatch(IMessage message)
         {
-            bool isInfrastructureMessage;
-            if (!_messageTypeToInfrastructureCondition.TryGetValue(message.GetType(), out isInfrastructureMessage))
-            {
-                isInfrastructureMessage = IsInfrastructure(message);
-                _messageTypeToInfrastructureCondition[message.GetType()] = isInfrastructureMessage;
-            }
-            if (isInfrastructureMessage)
-                InvokeHandlers(message);
-            else
-                _standardMessagesToDispatch.TryAdd(message);
+            InvokeHandlers(message);
         }
 
         private void InvokeHandlers(IMessage message)
         {
-
-            try
+            if (message.IsICommand())
             {
-                if (message.IsICommand())
-                {
-                    InvokeCommandHandler(message);
-                }
-
-                if (message.IsIEvent())
-                {
-                    InvokeEventHandlers(message);
-                }
-
-                SuccessfulDispatch(message);
-            }
-            catch (Exception e)
-            {
-                ErrorOccurred(message, e);
+                InvokeCommandHandler(message);
             }
 
+            if (message.IsIEvent())
+            {
+                InvokeEventHandlers(message);
+            }
         }
+
 
         private void InvokeEventHandlers(IMessage message)
         {
@@ -136,15 +98,6 @@ namespace ZmqServiceBus.Bus.Dispatch
             handlerDispatcher.MethodToInvoke.Invoke(instance, new object[] { message });
         }
 
-        private static bool IsInfrastructure(IMessage message)
-        {
-            return message.GetType().GetCustomAttributes(typeof(InfrastructureMessageAttribute),
-                                                         true).Any();
-        }
 
-        public void Dispose()
-        {
-            _running = false;
-        }
     }
 }

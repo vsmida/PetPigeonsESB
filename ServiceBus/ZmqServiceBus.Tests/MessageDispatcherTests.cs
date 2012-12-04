@@ -48,7 +48,6 @@ namespace ZmqServiceBus.Tests
         {
             _dispatcher.Dispatch(new FakeCommand(3));
 
-            FakeCommandHandler.NumberSet.WaitOne();
             Assert.AreEqual(3, FakeCommandHandler.NumberInMessage);
         }
 
@@ -64,44 +63,11 @@ namespace ZmqServiceBus.Tests
             Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownEvent(3)));
         }
 
-        [Test, Timeout(1000)]
-        public void should_raise_error_occured_when_error()
-        {
-            var waitHandle = new AutoResetEvent(false);
-            var command = new TestData.CommandThatThrows();
-            _dispatcher.Dispatch(command);
-            _dispatcher.ErrorOccurred += (mess, ex) =>
-                                             {
-                                                 Assert.AreEqual(command, mess);
-                                                 Assert.AreEqual("throwing", ex.InnerException.Message);
-                                                 waitHandle.Set();
-                                             };
-            waitHandle.WaitOne();
-
-        }
-
-        [Test, Timeout(1000)]
-        public void should_raise_dispatch_successful_when_ok()
-        {
-            var waitHandle = new AutoResetEvent(false);
-            var command = new TestData.FakeCommand();
-            _dispatcher.Dispatch(command);
-            _dispatcher.SuccessfulDispatch += (mess) =>
-            {
-                Assert.AreEqual(command, mess);
-                waitHandle.Set();
-            };
-            waitHandle.WaitOne();
-
-        }
 
         [Test, Timeout(1000)]
         public void should_throw_when_multiple_handlers_for_command()
         {
-            var waitHandle = new AutoResetEvent(false);
-            _dispatcher.ErrorOccurred += (mess, ex) => waitHandle.Set();
-            _dispatcher.Dispatch(new FakeCommand2(3));
-            waitHandle.WaitOne();
+            Assert.Throws<Exception>(() =>_dispatcher.Dispatch(new FakeCommand2(3)));
         }
 
         [Test, Timeout(1000)]
@@ -109,72 +75,11 @@ namespace ZmqServiceBus.Tests
         {
             _dispatcher.Dispatch(new FakeEvent(10));
 
-            FakeEventHandler.HandledMessage.WaitOne();
             Assert.AreEqual(10, FakeEventHandler.NumberInMessage);
-            FakeEventHandler_2.HandledMessage.WaitOne();
             Assert.AreEqual(10, FakeEventHandler_2.NumberInMessage);
         }
 
 
-        [Test, Timeout(1000)]
-        public void should_be_able_to_dispatch_infra_messages_while_doing_other_stuff()
-        {
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeInfrastructureMessage>()))
-                                .Returns(new List<MethodInfo> { typeof(FakeInfrastructureMessageHandler).GetMethod("Handle") });
-            _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeInfrastructureMessageHandler))).Returns(new FakeInfrastructureMessageHandler());
-
-            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeLongProcessingEvent>()))
-                                .Returns(new List<MethodInfo> { typeof(FakeLongProcessingEventHandler).GetMethod("Handle") });
-            _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeLongProcessingEventHandler))).Returns(new FakeLongProcessingEventHandler());
-
-            _dispatcher.Dispatch(new FakeLongProcessingEvent(7));
-            _dispatcher.Dispatch(new FakeInfrastructureMessage());
-
-            FakeLongProcessingEventHandler.WaitForHandleCompleted.WaitOne();
-            Assert.AreEqual(7, FakeLongProcessingEvent.LastProcessedNumber);
-
-        }
-
-
-        private class FakeLongProcessingEvent : IEvent
-        {
-            public static int LastProcessedNumber;
-
-            public int Number;
-
-            public FakeLongProcessingEvent(int number)
-            {
-                Number = number;
-            }
-        }
-
-        private class FakeLongProcessingEventHandler : IEventHandler<FakeLongProcessingEvent>
-        {
-            public static readonly AutoResetEvent WaitForHandleCompleted = new AutoResetEvent(false);
-
-            public void Handle(FakeLongProcessingEvent message)
-            {
-                FakeInfrastructureMessageHandler.WaitHandle.WaitOne();
-                FakeLongProcessingEvent.LastProcessedNumber = message.Number;
-                WaitForHandleCompleted.Set();
-            }
-        }
-
-        [InfrastructureMessage]
-        private class FakeInfrastructureMessage : ICommand
-        {
-
-        }
-
-        private class FakeInfrastructureMessageHandler : ICommandHandler<FakeInfrastructureMessage>
-        {
-            public static readonly AutoResetEvent WaitHandle = new AutoResetEvent(false);
-            public void Handle(FakeInfrastructureMessage item)
-            {
-
-                WaitHandle.Set();
-            }
-        }
 
 
         [ProtoContract]

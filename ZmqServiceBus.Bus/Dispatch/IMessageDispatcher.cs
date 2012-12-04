@@ -3,10 +3,8 @@ using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.Dispatch
 {
-    public interface IMessageDispatcher : IDisposable
+    public interface IMessageDispatcher
     {
         void Dispatch(IMessage message);
-        event Action<IMessage, Exception> ErrorOccurred;
-        event Action<IMessage> SuccessfulDispatch;
     }
 }
