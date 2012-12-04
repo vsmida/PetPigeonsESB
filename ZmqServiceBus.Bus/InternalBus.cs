@@ -48,6 +48,7 @@ namespace ZmqServiceBus.Bus
 
         private void OnTransportMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {
+            bool successfulDispatch = true;
             try
             {
                 //if acknowledgement 
@@ -55,12 +56,14 @@ namespace ZmqServiceBus.Bus
                 //ok AddCallbaclk
                 var deserializedMessage = Serializer.Deserialize(receivedTransportMessage.Data, TypeUtils.Resolve(receivedTransportMessage.MessageType));
                 _dispatcher.Dispatch(deserializedMessage as IMessage);
-                _messageSender.Route(new CompletionAcknowledgementMessage(receivedTransportMessage.MessageIdentity, true), receivedTransportMessage.PeerName);
             }
             catch (Exception)
             {
-                _messageSender.Route(new CompletionAcknowledgementMessage(receivedTransportMessage.MessageIdentity, false), receivedTransportMessage.PeerName);
+                successfulDispatch = false;
             }
+            if(receivedTransportMessage.MessageType != typeof(CompletionAcknowledgementMessage).FullName)
+            _messageSender.Route(new CompletionAcknowledgementMessage(receivedTransportMessage.MessageIdentity, successfulDispatch), receivedTransportMessage.PeerName);
+
 
         }
 

@@ -53,6 +53,16 @@ namespace ZmqServiceBus.Tests
         }
 
         [Test]
+        public void should_not_send_ack_when_message_is_already_ack()
+        {
+            _bus.Initialize();
+            var transportMessage = TestData.GenerateDummyReceivedMessage(new CompletionAcknowledgementMessage(Guid.NewGuid(), true));
+            _startupLayerMock.Raise(x => { x.OnMessageReceived += OnMessageReceived; }, transportMessage);
+
+            _messageSenderMock.Verify(y => y.Route(It.IsAny<CompletionAcknowledgementMessage>(), transportMessage.PeerName), Times.Never());
+        }
+
+        [Test]
         public void should_send_positive_acknowledgement_message_after_successful_dispatch()
         {
             _bus.Initialize();
