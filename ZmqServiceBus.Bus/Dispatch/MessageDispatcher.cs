@@ -34,6 +34,7 @@ namespace ZmqServiceBus.Bus.Dispatch
         private readonly BlockingCollection<IMessage> _standardMessagesToDispatch = new BlockingCollection<IMessage>();
         private readonly Dictionary<Type, bool> _messageTypeToInfrastructureCondition = new Dictionary<Type, bool>();
         public event Action<IMessage, Exception> ErrorOccurred = delegate { };
+        public event Action<IMessage> SuccessfulDispatch = delegate {};
 
 
         public MessageDispatcher(IObjectFactory objectFactory, IAssemblyScanner assemblyScanner)
@@ -85,6 +86,8 @@ namespace ZmqServiceBus.Bus.Dispatch
                 {
                     InvokeEventHandlers(message);
                 }
+
+                SuccessfulDispatch(message);
             }
             catch (Exception e)
             {

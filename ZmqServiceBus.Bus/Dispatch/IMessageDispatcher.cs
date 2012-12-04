@@ -6,5 +6,7 @@ namespace ZmqServiceBus.Bus.Dispatch
     public interface IMessageDispatcher : IDisposable
     {
         void Dispatch(IMessage message);
+        event Action<IMessage, Exception> ErrorOccurred;
+        event Action<IMessage> SuccessfulDispatch;
     }
 }

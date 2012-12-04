@@ -10,6 +10,7 @@ using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Tests.Transport;
 
 namespace ZmqServiceBus.Tests
 {
@@ -27,9 +28,13 @@ namespace ZmqServiceBus.Tests
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeCommandHandler))).Returns(new FakeCommandHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler))).Returns(new FakeEventHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler_2))).Returns(new FakeEventHandler_2());
+            _objectFactoryMock.Setup(x => x.GetInstance(typeof(TestData.CommandThatThrowsHandler))).Returns(new TestData.CommandThatThrowsHandler());
+            _objectFactoryMock.Setup(x => x.GetInstance(typeof(TestData.FakeCommandHandler))).Returns(new TestData.FakeCommandHandler());
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand>())).Returns(
                 new List<MethodInfo> { typeof(FakeCommandHandler).GetMethod("Handle") });
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<MethodInfo>());
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.FakeCommand>())).Returns(new List<MethodInfo>{ typeof(TestData.FakeCommandHandler).GetMethod("Handle")});
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.CommandThatThrows>())).Returns(new List<MethodInfo>{ typeof(TestData.CommandThatThrowsHandler).GetMethod("Handle")});
             _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<MethodInfo>());
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand2>())).Returns(new List<MethodInfo> { typeof(FakeCommandHandler2_1).GetMethod("Handle"), typeof(FakeCommandHandler2_2).GetMethod("Handle") });
             _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeEvent>())).Returns(new List<MethodInfo> { typeof(FakeEventHandler).GetMethod("Handle"), typeof(FakeEventHandler_2).GetMethod("Handle") });
@@ -57,6 +62,37 @@ namespace ZmqServiceBus.Tests
         public void should_do_nothing_when_receiving_event_with_no_handler()
         {
             Assert.DoesNotThrow(() => _dispatcher.Dispatch(new UnknownEvent(3)));
+        }
+
+        [Test, Timeout(1000)]
+        public void should_raise_error_occured_when_error()
+        {
+            var waitHandle = new AutoResetEvent(false);
+            var command = new TestData.CommandThatThrows();
+            _dispatcher.Dispatch(command);
+            _dispatcher.ErrorOccurred += (mess, ex) =>
+                                             {
+                                                 Assert.AreEqual(command, mess);
+                                                 Assert.AreEqual("throwing", ex.InnerException.Message);
+                                                 waitHandle.Set();
+                                             };
+            waitHandle.WaitOne();
+
+        }
+
+        [Test, Timeout(1000)]
+        public void should_raise_dispatch_successful_when_ok()
+        {
+            var waitHandle = new AutoResetEvent(false);
+            var command = new TestData.FakeCommand();
+            _dispatcher.Dispatch(command);
+            _dispatcher.SuccessfulDispatch += (mess) =>
+            {
+                Assert.AreEqual(command, mess);
+                waitHandle.Set();
+            };
+            waitHandle.WaitOne();
+
         }
 
         [Test, Timeout(1000)]
