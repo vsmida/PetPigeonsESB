@@ -12,6 +12,8 @@
         public void Handle(CompletionAcknowledgementMessage item)
         {
             var callback = _callbackRepository.GetCallback(item.MessageId);
+            if (callback == null)
+                return;
 
             callback.ExecuteCallback(item);
 
