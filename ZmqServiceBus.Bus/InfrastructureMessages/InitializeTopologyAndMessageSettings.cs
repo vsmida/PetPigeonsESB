@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using ProtoBuf;
 using Shared;
+using Shared.Attributes;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
+    [InfrastructureMessage]
     public class InitializeTopologyAndMessageSettings : ICommand
     {
         [ProtoMember(1, IsRequired = true)]

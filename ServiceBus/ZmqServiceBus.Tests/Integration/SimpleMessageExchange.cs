@@ -56,31 +56,18 @@ namespace ZmqServiceBus.Tests.Integration
         private AutoResetEvent _waitForCommandToBeHandled;
 
 
-        [Test, Timeout(10000000)]
+        [Test, Timeout(5000)]
         public void should_be_able_to_exchange_messages_between_services()
         {
-            string location = Directory.GetCurrentDirectory();
             AppDomainSetup setup = AppDomain.CurrentDomain.SetupInformation;
 
             var appDomain1 = AppDomain.CreateDomain("Service1Domain", null, setup);
             var appDomain2 = AppDomain.CreateDomain("Service2Domain", null, setup);
             var appDomainDirectoryService = AppDomain.CreateDomain("DirServiceDomain", null, setup);
-            foreach (var assembly in Directory.GetFiles(location))
-            {
-                try
-                {
-                  //  appDomain1.Load(AssemblyName.GetAssemblyName(assembly));
-                  //  appDomain2.Load(AssemblyName.GetAssemblyName(assembly));
-                 //   appDomainDirectoryService.Load(AssemblyName.GetAssemblyName(assembly));
-                }
-                catch (Exception e)
-                {
-                    //silence in case file is not an assembly
-                }
-            }
+
             var testBusCreator1 = appDomain1.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
             var testBusCreator2 = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
-            var testBusCreatorDirService = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
+            var testBusCreatorDirService = appDomainDirectoryService.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
 
             testBusCreatorDirService.CreateFakeDirectoryService();
             var bus1 = testBusCreator1.GetBus("Service1");
@@ -88,14 +75,11 @@ namespace ZmqServiceBus.Tests.Integration
 
             bus2.Initialize();
             bus1.Initialize();
+
             _waitForCommandToBeHandled = new AutoResetEvent(false);
-
             var appDomain2FakeCommandHandler  = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof (FakeCommandHandler)).FullName, typeof (FakeCommandHandler).FullName) as FakeCommandHandler;
-
             appDomain2FakeCommandHandler.OnCommandReceived += OnCommandReceived;
             
-            Thread.Sleep(100);
-
             bus1.Send(new FakeCommand(5));
 
             _waitForCommandToBeHandled.WaitOne();
