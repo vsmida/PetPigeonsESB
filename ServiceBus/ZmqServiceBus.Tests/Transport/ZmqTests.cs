@@ -1,15 +1,17 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using ZeroMQ;
+using Shared;
+using ZeroMQ.Monitoring;
 
 namespace ZmqServiceBus.Tests.Transport
 {
     [TestFixture, Ignore]
     public class ZmqTests
     {
-        private ZmqSocket _permanentSubSocket;
 
         [Test]
         public void dealer_can_connect_to_two_endpoints()
@@ -32,7 +34,7 @@ namespace ZmqServiceBus.Tests.Transport
             dealer.Send("Test", Encoding.ASCII);
 
             router1.Receive(Encoding.ASCII);
-            Assert.AreEqual("Test",router1.Receive(Encoding.ASCII));
+            Assert.AreEqual("Test", router1.Receive(Encoding.ASCII));
             router2.Receive(Encoding.ASCII);
             Assert.AreEqual("Test", router2.Receive(Encoding.ASCII));
 
@@ -59,41 +61,72 @@ namespace ZmqServiceBus.Tests.Transport
             context.Dispose();
         }
 
-
         [Test]
-        public void subscriber_can_connect_when_thread_dead()
+        public void can_use_multiple_transport()
         {
             var context = ZmqContext.Create();
-            var context2 = ZmqContext.Create();
-            Poller poller = new Poller();
+            var sub = context.CreateSocket(SocketType.SUB);
             var pub = context.CreateSocket(SocketType.PUB);
-            var pub2 = context2.CreateSocket(SocketType.PUB);
-            pub.Bind("tcp://*:111");
+            var pub2 = context.CreateSocket(SocketType.PUB);
+
+            pub.Bind("inproc://toto");
             pub2.Bind("tcp://*:222");
-            var creationThread = new Thread(() =>
-                                                {
-                                                    _permanentSubSocket = context.CreateSocket(SocketType.SUB);
-                                                    _permanentSubSocket.Connect("tcp://localhost:111");
-                                                    
-                                                    //while(true)
-                                                    //{
-                                                    //    _permanentSubSocket.Receive(Encoding.ASCII, TimeSpan.FromMilliseconds(1));
-                                                    //}
-                                                }){IsBackground = true};
-            creationThread.Start();
-            Thread.Sleep(200);
-       //     creationThread.Join();
-            pub.Send("toto", Encoding.ASCII);
-            Thread.Sleep(200);
-            _permanentSubSocket.Connect("tcp://localhost:111");
-            _permanentSubSocket.Connect("tcp://localhost:222");
-            pub.Send("toto", Encoding.ASCII);
+            sub.Connect("inproc://toto");
+            sub.Connect("tcp://localhost:222");
+         //   sub.Subscribe(Encoding.ASCII.GetBytes("pub"));
+            var second = new byte[0];
+            var prefix = Encoding.ASCII.GetBytes("pub2").Concat(Encoding.ASCII.GetBytes("TOTO")).ToArray();
+            sub.Subscribe(prefix);
+            
 
+       //     pub.Send("pub", Encoding.ASCII);
+      //      Console.WriteLine(sub.Receive(Encoding.ASCII));
+            pub2.Send("pub2", Encoding.ASCII);
+            pub2.SendMore("pub2", Encoding.ASCII);
+            pub2.Send("TOTO", Encoding.ASCII);
 
+            Console.WriteLine(sub.Receive(Encoding.ASCII));
+            Console.WriteLine(sub.Receive(Encoding.ASCII));
+            
+            sub.Dispose();
             pub.Dispose();
             pub2.Dispose();
-            _permanentSubSocket.Dispose();
             context.Dispose();
+        }
+
+
+        [Test]
+        public void routerTests()
+        {
+            var context = ZmqContext.Create();
+            var sockd1 = context.CreateSocket(SocketType.ROUTER);
+            var sockd2 = context.CreateSocket(SocketType.ROUTER);
+            var identity = "sockd111";
+            sockd1.Identity = Encoding.ASCII.GetBytes(identity);
+            sockd1.Bind("tcp://*:*");
+            var endpoint = sockd1.LastEndpoint;
+            var endpointConnectFirst = "tcp://localhost:" + endpoint.Split(':').Last();
+            sockd2.Connect(endpointConnectFirst);
+
+            sockd2.SendMore(identity, Encoding.ASCII);
+            sockd2.Send("test1Allconnected", Encoding.ASCII);
+            Console.WriteLine(sockd1.Receive(Encoding.ASCII));
+            sockd1.Dispose();
+            sockd2.SendMore(identity, Encoding.ASCII);
+            sockd2.Send("test2NoOneconnected", Encoding.ASCII);
+            sockd1 = context.CreateSocket(SocketType.ROUTER);
+            sockd1.Identity = Encoding.ASCII.GetBytes(identity);
+            sockd1.Bind("tcp://*:*");
+            sockd2.Connect("tcp://localhost:" + sockd1.LastEndpoint.Split(':').Last());
+            sockd2.Disconnect(endpointConnectFirst);
+            sockd2.SendMore(identity, Encoding.ASCII);
+            sockd2.Send("test3ReConnected", Encoding.ASCII);
+            Console.WriteLine(sockd1.Receive(Encoding.ASCII));
+
+            sockd1.Dispose();
+            sockd2.Dispose();
+          //  Thread.Sleep(10000);
+         context.Dispose();   
         }
 
     }

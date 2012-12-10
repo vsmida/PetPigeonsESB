@@ -1,4 +1,6 @@
-﻿namespace ZmqServiceBus.Bus.Handlers
+﻿using ZmqServiceBus.Bus.InfrastructureMessages;
+
+namespace ZmqServiceBus.Bus.Handlers
 {
     public class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
     {

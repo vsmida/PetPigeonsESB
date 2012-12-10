@@ -14,11 +14,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private readonly ZmqContext _context;
         private volatile bool _running = true;
         private readonly List<ZmqSocket> _socketsToDispose = new List<ZmqSocket>();
-        private readonly Poller _poller = new Poller();
-        private BackgroundThread _pollingThread;
+        private readonly Poller _receptionPoller = new Poller();
+        private BackgroundThread _pollingReceptionThread;
         private ZmqSocket _subSocket;
-        private BlockingCollection<KeyValuePair<string, string>> _endpointsToConnectTo = new BlockingCollection<KeyValuePair<string, string>>();
-
+        private readonly BlockingCollection<KeyValuePair<string, string>> _endpointsToConnectTo = new BlockingCollection<KeyValuePair<string, string>>(); //todo: refactor this
+        private readonly AutoResetEvent _waitForNewSubcription = new AutoResetEvent(false);
+        private readonly ConcurrentDictionary<BlockingCollection<ISendingTransportMessage>, ZmqSocket> _sendingItemsToSockets = new ConcurrentDictionary<BlockingCollection<ISendingTransportMessage>, ZmqSocket>();
 
         public ZmqSocketManager(ZmqContext context)
         {
@@ -27,44 +28,42 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         private void CreatePollingThread()
         {
-            _pollingThread = new BackgroundThread(() =>
+            _pollingReceptionThread = new BackgroundThread(() =>
                                                       {
                                                           while (_running)
                                                           {
-                                                              _poller.Poll(TimeSpan.FromMilliseconds(10));
+                                                              _receptionPoller.Poll(TimeSpan.FromMilliseconds(100));
                                                               KeyValuePair<string, string> connect;
                                                               if(_endpointsToConnectTo.TryTake(out connect))
                                                               {
                                                                    _subSocket.Connect(connect.Key);
                                                                    _subSocket.Subscribe(Encoding.ASCII.GetBytes(connect.Value));
+                                                                  _waitForNewSubcription.Set();
                                                               }
                                                           }
 
-                                                          _poller.Dispose();
+                                                          _receptionPoller.Dispose();
                                                       });
-            _pollingThread.Start();
+
+            _pollingReceptionThread.Start();
         }
 
 
         public void SubscribeTo(string endpoint, string messageType)
         {
-           // _subSocket.Connect(endpoint);
-           // _subSocket.Subscribe(Encoding.ASCII.GetBytes(messageType));
-
             _endpointsToConnectTo.Add(new KeyValuePair<string, string>(endpoint, messageType));
+            _waitForNewSubcription.WaitOne();
         }
 
         public void CreateSubscribeSocket(BlockingCollection<IReceivedTransportMessage> receiveQueue)
         {
-
-
             _subSocket = _context.CreateSocket(SocketType.SUB);
             _socketsToDispose.Add(_subSocket);
             _subSocket.Linger = TimeSpan.FromSeconds(1);
 
             _subSocket.ReceiveReady += (s, e) => ReceiveFromSubscriber(e, receiveQueue);
-            _poller.AddSocket(_subSocket);
-            if (_pollingThread == null)
+            _receptionPoller.AddSocket(_subSocket);
+            if (_pollingReceptionThread == null)
                 CreatePollingThread();
         }
 
@@ -87,11 +86,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
             requestorSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(requestorSocket);
             requestorSocket.ReceiveReady += (s, e) => ReceiveFromDealer(e, acknowledgementQueue);
-            requestorSocket.SendReady += (s, e) => SendWithoutIdentity(e, sendingQueue, servicePeerName);
-            _poller.AddSocket(requestorSocket);
+    //        requestorSocket.SendReady += (s, e) => SendWithoutIdentity(e, sendingQueue, servicePeerName);
+            _sendingItemsToSockets.TryAdd(sendingQueue, requestorSocket);
+            _receptionPoller.AddSocket(requestorSocket);
             requestorSocket.Connect(endpoint);
             Console.WriteLine("Command dealer socket bound to {0}", endpoint);
-            if (_pollingThread == null)
+            if (_pollingReceptionThread == null)
                 CreatePollingThread();
         }
 
@@ -154,10 +154,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
             replierSocket.ReceiveHighWatermark = 10000;
             _socketsToDispose.Add(replierSocket);
             replierSocket.ReceiveReady += (s, e) => ReceiveFromRouter(e, receivingQueue, servicePeerName);
-            _poller.AddSocket(replierSocket);
+            _receptionPoller.AddSocket(replierSocket);
             replierSocket.Bind(endpoint);
             Console.WriteLine("Command replier socket bound to {0}", endpoint);
-            if (_pollingThread == null)
+            if (_pollingReceptionThread == null)
                 CreatePollingThread();
         }
 
@@ -186,8 +186,8 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public void Stop()
         {
             _running = false;
-            if (_pollingThread != null)
-                _pollingThread.Join();
+            if (_pollingReceptionThread != null)
+                _pollingReceptionThread.Join();
             foreach (var zmqSocket in _socketsToDispose)
             {
                 zmqSocket.Dispose();

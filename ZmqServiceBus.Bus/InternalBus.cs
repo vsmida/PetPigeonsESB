@@ -6,6 +6,7 @@ using System.Threading;
 using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;

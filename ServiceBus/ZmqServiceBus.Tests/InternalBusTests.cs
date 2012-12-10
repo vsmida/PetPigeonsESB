@@ -6,6 +6,7 @@ using ProtoBuf;
 using Shared.Attributes;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;

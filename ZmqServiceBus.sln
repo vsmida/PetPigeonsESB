@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZmqServiceBusHost", "ZmqSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeroMQ", "..\clrzmq\src\ZeroMQ\ZeroMQ.csproj", "{6FFD872F-A4A4-4EFA-9B4D-4342BA6CF250}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleSockets", "SimpleSockets\SimpleSockets.csproj", "{76FAE9F4-7102-48B4-A0D2-180277C360BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -209,6 +211,18 @@ Global
 		{6FFD872F-A4A4-4EFA-9B4D-4342BA6CF250}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6FFD872F-A4A4-4EFA-9B4D-4342BA6CF250}.Release|x64.ActiveCfg = Release|Any CPU
 		{6FFD872F-A4A4-4EFA-9B4D-4342BA6CF250}.Release|x86.ActiveCfg = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|x64.ActiveCfg = Release|Any CPU
+		{76FAE9F4-7102-48B4-A0D2-180277C360BD}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

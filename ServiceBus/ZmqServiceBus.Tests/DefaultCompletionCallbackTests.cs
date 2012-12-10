@@ -2,6 +2,7 @@
 using System.Threading;
 using NUnit.Framework;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Tests
 {

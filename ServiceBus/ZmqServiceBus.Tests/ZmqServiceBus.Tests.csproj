@@ -108,8 +108,11 @@
     <Compile Include="Transport\MessageSenderTests.cs" />
     <Compile Include="Transport\PeerManagerTests.cs" />
     <Compile Include="Transport\SendingStrategyStateManagerTests.cs" />
+    <Compile Include="Transport\SocketIoContext.cs" />
+    <Compile Include="Transport\SocketTests.cs" />
     <Compile Include="Transport\TestData.cs" />
     <Compile Include="Transport\EndpointManagerTests.cs" />
+    <Compile Include="Transport\ZmqReceiverTests.cs" />
     <Compile Include="Transport\ZmqSocketManagerTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>

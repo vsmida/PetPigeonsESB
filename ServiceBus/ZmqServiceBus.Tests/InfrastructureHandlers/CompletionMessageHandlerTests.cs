@@ -3,6 +3,7 @@ using Moq;
 using NUnit.Framework;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Handlers;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Tests.InfrastructureHandlers
 {

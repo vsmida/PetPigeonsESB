@@ -3,7 +3,7 @@ using ProtoBuf;
 using Shared.Attributes;
 using ZmqServiceBus.Contracts;
 
-namespace ZmqServiceBus.Bus
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
     [InfrastructureMessage]

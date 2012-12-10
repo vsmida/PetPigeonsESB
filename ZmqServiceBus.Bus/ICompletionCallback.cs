@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Bus
 {

@@ -16,5 +16,7 @@ namespace Shared
         {
             return Serializer.Deserialize<T>(socket.Receive());
         }
+
+
     }
 }

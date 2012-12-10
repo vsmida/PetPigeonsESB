@@ -44,6 +44,8 @@ namespace ZmqServiceBus.Tests.Transport
             var messageIdentity = Guid.NewGuid();
             sendCollection.Add(new SendingTransportMessage(commandType, messageIdentity, Encoding.ASCII.GetBytes(commandData)));
 
+            //Thread.Sleep(10000);
+
             var ephemeralIdentity = routerSocket.Receive();//identity of client
             Assert.AreEqual(commandType, Encoding.ASCII.GetString(routerSocket.Receive()));
             Assert.AreEqual(senderIdentity, Encoding.ASCII.GetString(routerSocket.Receive()));

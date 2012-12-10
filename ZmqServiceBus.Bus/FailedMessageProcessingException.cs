@@ -1,4 +1,5 @@
 using System;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Bus
 {

@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CallbackRepository.cs" />
-    <Compile Include="CompletionAcknowledgementMessage.cs" />
+    <Compile Include="Conventions\SocketIdentityConvention.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
     <Compile Include="FailedMessageProcessingException.cs" />
@@ -61,6 +61,7 @@
     <Compile Include="ICompletionCallback.cs" />
     <Compile Include="IEventHandler.cs" />
     <Compile Include="IMessageHandler.cs" />
+    <Compile Include="InfrastructureMessages\CompletionAcknowledgementMessage.cs" />
     <Compile Include="InfrastructureMessages\InitializeTopologyAndMessageSettings.cs" />
     <Compile Include="InfrastructureMessages\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\PersistMessageCommand.cs" />
@@ -81,6 +82,8 @@
     <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Transport\IPersistenceSynchronizer.cs" />
     <Compile Include="Transport\Network\EndpointManager.cs" />
+    <Compile Include="Transport\Network\IDataReceiver.cs" />
+    <Compile Include="Transport\Network\IZmqSender.cs" />
     <Compile Include="Transport\ReceptionPipe\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />

@@ -31,8 +31,8 @@ namespace ZmqServiceBus.Tests.Transport
       //      set { _commandsPort = value; }
         }
 
-        public override string EventsProtocol { get { return "inproc"; }  }
-        public override string CommandsProtocol { get { return "inproc"; } }
+        public override string EventsProtocol { get { return "tcp"; }  }
+        public override string CommandsProtocol { get { return "tcp"; } }
 
         public override string PeerName
         {
