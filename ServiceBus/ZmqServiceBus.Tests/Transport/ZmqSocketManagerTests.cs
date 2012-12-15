@@ -31,7 +31,8 @@ namespace ZmqServiceBus.Tests.Transport
         [Test, Timeout(10000000), Repeat(10)]
         public void should_create_requestor_socket()
         {
-            var sendCollection = new BlockingCollection<ISendingTransportMessage>();
+            
+            var sendCollection = new BlockingCollection<ISendingBusMessage>();
             var receiveCollection = new BlockingCollection<IReceivedTransportMessage>();
             string senderIdentity = "Identity";
             var commandType = "Request";
@@ -42,7 +43,7 @@ namespace ZmqServiceBus.Tests.Transport
             routerSocket.Bind(Endpoint);
             _socketManager.CreateRequestSocket(sendCollection, receiveCollection, Endpoint, senderIdentity);
             var messageIdentity = Guid.NewGuid();
-            sendCollection.Add(new SendingTransportMessage(commandType, messageIdentity, Encoding.ASCII.GetBytes(commandData)));
+            sendCollection.Add(new SendingBusMessage(commandType, messageIdentity, Encoding.ASCII.GetBytes(commandData)));
 
             //Thread.Sleep(10000);
 
@@ -72,7 +73,7 @@ namespace ZmqServiceBus.Tests.Transport
         [Test, Timeout(1000), Repeat(10)]
         public void should_create_publisher_socket()
         {
-            var sendQueue = new BlockingCollection<ISendingTransportMessage>();
+            var sendQueue = new BlockingCollection<ISendingBusMessage>();
             var subscriberSocket = _zmqContext.CreateSocket(SocketType.SUB);
             var messageType = "Type";
             var messageData = "Data";
@@ -82,7 +83,7 @@ namespace ZmqServiceBus.Tests.Transport
             subscriberSocket.Connect(Endpoint);
 
             var messageIdentity = Guid.NewGuid();
-            var transportMessage = new SendingTransportMessage(messageType, messageIdentity, Encoding.ASCII.GetBytes(messageData));
+            var transportMessage = new SendingBusMessage(messageType, messageIdentity, Encoding.ASCII.GetBytes(messageData));
             sendQueue.Add(transportMessage);
 
             Assert.AreEqual(Encoding.ASCII.GetBytes(transportMessage.MessageType), subscriberSocket.Receive());

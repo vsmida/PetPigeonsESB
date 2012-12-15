@@ -19,9 +19,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
             _stateManager = stateManager;
         }
 
-        public void SendOn(IEndpointManager endpointManager, ISendingTransportMessage message)
+        public void SendOn(IEndpointManager endpointManager, ISendingBusMessage message)
         {
-            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
+            var brokerMessage = new SendingBusMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);
@@ -31,9 +31,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
             WaitHandle.WaitAll(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
         }
 
-        public void PublishOn(IEndpointManager endpointManager, ISendingTransportMessage message)
+        public void PublishOn(IEndpointManager endpointManager, ISendingBusMessage message)
         {
-            var brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
+            var brokerMessage = new SendingBusMessage(typeof(PersistMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(message));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);
@@ -43,13 +43,13 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
             WaitHandle.WaitAll(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
         }
 
-        public void RouteOn(IEndpointManager endpointManager, ISendingTransportMessage message, string destinationPeer)
+        public void RouteOn(IEndpointManager endpointManager, ISendingBusMessage message, string destinationPeer)
         {
-            SendingTransportMessage brokerMessage;
+            SendingBusMessage brokerMessage;
             if (message.MessageType == typeof(CompletionAcknowledgementMessage).FullName)
-                brokerMessage = new SendingTransportMessage(typeof(ForgetMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(new ForgetMessageCommand(message.MessageType, message.MessageIdentity)));
+                brokerMessage = new SendingBusMessage(typeof(ForgetMessageCommand).FullName, Guid.NewGuid(), Serializer.Serialize(new ForgetMessageCommand(message.MessageType, message.MessageIdentity)));
             else
-                brokerMessage = new SendingTransportMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
+                brokerMessage = new SendingBusMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
             _stateManager.RegisterStrategy(strategyStateBroker);

@@ -19,7 +19,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private ZmqSocket _subSocket;
         private readonly BlockingCollection<KeyValuePair<string, string>> _endpointsToConnectTo = new BlockingCollection<KeyValuePair<string, string>>(); //todo: refactor this
         private readonly AutoResetEvent _waitForNewSubcription = new AutoResetEvent(false);
-        private readonly ConcurrentDictionary<BlockingCollection<ISendingTransportMessage>, ZmqSocket> _sendingItemsToSockets = new ConcurrentDictionary<BlockingCollection<ISendingTransportMessage>, ZmqSocket>();
+        private readonly ConcurrentDictionary<BlockingCollection<ISendingBusMessage>, ZmqSocket> _sendingItemsToSockets = new ConcurrentDictionary<BlockingCollection<ISendingBusMessage>, ZmqSocket>();
 
         public ZmqSocketManager(ZmqContext context)
         {
@@ -78,7 +78,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         }
 
 
-        public void CreateRequestSocket(BlockingCollection<ISendingTransportMessage> sendingQueue, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
+        public void CreateRequestSocket(BlockingCollection<ISendingBusMessage> sendingQueue, BlockingCollection<IReceivedTransportMessage> acknowledgementQueue, string endpoint, string servicePeerName)
         {
             var requestorSocket = _context.CreateSocket(SocketType.DEALER);
             requestorSocket.Linger = TimeSpan.FromSeconds(1);
@@ -95,9 +95,9 @@ namespace ZmqServiceBus.Bus.Transport.Network
                 CreatePollingThread();
         }
 
-        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<ISendingTransportMessage> sendingQueue, string servicePeerName)
+        private void SendWithoutIdentity(SocketEventArgs socketEventArgs, BlockingCollection<ISendingBusMessage> sendingQueue, string servicePeerName)
         {
-            ISendingTransportMessage message;
+            ISendingBusMessage message;
             if (!sendingQueue.TryTake(out message))
                 return;
             var zmqSocket = socketEventArgs.Socket;
@@ -119,7 +119,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             acknowledgementQueue.Add(new ReceptionPipe.ReceivedTransportMessage(type,servicePeerName,id, serializedItem));
         }
 
-        public void CreatePublisherSocket(BlockingCollection<ISendingTransportMessage> sendingQueue, string endpoint, string servicePeerName)
+        public void CreatePublisherSocket(BlockingCollection<ISendingBusMessage> sendingQueue, string endpoint, string servicePeerName)
         {
             var waitForBind = new AutoResetEvent(false);
             new BackgroundThread(() =>
@@ -131,7 +131,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                          waitForBind.Set();
                                          while (_running)
                                          {
-                                             ISendingTransportMessage message;
+                                             ISendingBusMessage message;
                                              if (sendingQueue.TryTake(out message, TimeSpan.FromSeconds(0.1)))
                                              {
                                                  publisherSocket.SendMore(Encoding.ASCII.GetBytes(message.MessageType));

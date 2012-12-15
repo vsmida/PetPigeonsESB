@@ -56,14 +56,14 @@ namespace ZmqServiceBus.Tests.Transport
             return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
         }
 
-        public static SendingTransportMessage GenerateDummySendingMessage<T>()
+        public static SendingBusMessage GenerateDummySendingMessage<T>()
         {
-            return new SendingTransportMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0]);
+            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0]);
         }
 
-        public static SendingTransportMessage GenerateDummySendingMessage<T>(T item)
+        public static SendingBusMessage GenerateDummySendingMessage<T>(T item)
         {
-            return new SendingTransportMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item));
+            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item));
         }
 
         public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

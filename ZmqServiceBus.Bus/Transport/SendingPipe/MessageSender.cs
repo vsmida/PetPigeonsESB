@@ -23,29 +23,29 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         public IBlockableUntilCompletion Send(ICommand command, ICompletionCallback callback = null)
         {
             var sendingStrat =_strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(command.GetType().FullName));
-            ISendingTransportMessage sendingMessage = GetTransportMessage(command);
+            ISendingBusMessage sendingMessage = GetTransportMessage(command);
             var callbackToRegister = callback ?? new DefaultCompletionCallback();
             _callbackRepository.RegisterCallback(sendingMessage.MessageIdentity, callbackToRegister);
             sendingStrat.SendOn(_endpointManager, sendingMessage);
             return callbackToRegister;
           }
 
-        private ISendingTransportMessage GetTransportMessage(IMessage message)
+        private ISendingBusMessage GetTransportMessage(IMessage message)
         {
-            return new SendingTransportMessage(message.GetType().FullName, Guid.NewGuid(), Serializer.Serialize(message));
+            return new SendingBusMessage(message.GetType().FullName, Guid.NewGuid(), Serializer.Serialize(message));
         }
 
         public void Publish(IEvent message)
         {
             var sendingStrat = _strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(message.GetType().FullName));
-            ISendingTransportMessage sendingMessage = GetTransportMessage(message);
+            ISendingBusMessage sendingMessage = GetTransportMessage(message);
             sendingStrat.PublishOn(_endpointManager, sendingMessage);
         }
 
         public void Route(IMessage message, string peerName)
         {
             var sendingStrat = _strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(message.GetType().FullName));
-            ISendingTransportMessage sendingMessage = GetTransportMessage(message);
+            ISendingBusMessage sendingMessage = GetTransportMessage(message);
             sendingStrat.RouteOn(_endpointManager, sendingMessage, peerName);
         }
     }

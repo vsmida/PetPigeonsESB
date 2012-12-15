@@ -2,9 +2,9 @@ using System;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
-    public class SendingTransportMessage : ISendingTransportMessage
+    public class SendingBusMessage : ISendingBusMessage
     {
-        public SendingTransportMessage(string messageType, Guid messageIdentity, byte[] data)
+        public SendingBusMessage(string messageType, Guid messageIdentity, byte[] data)
         {
             Data = data;
             MessageIdentity = messageIdentity;

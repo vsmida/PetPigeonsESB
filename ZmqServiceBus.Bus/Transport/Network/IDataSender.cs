@@ -8,15 +8,15 @@ using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
-    public interface IZmqSender : IDisposable
+    public interface IDataSender : IDisposable
     {
         void Initialize();
-        void SendMessage(ISendingTransportMessage message);
-        void PublishMessage(ISendingTransportMessage message);
-        void RouteMessage(ISendingTransportMessage message, string destinationPeer);
+        void SendMessage(ISendingBusMessage message);
+        void PublishMessage(ISendingBusMessage message);
+        void RouteMessage(ISendingBusMessage message, string destinationPeer);
     }
 
-    public class ZmqSender : IZmqSender
+    public class DataSender : IDataSender
     {
 
         private enum ActionType
@@ -29,12 +29,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private class SendableTransportMessage
         {
             public IEnumerable<string> PeersToSendTo;
-            public ISendingTransportMessage SendingTransportMessage;
+            public ISendingBusMessage SendingBusMessage;
 
-            public SendableTransportMessage(IEnumerable<string> peersToSendTo, ISendingTransportMessage sendingTransportMessage)
+            public SendableTransportMessage(IEnumerable<string> peersToSendTo, ISendingBusMessage sendingBusMessage)
             {
                 PeersToSendTo = peersToSendTo;
-                SendingTransportMessage = sendingTransportMessage;
+                SendingBusMessage = sendingBusMessage;
             }
         }
 
@@ -47,7 +47,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private IPeerManager _peerManager;
 
 
-        public ZmqSender(ZmqContext context, TransportConfiguration configuration, IPeerManager peerManager)
+        public DataSender(ZmqContext context, TransportConfiguration configuration, IPeerManager peerManager)
         {
             _context = context;
             _configuration = configuration;
@@ -65,35 +65,37 @@ namespace ZmqServiceBus.Bus.Transport.Network
             CreatePublisherSocket();
 
             new BackgroundThread(() =>
+                                 {
+                                     while (_running)
                                      {
-                                         while (_running)
+                                         foreach (var messageToSend in _messagesToSend.GetConsumingEnumerable())
                                          {
-                                             foreach ( var messageToSend in _messagesToSend.GetConsumingEnumerable())
+                                             if (messageToSend.PeersToSendTo == null)
                                              {
-                                                 if(messageToSend.PeersToSendTo == null)
-                                                 {
-                                                     SendOnPubSocket(messageToSend.SendingTransportMessage, _publisherSocket);
-                                                     continue;
-                                                 }
+                                                 SendOnPubSocket(messageToSend.SendingBusMessage, _publisherSocket);
+                                                 continue;
+                                             }
 
-                                                 foreach (var peer in messageToSend.PeersToSendTo)
+                                             foreach (var peer in messageToSend.PeersToSendTo)
+                                             {
+                                                 ZmqSocket socket;
+                                                 if (!_peerNameToDestinationSocket.TryGetValue(peer, out socket))
                                                  {
-                                                     ZmqSocket socket;
-                                                     if(!_peerNameToDestinationSocket.TryGetValue(peer,out socket))
-                                                     {
-                                                        socket = CreateSocketForPeer(messageToSend, peer);
-                                                     }
-                                                     SendOnPubSocket(messageToSend.SendingTransportMessage, socket);
+                                                     socket =
+                                                         CreateSocketForPeer(
+                                                             messageToSend.SendingBusMessage.MessageType, peer);
                                                  }
+                                                 SendOnPubSocket(messageToSend.SendingBusMessage, socket);
                                              }
                                          }
-                                     });
+                                     }
+                                 });
         }
 
-        private ZmqSocket CreateSocketForPeer(SendableTransportMessage messageToSend, string peer)
+        private ZmqSocket CreateSocketForPeer(string messageType, string peer)
         {
             ZmqSocket socket;
-            var endpointToConnectTo = _peerManager.GetPeerEndpointFor(messageToSend.SendingTransportMessage.MessageType, peer);
+            var endpointToConnectTo = _peerManager.GetPeerEndpointFor(messageType, peer);
             socket = _context.CreateSocket(SocketType.PUB);
             socket.Linger = TimeSpan.FromMilliseconds(500);
             socket.SendHighWatermark = 10000;
@@ -102,7 +104,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             return socket;
         }
 
-        private void SendOnPubSocket(ISendingTransportMessage sendingTransportMessage, ZmqSocket socket)
+        private void SendOnPubSocket(ISendingBusMessage sendingBusMessage, ZmqSocket socket)
         {
             throw new NotImplementedException();
         }
@@ -116,17 +118,17 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _publisherSocket.Bind(_configuration.GetEventsBindEndpoint());
         }
 
-        public void SendMessage(ISendingTransportMessage message)
+        public void SendMessage(ISendingBusMessage message)
         {
             
         }
 
-        public void PublishMessage(ISendingTransportMessage message)
+        public void PublishMessage(ISendingBusMessage message)
         {
             throw new System.NotImplementedException();
         }
 
-        public void RouteMessage(ISendingTransportMessage message, string destinationPeer)
+        public void RouteMessage(ISendingBusMessage message, string destinationPeer)
         {
             throw new System.NotImplementedException();
         }

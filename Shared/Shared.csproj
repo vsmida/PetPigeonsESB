@@ -94,6 +94,7 @@
     <Compile Include="ReliabilityLevel.cs" />
     <Compile Include="Serializer.cs" />
     <Compile Include="ServicePeer.cs" />
+    <Compile Include="SingleProducerSingleConsumerConcurrentQueue.cs" />
     <Compile Include="TestTools\ExtendMock.cs" />
     <Compile Include="TypeUtils.cs" />
   </ItemGroup>

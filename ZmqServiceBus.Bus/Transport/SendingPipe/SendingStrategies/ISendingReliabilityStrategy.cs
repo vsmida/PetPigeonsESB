@@ -4,8 +4,8 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
     public interface ISendingReliabilityStrategy
     {
-        void SendOn(IEndpointManager endpointManager, ISendingTransportMessage message);
-        void PublishOn(IEndpointManager endpointManager, ISendingTransportMessage message);
-        void RouteOn(IEndpointManager endpointManager, ISendingTransportMessage message, string destinationPeer);
+        void SendOn(IEndpointManager endpointManager, ISendingBusMessage message);
+        void PublishOn(IEndpointManager endpointManager, ISendingBusMessage message);
+        void RouteOn(IEndpointManager endpointManager, ISendingBusMessage message, string destinationPeer);
     }
 }

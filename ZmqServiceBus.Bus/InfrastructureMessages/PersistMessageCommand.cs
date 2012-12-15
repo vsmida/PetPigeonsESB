@@ -8,13 +8,13 @@ using ZmqServiceBus.Contracts;
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
-    [ProtoInclude(1, typeof(SendingTransportMessage))]
+    [ProtoInclude(1, typeof(SendingBusMessage))]
     public class PersistMessageCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly ISendingTransportMessage Message;
+        public readonly ISendingBusMessage Message;
 
-        public PersistMessageCommand(ISendingTransportMessage message)
+        public PersistMessageCommand(ISendingBusMessage message)
         {
             Message = message;
         }

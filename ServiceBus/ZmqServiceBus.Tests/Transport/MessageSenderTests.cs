@@ -84,7 +84,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _messageSender.Send(new FakeCommand());
 
-            stratMock.Verify(x => x.SendOn(_endpointManagerMock.Object, It.Is<SendingTransportMessage>(y => y.MessageType == typeof(FakeCommand).FullName)));
+            stratMock.Verify(x => x.SendOn(_endpointManagerMock.Object, It.Is<SendingBusMessage>(y => y.MessageType == typeof(FakeCommand).FullName)));
         }
 
         [Test]
@@ -97,7 +97,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _messageSender.Route(new FakeCommand(),"Test");
 
-            stratMock.Verify(x => x.RouteOn(_endpointManagerMock.Object, It.Is<SendingTransportMessage>(y => y.MessageType == typeof(FakeCommand).FullName), "Test"));
+            stratMock.Verify(x => x.RouteOn(_endpointManagerMock.Object, It.Is<SendingBusMessage>(y => y.MessageType == typeof(FakeCommand).FullName), "Test"));
         }
 
         [Test]
@@ -110,7 +110,7 @@ namespace ZmqServiceBus.Tests.Transport
 
             _messageSender.Publish(new FakeEvent());
 
-            stratMock.Verify(x => x.PublishOn(_endpointManagerMock.Object, It.Is<SendingTransportMessage>(y => y.MessageType == typeof(FakeEvent).FullName)));
+            stratMock.Verify(x => x.PublishOn(_endpointManagerMock.Object, It.Is<SendingBusMessage>(y => y.MessageType == typeof(FakeEvent).FullName)));
         }
     }
 }

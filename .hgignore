@@ -1,6 +1,8 @@
 syntax: regexp
 .*/Debug/.*
 _ReSharper.*
+.*/obj/.*
+.*/bin/.*
 syntax: glob
 .*/Release/.*
 .*_ReSharper.*

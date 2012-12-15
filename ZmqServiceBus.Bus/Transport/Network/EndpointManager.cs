@@ -12,17 +12,17 @@ namespace ZmqServiceBus.Bus.Transport.Network
     {
         private class SocketInfo
         {
-            public BlockingCollection<ISendingTransportMessage> SendingQueue { get; set; }
+            public BlockingCollection<ISendingBusMessage> SendingQueue { get; set; }
 
             public SocketInfo()
             {
-                SendingQueue = new BlockingCollection<ISendingTransportMessage>();
+                SendingQueue = new BlockingCollection<ISendingBusMessage>();
             }
         }
 
         private readonly IPeerManager _peerManager;
         private readonly ISubscriptionManager _subscriptionManager;
-        private readonly BlockingCollection<ISendingTransportMessage> _messagesToPublish = new BlockingCollection<ISendingTransportMessage>();
+        private readonly BlockingCollection<ISendingBusMessage> _messagesToPublish = new BlockingCollection<ISendingBusMessage>();
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
         private readonly Dictionary<string, SocketInfo> _endpointsToSocketInfo = new Dictionary<string, SocketInfo>();
 
@@ -73,7 +73,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                      }).Start();
         }
 
-        public void SendMessage(ISendingTransportMessage message)
+        public void SendMessage(ISendingBusMessage message)
         {
             var endpoints = _peerManager.GetEndpointsForMessageType(message.MessageType);
             foreach (var endpoint in endpoints)
@@ -84,12 +84,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         }
 
-        public void PublishMessage(ISendingTransportMessage message)
+        public void PublishMessage(ISendingBusMessage message)
         {
             _messagesToPublish.Add(message);
         }
 
-        public void RouteMessage(ISendingTransportMessage message, string destinationPeer)
+        public void RouteMessage(ISendingBusMessage message, string destinationPeer)
         {
             string endpoint = _peerManager.GetPeerEndpointFor(message.MessageType, destinationPeer);
             var socketInfo = GetOrCreateSocketInfo(endpoint);

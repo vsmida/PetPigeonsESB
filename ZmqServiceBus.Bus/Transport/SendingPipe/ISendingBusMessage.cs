@@ -2,7 +2,7 @@ using System;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
-    public interface ISendingTransportMessage
+    public interface ISendingBusMessage
     {
         string MessageType { get; }
         Guid MessageIdentity { get; }

@@ -6,9 +6,9 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public interface IEndpointManager : IDisposable
     {
         void Initialize();
-        void SendMessage(ISendingTransportMessage message);
-        void PublishMessage(ISendingTransportMessage message);
-        void RouteMessage(ISendingTransportMessage message, string destinationPeer);
+        void SendMessage(ISendingBusMessage message);
+        void PublishMessage(ISendingBusMessage message);
+        void RouteMessage(ISendingBusMessage message, string destinationPeer);
         event Action<IReceivedTransportMessage> OnMessageReceived;
     }
 }
