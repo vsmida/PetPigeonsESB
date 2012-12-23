@@ -61,6 +61,36 @@ namespace ZmqServiceBus.Tests.Transport
             context.Dispose();
         }
 
+
+
+        [Test]
+        public void can_detect_disconnect()
+        {
+            var context = ZmqContext.Create();
+
+      
+
+            var monitor = context.CreateMonitor();
+            var adress = "inproc://toto";
+            AutoResetEvent wait = new AutoResetEvent(false);
+            monitor.Disconnected += (s, e) =>
+                                        {
+                                            Assert.AreEqual(adress, e.Address);
+                                            wait.Set();
+                                        };
+            var sub = context.CreateSocket(SocketType.SUB);
+            var pub = context.CreateSocket(SocketType.PUB);
+
+            pub.Bind(adress);
+            sub.Connect(adress);
+            sub.Connect(adress);
+
+            pub.Dispose();
+            sub.Dispose();
+            context.Dispose();
+        }
+
+
         [Test]
         public void can_use_multiple_transport()
         {

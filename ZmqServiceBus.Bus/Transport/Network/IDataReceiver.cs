@@ -15,20 +15,18 @@ namespace ZmqServiceBus.Bus.Transport.Network
         void Initialize();
     }
 
-    public class DataReceiver : IDataReceiver
+    public class ZmqDataReceiver : IDataReceiver
     {
         public event Action<IReceivedTransportMessage> OnMessageReceived;
         private readonly ZmqContext _context;
-        private ZmqSocket _commandReceptionSocket;
-        private ZmqSocket _eventReceptionSocket;
+        private ZmqSocket receptionSocket;
         private readonly Poller _receptionPoller = new Poller();
         private volatile bool _running = true;
         private BackgroundThread _pollingReceptionThread;
-        private readonly BlockingCollection<Action> _actionsToPerformOnPollingThread = new BlockingCollection<Action>();
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
         private readonly TransportConfiguration _configuration;
 
-        public DataReceiver(ZmqContext context, TransportConfiguration configuration)
+        public ZmqDataReceiver(ZmqContext context, TransportConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
@@ -52,29 +50,16 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                      }).Start();
         }
 
-        private void SubscribeToEventPublisher(string publisherEndpoint, string typeName)
-        {
-            _eventReceptionSocket.Connect(publisherEndpoint);
-            _eventReceptionSocket.Subscribe(Encoding.ASCII.GetBytes(typeName));
-        }
-
         private void CreatePollingThread()
         {
-            AutoResetEvent socketsCreated = new AutoResetEvent(false);
+            var socketsCreated = new AutoResetEvent(false);
             _pollingReceptionThread = new BackgroundThread(() =>
                                                                {
                                                                    CreateCommandReceiverSocket(_configuration.GetCommandsBindEnpoint());
-                                                                   CreateSubscribeSocket();
                                                                    socketsCreated.Set();
                                                                    while (_running)
                                                                    {
                                                                        _receptionPoller.Poll(TimeSpan.FromMilliseconds(500));
-                                                                       Action toDo;
-                                                                       if (_actionsToPerformOnPollingThread.TryTake(out toDo))
-                                                                       {
-                                                                           toDo();
-                                                                       }
-
                                                                    }
                                                                    _receptionPoller.Dispose();
                                                                });
@@ -85,36 +70,17 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void CreateCommandReceiverSocket(string endpoint)
         {
-            _commandReceptionSocket = _context.CreateSocket(SocketType.SUB);
-            _commandReceptionSocket.Linger = TimeSpan.FromSeconds(1);
-            _commandReceptionSocket.Identity = Encoding.ASCII.GetBytes(_configuration.PeerName);
-            _commandReceptionSocket.ReceiveReady += (s, e) => ReceiveFromCommandSocket(e);
-            _receptionPoller.AddSocket(_commandReceptionSocket);
-            _commandReceptionSocket.Bind(endpoint);
+            receptionSocket = _context.CreateSocket(SocketType.SUB);
+            receptionSocket.Linger = TimeSpan.FromSeconds(1);
+            receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
+            receptionSocket.Bind(endpoint);
+            receptionSocket.SubscribeAll();
+            _receptionPoller.AddSocket(receptionSocket);
             Console.WriteLine("Command processor socket bound to {0}", endpoint);
         }
 
 
-        public void CreateSubscribeSocket()
-        {
-            _eventReceptionSocket = _context.CreateSocket(SocketType.SUB);
-            _eventReceptionSocket.Linger = TimeSpan.FromSeconds(1);
-
-            _eventReceptionSocket.ReceiveReady += (s, e) => ReceiveFromEventSubscriber(e);
-            _receptionPoller.AddSocket(_eventReceptionSocket);
-        }
-
-        private void ReceiveFromEventSubscriber(SocketEventArgs socketEventArgs)
-        {
-            var zmqSocket = socketEventArgs.Socket;
-            var type = zmqSocket.Receive(Encoding.ASCII);
-            var senderServiceId = zmqSocket.Receive(Encoding.ASCII);
-            var id = new Guid(zmqSocket.Receive());
-            var data = zmqSocket.Receive();
-            _messagesToForward.Add(new ReceptionPipe.ReceivedTransportMessage(type, senderServiceId, id, data));
-        }
-
-        private void ReceiveFromCommandSocket(SocketEventArgs socketEventArgs)
+        private void ReceiveFromSocket(SocketEventArgs socketEventArgs)
         {
             var zmqSocket = socketEventArgs.Socket;
             var type = zmqSocket.Receive(Encoding.ASCII);
@@ -131,8 +97,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _running = false;
             if (_pollingReceptionThread != null)
                 _pollingReceptionThread.Join();
-            _commandReceptionSocket.Dispose();
-            _eventReceptionSocket.Dispose();
+            receptionSocket.Dispose();
             _messagesToForward.CompleteAdding();
         }
     }

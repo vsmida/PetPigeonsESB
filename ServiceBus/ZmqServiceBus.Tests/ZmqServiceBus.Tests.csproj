@@ -101,7 +101,6 @@
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="BrokerPersistenceSynchronizerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QueueTests.cs" />
     <Compile Include="ReceptionLayerTests.cs" />
     <Compile Include="StartupStrategyManagerTests.cs" />
     <Compile Include="SubscriptionManagerTests.cs" />
@@ -111,7 +110,7 @@
     <Compile Include="Transport\SendingStrategyStateManagerTests.cs" />
     <Compile Include="Transport\TestData.cs" />
     <Compile Include="Transport\EndpointManagerTests.cs" />
-    <Compile Include="Transport\ZmqReceiverTests.cs" />
+    <Compile Include="Transport\ZmqDataReceiverTests.cs" />
     <Compile Include="Transport\ZmqSocketManagerTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>

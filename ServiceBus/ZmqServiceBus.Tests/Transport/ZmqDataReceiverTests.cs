@@ -4,24 +4,27 @@ using System.Threading;
 using NUnit.Framework;
 using ZeroMQ;
 using ZmqServiceBus.Bus.Transport.Network;
+using Shared;
 
 namespace ZmqServiceBus.Tests.Transport
 {
-    public class ZmqReceiverTests
+    [TestFixture]
+    public class ZmqDataReceiverTests
     {
-        private DataReceiver _receiver;
+        private ZmqDataReceiver _receiver;
         private ZmqContext _context;
-        private FakeTransportConfiguration _configuration = new FakeTransportConfiguration();
+        private FakeTransportConfiguration _configuration;
 
         [SetUp]
         public void setup()
         {
+            _configuration = new FakeTransportConfiguration();
             _context = ZmqContext.Create();
-            _receiver = new DataReceiver(_context, _configuration);
+            _receiver = new ZmqDataReceiver(_context, _configuration);
         }
 
 
-        [Test, Timeout(1000), Repeat(3)]
+        [Test, Timeout(100000000), Repeat(3)]
         public void should_create_command_receiving_socket()
         {
             _receiver.Initialize();
@@ -40,14 +43,18 @@ namespace ZmqServiceBus.Tests.Transport
                                                    
                                                    waitForMessage.Set();
                                                };
-            var pubSocket = _context.CreateSocket(SocketType.PUB);
-            pubSocket.Connect(_configuration.GetCommandsConnectEnpoint());
-
+            var pubSocket = _context.CreateSocket(SocketType.XPUB);
+            var commandsConnectEnpoint = _configuration.GetCommandsConnectEnpoint();
+            pubSocket.Connect(commandsConnectEnpoint);
+            
+            var sub = pubSocket.Receive(Encoding.ASCII);
+            Console.WriteLine(sub);
             pubSocket.SendMore(type, Encoding.ASCII);
+         //   pubSocket.Send(new byte[], TimeSpan.FromMilliseconds(100)); SendStatus.
             pubSocket.SendMore(peerName, Encoding.ASCII);
             pubSocket.SendMore(id.ToByteArray());
             pubSocket.Send(message);
-
+            waitForMessage.WaitOne();
             pubSocket.Dispose();
         }
 
