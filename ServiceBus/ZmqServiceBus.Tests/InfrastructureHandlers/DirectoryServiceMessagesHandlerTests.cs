@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Shared;
 using ZmqServiceBus.Bus.Handlers;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Tests.Transport;
 

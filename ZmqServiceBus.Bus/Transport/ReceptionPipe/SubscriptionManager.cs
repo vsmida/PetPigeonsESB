@@ -20,11 +20,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         private void OnPeerConnected(IServicePeer peer)
         {
-            foreach (var type in peer.PublishedMessages ?? new List<Type>())
-            {
-                if (_subscriptions.Contains(type))
-                    NewEventSubscription(type);
-            }
+           
         }
 
         public IDisposable StartListeningTo<T>() where T : IEvent

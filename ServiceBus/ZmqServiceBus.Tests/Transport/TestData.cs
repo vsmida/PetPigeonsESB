@@ -43,7 +43,8 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static IServicePeer GenerateServicePeer()
         {
-            return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) }, new List<Type> { typeof(FakeEvent) });
+            return null;
+            //return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) });
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
@@ -68,12 +69,14 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)
         {
-            return new ServicePeer(peerName ?? "Name", receptionEndpoint, "", new List<Type> { typeof(T) }, new List<Type>());
+            return null;
+            // return new ServicePeer(peerName ?? "Name", receptionEndpoint, "", new List<Type> { typeof(T) });
         }
 
         public static IServicePeer CreatePeerThatPublishes<T>(string pubEndpoint)
         {
-            return new ServicePeer("Name", "", pubEndpoint, new List<Type>(), new List<Type> { typeof(T) });
+            return null;
+            //  return new ServicePeer("Name", "", pubEndpoint, new List<Type>());
         }
     }
 }

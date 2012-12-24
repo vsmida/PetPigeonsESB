@@ -1,5 +1,6 @@
 ﻿using System;
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace DirectoryService.Event
 {

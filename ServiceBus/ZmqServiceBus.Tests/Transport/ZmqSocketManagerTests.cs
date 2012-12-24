@@ -189,8 +189,8 @@ namespace ZmqServiceBus.Tests.Transport
         //    const string sentMessageType = "Type";
         //    const string sentData = "Data";
         //    var messageId = Guid.NewGuid();
-        //    _socketManager.CreateResponseSocket(receiveCollection, sendCollection, Endpoint);
-        //    var requestorSocket = CreateRequestorSocket(Endpoint);
+        //    _socketManager.CreateResponseSocket(receiveCollection, sendCollection, IEndpoint);
+        //    var requestorSocket = CreateRequestorSocket(IEndpoint);
 
         //    requestorSocket.SendMore(Encoding.ASCII.GetBytes(sentMessageType));
         //    requestorSocket.SendMore(messageId.ToByteArray());

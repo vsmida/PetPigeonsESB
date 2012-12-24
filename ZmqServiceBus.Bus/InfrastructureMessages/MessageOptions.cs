@@ -1,6 +1,6 @@
-﻿using ProtoBuf;
+using ProtoBuf;
 
-namespace Shared
+namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
     public class MessageOptions

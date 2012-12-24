@@ -63,10 +63,12 @@
     <Compile Include="IMessageHandler.cs" />
     <Compile Include="InfrastructureMessages\CompletionAcknowledgementMessage.cs" />
     <Compile Include="InfrastructureMessages\InitializeTopologyAndMessageSettings.cs" />
+    <Compile Include="InfrastructureMessages\MessageOptions.cs" />
     <Compile Include="InfrastructureMessages\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\PersistMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessagesCommand.cs" />
     <Compile Include="InfrastructureMessages\RegisterPeerCommand.cs" />
+    <Compile Include="InfrastructureMessages\ReliabilityInfo.cs" />
     <Compile Include="InfrastructureMessages\SynchronizeMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\SynchronizePeerMessageCommand.cs" />
     <Compile Include="InternalBus.cs" />
@@ -81,11 +83,18 @@
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Transport\IPersistenceSynchronizer.cs" />
+    <Compile Include="Transport\IMessageSubscription.cs" />
+    <Compile Include="Transport\ISubscriptionFilter.cs" />
+    <Compile Include="Transport\Network\IEndpoint.cs" />
     <Compile Include="Transport\Network\EndpointManager.cs" />
     <Compile Include="Transport\Network\IDataReceiver.cs" />
     <Compile Include="Transport\Network\IDataSender.cs" />
+    <Compile Include="Transport\Network\IWireSendingTransport.cs" />
+    <Compile Include="Transport\Network\ZmqEndpoint.cs" />
+    <Compile Include="Transport\Network\ZmqPushWireSendingTransport.cs" />
     <Compile Include="Transport\ReceptionPipe\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
+    <Compile Include="Transport\SendingPipe\SendingStates\PublishWaitForAckState.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
     <Compile Include="Transport\Network\IEndpointManager.cs" />
     <Compile Include="Transport\Network\IMessageOptionsRepository.cs" />
@@ -113,6 +122,7 @@
     <Compile Include="Transport\SendingPipe\SendingStrategies\WaitForClientOrBrokerAck.cs" />
     <Compile Include="Transport\SendingPipe\SendingStates\WaitForAckState.cs" />
     <Compile Include="Transport\Network\ZmqSocketManager.cs" />
+    <Compile Include="Transport\ServicePeer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\clrzmq\src\ZeroMQ\ZeroMQ.csproj">

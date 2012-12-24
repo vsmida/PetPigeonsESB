@@ -1,5 +1,6 @@
 ﻿using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages

@@ -24,9 +24,9 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private volatile bool _running = true;
         private BackgroundThread _pollingReceptionThread;
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
-        private readonly TransportConfiguration _configuration;
+        private readonly ZmqTransportConfiguration _configuration;
 
-        public ZmqDataReceiver(ZmqContext context, TransportConfiguration configuration)
+        public ZmqDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
@@ -70,11 +70,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void CreateCommandReceiverSocket(string endpoint)
         {
-            receptionSocket = _context.CreateSocket(SocketType.SUB);
+            receptionSocket = _context.CreateSocket(SocketType.PULL);
             receptionSocket.Linger = TimeSpan.FromSeconds(1);
             receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             receptionSocket.Bind(endpoint);
-            receptionSocket.SubscribeAll();
+           // receptionSocket.SubscribeAll();
             _receptionPoller.AddSocket(receptionSocket);
             Console.WriteLine("Command processor socket bound to {0}", endpoint);
         }

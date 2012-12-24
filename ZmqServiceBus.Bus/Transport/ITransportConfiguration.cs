@@ -14,12 +14,12 @@ namespace ZmqServiceBus.Bus.Transport
 
     }
 
-    public class TransportConfigurationRandomPort : TransportConfiguration
+    public class ZmqTransportConfigurationRandomPort : ZmqTransportConfiguration
     {
         private readonly int _eventsPort;
         private readonly int _commandsPort;
 
-        public TransportConfigurationRandomPort()
+        public ZmqTransportConfigurationRandomPort()
         {
             _eventsPort = NetworkUtils.GetRandomUnusedPort();
             _commandsPort = NetworkUtils.GetRandomUnusedPort();
@@ -51,7 +51,7 @@ namespace ZmqServiceBus.Bus.Transport
         }
     }
 
-    public abstract class TransportConfiguration : ITransportConfiguration
+    public abstract class ZmqTransportConfiguration : ITransportConfiguration
     {
         public string GetCommandsBindEnpoint()
         {

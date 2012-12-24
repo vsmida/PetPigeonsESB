@@ -4,6 +4,7 @@ using System.Threading;
 using Moq;
 using NUnit.Framework;
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;

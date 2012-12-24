@@ -4,7 +4,7 @@ using ZmqServiceBus.Bus.Transport;
 
 namespace ZmqServiceBus.Tests.Transport
 {
-    public class FakeTransportConfiguration : TransportConfiguration
+    public class FakeTransportConfiguration : ZmqTransportConfiguration
     {
         private int? _eventsPort;
         private int? _commandsPort;

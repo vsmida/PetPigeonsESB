@@ -22,7 +22,7 @@ namespace ZmqServiceBus.Tests.Integration
             StructureMap.ObjectFactory.Initialize(x => x.AddRegistry<BusRegistry>());
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
-            StructureMap.ObjectFactory.Configure(x => x.For<TransportConfiguration>()
+            StructureMap.ObjectFactory.Configure(x => x.For<ZmqTransportConfiguration>()
                                                            .Use(new DummyTransportConfig(randomPort1, randomPort2,
                                                                                          peerName)));
             StructureMap.ObjectFactory.Configure(x => x.For<IBusBootstrapperConfiguration>().Use(new DummyBootstrapperConfig

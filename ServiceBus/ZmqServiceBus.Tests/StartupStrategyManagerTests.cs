@@ -4,6 +4,7 @@ using NUnit.Framework;
 using PersistenceService.Commands;
 using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;

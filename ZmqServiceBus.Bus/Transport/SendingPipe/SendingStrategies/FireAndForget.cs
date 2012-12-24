@@ -1,24 +1,26 @@
+using System.Collections.Generic;
+using System.Linq;
 using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
     internal class FireAndForget : ISendingReliabilityStrategy
     {
-        public void SendOn(IEndpointManager endpointManager, ISendingBusMessage message)
+        private IDataSender _dataSender;
+
+        public FireAndForget(IDataSender dataSender)
         {
-            endpointManager.SendMessage(message);
+            _dataSender = dataSender;
         }
 
-        public void PublishOn(IEndpointManager endpointManager, ISendingBusMessage message)
+        public void Send(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
-            endpointManager.PublishMessage(message);
+            _dataSender.SendMessage(message, concernedSubscriptions.Select(x => x.Endpoint));
         }
 
-        public void RouteOn(IEndpointManager endpointManager, ISendingBusMessage message, string destinationPeer)
+        public void Publish(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
-            endpointManager.RouteMessage(message, destinationPeer);
+            _dataSender.SendMessage(message, concernedSubscriptions.Select(x => x.Endpoint));
         }
-
-
     }
 }

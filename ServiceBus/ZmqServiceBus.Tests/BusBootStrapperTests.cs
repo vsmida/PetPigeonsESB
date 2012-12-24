@@ -8,6 +8,7 @@ using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
@@ -55,7 +56,7 @@ namespace ZmqServiceBus.Tests
             _completionCallbackMock = new Mock<ICompletionCallback>();
             _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(
                 _completionCallbackMock.Object);
-            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object, _subscriptionManagerMock.Object);
+         //   _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object, _subscriptionManagerMock.Object);
         }
 
 
@@ -100,9 +101,6 @@ namespace ZmqServiceBus.Tests
             _bootstrapper.BootStrapTopology();
 
             Assert.AreEqual(_configTransport.PeerName, command.Peer.PeerName);
-            Assert.AreEqual(_configTransport.GetEventsConnectEndpoint(), command.Peer.PublicationEndpoint);
-            Assert.AreEqual(_configTransport.GetCommandsConnectEnpoint(), command.Peer.ReceptionEndpoint);
-            Assert.AreEqual(typeof(FakeEvent), command.Peer.PublishedMessages.Single());
             Assert.AreEqual(typeof(FakeCommand), command.Peer.HandledMessages.Single());
 
             _completionCallbackMock.Verify(x => x.WaitForCompletion());
@@ -117,9 +115,6 @@ namespace ZmqServiceBus.Tests
             _bootstrapper.BootStrapTopology();
 
             Assert.AreEqual(_config.DirectoryServiceName, dirServicePeer.PeerName);
-            Assert.AreEqual(_config.DirectoryServiceEventEndpoint, dirServicePeer.PublicationEndpoint);
-            Assert.AreEqual(_config.DirectoryServiceCommandEndpoint, dirServicePeer.ReceptionEndpoint);
-            Assert.AreEqual(typeof(PeerConnected), dirServicePeer.PublishedMessages.Single());
             Assert.AreEqual(typeof(RegisterPeerCommand), dirServicePeer.HandledMessages.Single());
         }
     }

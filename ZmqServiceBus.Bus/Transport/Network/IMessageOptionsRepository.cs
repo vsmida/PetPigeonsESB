@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {

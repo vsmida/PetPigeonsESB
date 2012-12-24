@@ -8,7 +8,7 @@ namespace ZmqServiceBus.Bus.Conventions
          public static byte[] GetIdentityFromConnectEndpoint(string endpoint)
          {
              if(endpoint.Contains("*"))
-                 throw new ArgumentException("Endpoint string is not valid, are you providing a bind enpoint?");
+                 throw new ArgumentException("BrokerEndpoint string is not valid, are you providing a bind enpoint?");
              using (var stream = new MemoryStream())
              using (var writer = new BinaryWriter(stream))
              {

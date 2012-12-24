@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ProtoBuf;
 using Shared;
 using Shared.Attributes;
+using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages

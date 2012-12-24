@@ -43,19 +43,16 @@ namespace ZmqServiceBus.Tests.Transport
                                                    
                                                    waitForMessage.Set();
                                                };
-            var pubSocket = _context.CreateSocket(SocketType.XPUB);
+            var pushsocket = _context.CreateSocket(SocketType.PUSH);
             var commandsConnectEnpoint = _configuration.GetCommandsConnectEnpoint();
-            pubSocket.Connect(commandsConnectEnpoint);
+            pushsocket.Connect(commandsConnectEnpoint);
             
-            var sub = pubSocket.Receive(Encoding.ASCII);
-            Console.WriteLine(sub);
-            pubSocket.SendMore(type, Encoding.ASCII);
-         //   pubSocket.Send(new byte[], TimeSpan.FromMilliseconds(100)); SendStatus.
-            pubSocket.SendMore(peerName, Encoding.ASCII);
-            pubSocket.SendMore(id.ToByteArray());
-            pubSocket.Send(message);
+            pushsocket.SendMore(type, Encoding.ASCII);
+            pushsocket.SendMore(peerName, Encoding.ASCII);
+            pushsocket.SendMore(id.ToByteArray());
+            pushsocket.Send(message);
             waitForMessage.WaitOne();
-            pubSocket.Dispose();
+            pushsocket.Dispose();
         }
 
 

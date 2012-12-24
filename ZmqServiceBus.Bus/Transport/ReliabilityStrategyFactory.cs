@@ -1,5 +1,7 @@
 using System;
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies;
@@ -10,6 +12,8 @@ namespace ZmqServiceBus.Bus.Transport
     {
 
         private readonly ISendingStrategyStateManager _stateManager;
+        private readonly IDataSender _dataSender;
+
 
         public ReliabilityStrategyFactory(ISendingStrategyStateManager stateManager)
         {
@@ -21,12 +25,12 @@ namespace ZmqServiceBus.Bus.Transport
             switch (messageOptions.ReliabilityInfo.ReliabilityLevel)
             {
                 case ReliabilityLevel.FireAndForget:
-                    return new FireAndForget();
+                    return new FireAndForget(_dataSender);
                     break;
                     //case ReliabilityOption.SendToClientAndBrokerNoAck:
                     //    break;
                 case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
-                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerName, _stateManager);
+                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerEndpoint, _stateManager, _dataSender);
                     break;
                     //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                     //    break;

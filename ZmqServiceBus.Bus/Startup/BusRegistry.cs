@@ -16,9 +16,9 @@ namespace ZmqServiceBus.Bus.Startup
          {
              ForSingletonOf<IObjectFactory>().Use<ObjectFactory>();
              For<IAssemblyScanner>().Use<AssemblyScanner>();
-             ForSingletonOf<TransportConfiguration>().Use<TransportConfigurationRandomPort>();
+             ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
              ForSingletonOf<IZmqSocketManager>().Use<ZmqSocketManager>().Ctor<ZmqContext>().Is(ZmqContext.Create());
-             ForSingletonOf<IEndpointManager>().Use<EndpointManager>();
+            // ForSingletonOf<IEndpointManager>().Use<EndpointManager>();
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
              ForSingletonOf<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
              ForSingletonOf<IReceptionLayer>().Use<ReceptionLayer>();

@@ -10,7 +10,7 @@ namespace ZmqServiceBus.Tests.Integration
         public string DirectoryServiceName { get; set; }
     }
 
-    public class DummyTransportConfig : TransportConfiguration
+    public class DummyTransportConfig : ZmqTransportConfiguration
     {
         private readonly int _eventPort;
         private readonly int _commandPort;

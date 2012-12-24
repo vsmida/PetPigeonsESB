@@ -109,7 +109,6 @@
     <Compile Include="Transport\PeerManagerTests.cs" />
     <Compile Include="Transport\SendingStrategyStateManagerTests.cs" />
     <Compile Include="Transport\TestData.cs" />
-    <Compile Include="Transport\EndpointManagerTests.cs" />
     <Compile Include="Transport\ZmqDataReceiverTests.cs" />
     <Compile Include="Transport\ZmqSocketManagerTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />

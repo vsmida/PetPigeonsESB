@@ -89,6 +89,10 @@
       <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>
       <Name>Shared</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\ZmqServiceBus.Bus\ZmqServiceBus.Bus.csproj">
+      <Project>{c33450c1-7e6e-4e0a-9ffa-058b27743719}</Project>
+      <Name>ZmqServiceBus.Bus</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,4 +1,5 @@
 using Shared;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies;
 
