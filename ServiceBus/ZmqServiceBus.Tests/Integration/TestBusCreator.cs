@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Shared;
@@ -8,13 +9,14 @@ using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Tests.Integration
 {
     public class TestBusCreator : MarshalByRefObject
     {
         private List<ServicePeer> _peers = new List<ServicePeer>();
-        private ZmqSocket _pubSocket;
+        private Dictionary<string, ZmqSocket> _peerToZmqSocket = new Dictionary<string, ZmqSocket>(); 
         private volatile bool _running = true;
 
         public IBus GetBus(string peerName)
@@ -23,12 +25,10 @@ namespace ZmqServiceBus.Tests.Integration
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             StructureMap.ObjectFactory.Configure(x => x.For<ZmqTransportConfiguration>()
-                                                           .Use(new DummyTransportConfig(randomPort1, randomPort2,
-                                                                                         peerName)));
+                                                           .Use(new DummyTransportConfig(randomPort1,peerName)));
             StructureMap.ObjectFactory.Configure(x => x.For<IBusBootstrapperConfiguration>().Use(new DummyBootstrapperConfig
             {
-                DirectoryServiceCommandEndpoint = "tcp://localhost:111",
-                DirectoryServiceEventEndpoint = "tcp://localhost:222",
+                DirectoryServiceEndpoint = "tcp://localhost:111",
                 DirectoryServiceName = "DirectoryService"
             }));
             return StructureMap.ObjectFactory.GetInstance<IBus>();
@@ -44,24 +44,28 @@ namespace ZmqServiceBus.Tests.Integration
             new Thread(() =>
                                       {
                                           var context = ZmqContext.Create();
-                                          var receptionRouter = context.CreateSocket(SocketType.ROUTER);
-                                          receptionRouter.Linger = TimeSpan.Zero;
-                                          receptionRouter.Bind("tcp://*:111");
-                                          receptionRouter.ReceiveReady += OnReceptionRouterReceive;
+                                          var receptionSocket = context.CreateSocket(SocketType.PULL);
+                                          receptionSocket.Linger = TimeSpan.Zero;
+                                          receptionSocket.Bind("tcp://*:111");
+                                          receptionSocket.ReceiveReady += (s,e) =>OnReceptionRouterReceive(s,e,context);
 
-                                          _pubSocket = context.CreateSocket(SocketType.PUB);
-                                          _pubSocket.Linger = TimeSpan.Zero;
-                                          _pubSocket.Bind("tcp://*:222");
+
+//                                          _pushSocket1 = context.CreateSocket(SocketType.PUSH);
+  //                                        _pushSocket1.Linger = TimeSpan.Zero;
+    //                                      _pushSocket1.Bind("tcp://*:222");
 
                                           Poller poller = new Poller();
-                                          poller.AddSocket(receptionRouter);
+                                          poller.AddSocket(receptionSocket);
                                           while(_running)
                                           {
                                               poller.Poll(TimeSpan.FromMilliseconds(50));
                                               
                                           }
-                                          receptionRouter.Dispose();
-                                          _pubSocket.Dispose();
+                                          foreach (var zmqSocket in _peerToZmqSocket.Values)
+                                          {
+                                              zmqSocket.Dispose();
+                                          }
+                                          receptionSocket.Dispose();
                                           context.Dispose();
 
 
@@ -70,10 +74,9 @@ namespace ZmqServiceBus.Tests.Integration
 
 
 
-        private void OnReceptionRouterReceive(object sender, SocketEventArgs e)
+        private void OnReceptionRouterReceive(object sender, SocketEventArgs e, ZmqContext context)
         {
             var zmqSocket = sender as ZmqSocket;
-            var zmqIdentity = zmqSocket.Receive();
             var type = zmqSocket.Receive(Encoding.ASCII);
             var peerName = zmqSocket.Receive(Encoding.ASCII);
             var serializedId = zmqSocket.Receive();
@@ -83,12 +86,17 @@ namespace ZmqServiceBus.Tests.Integration
             if (type == typeof(ReceivedOnTransportAcknowledgement).FullName)
                 return;
 
-            Ack(zmqSocket, zmqIdentity, messageId);
 
             if (type == typeof(RegisterPeerCommand).FullName)
             {
                 var command = Serializer.Deserialize<RegisterPeerCommand>(serializedItem);
-                _peers.Add(command.Peer);
+                ServicePeer peerToAdd = command.Peer;
+                if(command.Peer.PeerName == "Service1")
+                {
+                    peerToAdd = new ServicePeer(command.Peer.PeerName,
+                                                             command.Peer.HandledMessages.Where(x => x.MessageType != typeof(FakeCommand)).Cast<MessageSubscription>());
+                }
+                _peers.Add(peerToAdd);
                 var initCommand = new InitializeTopologyAndMessageSettings(_peers,
                                                                            new List<MessageOptions>
                                                                                {
@@ -98,27 +106,36 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                            ReliabilityLevel.
                                                                                                FireAndForget))
                                                                                });
-                zmqSocket.SendMore(zmqIdentity);
-                zmqSocket.SendMore(new byte[0]);
-                zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(InitializeTopologyAndMessageSettings).FullName));
-                zmqSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
-                zmqSocket.SendMore(Guid.NewGuid().ToByteArray());
-                zmqSocket.Send(Serializer.Serialize(initCommand));
+                ZmqSocket sendingSocket;
+                if(!_peerToZmqSocket.TryGetValue(command.Peer.PeerName, out sendingSocket))
+                {
+                    sendingSocket = context.CreateSocket(SocketType.PUSH);
+                    sendingSocket.Linger = TimeSpan.FromMilliseconds(200);
+                    var endpoint = command.Peer.HandledMessages.First().Endpoint as ZmqEndpoint;
+                    sendingSocket.Connect(endpoint.Endpoint);
+                    _peerToZmqSocket[command.Peer.PeerName] = sendingSocket;
+                }
+
+                sendingSocket.SendMore(Encoding.ASCII.GetBytes(typeof(InitializeTopologyAndMessageSettings).FullName));
+                sendingSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
+                sendingSocket.SendMore(Guid.NewGuid().ToByteArray());
+                sendingSocket.Send(Serializer.Serialize(initCommand));
 
                 var peerConnectedEvent = new PeerConnected(command.Peer);
-                _pubSocket.SendMore(Encoding.ASCII.GetBytes(typeof (PeerConnected).FullName));
-                _pubSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
-                _pubSocket.SendMore(Guid.NewGuid().ToByteArray());
-                _pubSocket.Send(Serializer.Serialize(peerConnectedEvent));
-
+                foreach (var socket in _peerToZmqSocket.Values)
+                {
+                    socket.SendMore(Encoding.ASCII.GetBytes(typeof(PeerConnected).FullName));
+                    socket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
+                    socket.SendMore(Guid.NewGuid().ToByteArray());
+                    socket.Send(Serializer.Serialize(peerConnectedEvent));
+                }
+                
 
                 var completionMess = new CompletionAcknowledgementMessage(messageId, true);
-                zmqSocket.SendMore(zmqIdentity);
-                zmqSocket.SendMore(new byte[0]);
-                zmqSocket.SendMore(Encoding.ASCII.GetBytes(typeof(CompletionAcknowledgementMessage).FullName));
-                zmqSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
-                zmqSocket.SendMore(Guid.NewGuid().ToByteArray());
-                zmqSocket.Send(Serializer.Serialize(completionMess));
+                sendingSocket.SendMore(Encoding.ASCII.GetBytes(typeof(CompletionAcknowledgementMessage).FullName));
+                sendingSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
+                sendingSocket.SendMore(Guid.NewGuid().ToByteArray());
+                sendingSocket.Send(Serializer.Serialize(completionMess));
 
             }
 

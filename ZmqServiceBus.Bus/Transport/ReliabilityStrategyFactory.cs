@@ -15,9 +15,10 @@ namespace ZmqServiceBus.Bus.Transport
         private readonly IDataSender _dataSender;
 
 
-        public ReliabilityStrategyFactory(ISendingStrategyStateManager stateManager)
+        public ReliabilityStrategyFactory(ISendingStrategyStateManager stateManager, IDataSender dataSender)
         {
             _stateManager = stateManager;
+            _dataSender = dataSender;
         }
 
         public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptions)
@@ -52,6 +53,11 @@ namespace ZmqServiceBus.Bus.Transport
                 default:
                     throw new ArgumentOutOfRangeException("messageOptions");
             }
+        }
+
+        public void Dispose()
+        {
+            _dataSender.Dispose();
         }
     }
 }

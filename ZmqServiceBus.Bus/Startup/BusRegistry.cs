@@ -17,9 +17,10 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<IObjectFactory>().Use<ObjectFactory>();
              For<IAssemblyScanner>().Use<AssemblyScanner>();
              ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
-             ForSingletonOf<IZmqSocketManager>().Use<ZmqSocketManager>().Ctor<ZmqContext>().Is(ZmqContext.Create());
-            // ForSingletonOf<IEndpointManager>().Use<EndpointManager>();
+             ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(ZmqContext.Create());
+             ForSingletonOf<IDataReceiver>().Use<ZmqDataReceiver>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
+             ForSingletonOf<IDataSender>().Use<DataSender>();
              ForSingletonOf<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
              ForSingletonOf<IReceptionLayer>().Use<ReceptionLayer>();
              ForSingletonOf<IMessageSender>().Use<MessageSender>();

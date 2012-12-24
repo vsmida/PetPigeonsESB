@@ -6,7 +6,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
     internal class FireAndForget : ISendingReliabilityStrategy
     {
-        private IDataSender _dataSender;
+        private readonly IDataSender _dataSender;
 
         public FireAndForget(IDataSender dataSender)
         {

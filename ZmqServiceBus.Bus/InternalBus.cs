@@ -109,6 +109,7 @@ namespace ZmqServiceBus.Bus
         {
             _running = false;
             _startupLayer.Dispose();
+            _messageSender.Dispose();
         }
     }
 }

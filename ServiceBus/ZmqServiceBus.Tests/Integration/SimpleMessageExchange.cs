@@ -1,14 +1,17 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
 using ProtoBuf;
+using ProtoBuf.Meta;
 using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Integration
@@ -56,7 +59,7 @@ namespace ZmqServiceBus.Tests.Integration
         private AutoResetEvent _waitForCommandToBeHandled;
 
 
-        [Test, Timeout(5000)]
+        [Test, Timeout(80000)]
         public void should_be_able_to_exchange_messages_between_services()
         {
             AppDomainSetup setup = AppDomain.CurrentDomain.SetupInformation;
@@ -83,6 +86,19 @@ namespace ZmqServiceBus.Tests.Integration
             bus1.Send(new FakeCommand(5));
 
             _waitForCommandToBeHandled.WaitOne();
+
+
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                bus1.Send(new FakeCommand(5));
+                _waitForCommandToBeHandled.WaitOne();
+            }
+
+            watch.Stop();
+            Console.WriteLine(" 1000 resend took " +watch.ElapsedMilliseconds+" ms");
 
             bus1.Dispose();
             bus2.Dispose();

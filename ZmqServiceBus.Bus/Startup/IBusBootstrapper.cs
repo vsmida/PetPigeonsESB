@@ -45,21 +45,36 @@ namespace ZmqServiceBus.Bus.Startup
             _optionsRepo.RegisterOptions(new MessageOptions(typeof(PeerConnected).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
             _optionsRepo.RegisterOptions(new MessageOptions(typeof(CompletionAcknowledgementMessage).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
 
-           //var peer = new ServicePeer(_zmqTransportConfiguration.PeerName,
-           //    _assemblyScanner.GetHandledCommands().ToDictionary(x => x, x => new ZmqEndpoint(_zmqTransportConfiguration.GetCommandsConnectEnpoint()) as IEndpoint)
-           //    .Concat(_assemblyScanner.GetHandledEvents().ToDictionary(x => x, x => new ZmqEndpoint(_zmqTransportConfiguration.GetEventsConnectEndpoint()) as IEndpoint)
-           //    ).ToDictionary(x => x.Key, x => x.Value));
-        //    var command = new RegisterPeerCommand(peer);
-      //      var directoryServiceBarebonesPeer = new ServicePeer(_bootstrapperConfiguration.DirectoryServiceName, _bootstrapperConfiguration.DirectoryServiceCommandEndpoint,
-       //                                                         _bootstrapperConfiguration.DirectoryServiceEventEndpoint, new List<Type> { typeof(RegisterPeerCommand) });
-        //    _peerManager.RegisterPeer(directoryServiceBarebonesPeer);
+            var messageSubscriptions =
+                _assemblyScanner.GetHandledCommands().Concat(_assemblyScanner.GetHandledEvents()).Select(
+                    x =>
+                    new MessageSubscription(x, _zmqTransportConfiguration.PeerName,
+                                            new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), null));
 
-            foreach (var handledEvent in _assemblyScanner.GetHandledEvents())
-            {
-                _subscriptionManager.StartListeningTo(handledEvent);
-            }
+            var peer = new ServicePeer(_zmqTransportConfiguration.PeerName, messageSubscriptions);
+            var command = new RegisterPeerCommand(peer);
 
-          //  _messageSender.Send(command).WaitForCompletion(); //now should get a init topo reply and the magic is done?
+            var directoryServiceRegisterPeerSubscription = new MessageSubscription(typeof (RegisterPeerCommand),
+                                                                                   _bootstrapperConfiguration.
+                                                                                       DirectoryServiceName,
+                                                                                   new ZmqEndpoint(
+                                                                                       _bootstrapperConfiguration.
+                                                                                           DirectoryServiceEndpoint),
+                                                                                   null);
+
+            var directoryServiceCompletionMessageSubscription = new MessageSubscription(typeof(CompletionAcknowledgementMessage),
+                                                                       _bootstrapperConfiguration.
+                                                                           DirectoryServiceName,
+                                                                       new ZmqEndpoint(
+                                                                           _bootstrapperConfiguration.
+                                                                               DirectoryServiceEndpoint),
+                                                                       null);
+
+            var directoryServiceBarebonesPeer = new ServicePeer(_bootstrapperConfiguration.DirectoryServiceName,
+                                                                new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription });
+            _peerManager.RegisterPeer(directoryServiceBarebonesPeer);
+
+            _messageSender.Send(command).WaitForCompletion(); //now should get a init topo reply and the magic is done?
         }
     }
 }

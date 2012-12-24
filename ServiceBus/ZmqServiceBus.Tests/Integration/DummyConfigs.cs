@@ -5,40 +5,26 @@ namespace ZmqServiceBus.Tests.Integration
 {
     public class DummyBootstrapperConfig : IBusBootstrapperConfiguration
     {
-        public string DirectoryServiceCommandEndpoint { get; set; }
-        public string DirectoryServiceEventEndpoint { get; set; }
+        public string DirectoryServiceEndpoint { get; set; }
         public string DirectoryServiceName { get; set; }
     }
 
     public class DummyTransportConfig : ZmqTransportConfiguration
     {
-        private readonly int _eventPort;
-        private readonly int _commandPort;
+        private readonly int _port;
         private readonly string _peerName;
 
-        public DummyTransportConfig(int eventPort, int commandPort, string peerName)
+        public DummyTransportConfig(int port, string peerName)
         {
-            _eventPort = eventPort;
-            _commandPort = commandPort;
+            _port = port;
             _peerName = peerName;
         }
 
-        public override int EventsPort
+        public override int Port
         {
-            get { return _eventPort; }
+            get { return _port; }
         }
-
-        public override int CommandsPort
-        {
-            get { return _commandPort; }
-        }
-
-        public override string EventsProtocol
-        {
-            get { return "tcp"; }
-        }
-
-        public override string CommandsProtocol
+        public override string Protocol
         {
             get { return "tcp"; }
         }

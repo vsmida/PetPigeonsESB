@@ -11,22 +11,22 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
         private readonly ISendingStrategyStateManager _sendingStrategyStateManager;
         private readonly IStartupStrategyManager _startupStrategyManager;
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<Transport.IReceivedTransportMessage>();
-        private readonly IEndpointManager _endpointManager;
+        private readonly IDataReceiver _dataReceiver;
         public event Action<IReceivedTransportMessage> OnMessageReceived = delegate { };
         public void Initialize()
         {
-            _endpointManager.Initialize();
+            _dataReceiver.Initialize();
         }
 
         private volatile bool _running = true;
 
 
-        public ReceptionLayer(IEndpointManager endpointManager, ISendingStrategyStateManager sendingStrategyStateManager, IStartupStrategyManager startupStrategyManager)
+        public ReceptionLayer(IDataReceiver dataReceiver, ISendingStrategyStateManager sendingStrategyStateManager, IStartupStrategyManager startupStrategyManager)
         {
-            _endpointManager = endpointManager;
+            _dataReceiver = dataReceiver;
             _sendingStrategyStateManager = sendingStrategyStateManager;
             _startupStrategyManager = startupStrategyManager;
-            _endpointManager.OnMessageReceived += OnEndpointManagerMessageReceived;
+            _dataReceiver.OnMessageReceived += OnEndpointManagerMessageReceived;
             CreateEventThread();
         }
 
@@ -67,7 +67,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
         public void Dispose()
         {
             _running = false;
-            _endpointManager.Dispose();
+            _dataReceiver.Dispose();
         }
     }
 }

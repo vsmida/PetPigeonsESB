@@ -12,19 +12,18 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         [ProtoMember(2, IsRequired = true)]
         public readonly string BrokerName;
         [ProtoMember(3, IsRequired = true)]
-        public readonly IEndpoint BrokerEndpoint;
+        public readonly ZmqEndpoint BrokerEndpoint;
 
 
-        public ReliabilityInfo(ReliabilityLevel reliabilityLevel, string brokerName = null, IEndpoint brokerEndpoint = null)
+        public ReliabilityInfo(ReliabilityLevel reliabilityLevel, string brokerName = null, ZmqEndpoint brokerEndpoint = null)
         {
             BrokerName = brokerName;
             BrokerEndpoint = brokerEndpoint;
             ReliabilityLevel = reliabilityLevel;
         }
 
-        private ReliabilityInfo(IEndpoint brokerEndpoint)
+        private ReliabilityInfo()
         {
-            BrokerEndpoint = brokerEndpoint;
         }
     }
 }

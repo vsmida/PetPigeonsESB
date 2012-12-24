@@ -44,7 +44,7 @@ namespace ZmqServiceBus.Tests.Transport
                                                    waitForMessage.Set();
                                                };
             var pushsocket = _context.CreateSocket(SocketType.PUSH);
-            var commandsConnectEnpoint = _configuration.GetCommandsConnectEnpoint();
+            var commandsConnectEnpoint = _configuration.GetConnectEndpoint();
             pushsocket.Connect(commandsConnectEnpoint);
             
             pushsocket.SendMore(type, Encoding.ASCII);

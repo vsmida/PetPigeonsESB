@@ -28,8 +28,7 @@ namespace ZmqServiceBus.Tests
 
         private class FakeBootstrapperConfig : IBusBootstrapperConfiguration
         {
-            public string DirectoryServiceCommandEndpoint { get { return "command"; } }
-            public string DirectoryServiceEventEndpoint { get { return "event"; } }
+            public string DirectoryServiceEndpoint { get { return "command"; } }
             public string DirectoryServiceName { get { return "name"; } }
         }
 

@@ -55,7 +55,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var socketsCreated = new AutoResetEvent(false);
             _pollingReceptionThread = new BackgroundThread(() =>
                                                                {
-                                                                   CreateCommandReceiverSocket(_configuration.GetCommandsBindEnpoint());
+                                                                   CreateCommandReceiverSocket(_configuration.GetBindEndpoint());
                                                                    socketsCreated.Set();
                                                                    while (_running)
                                                                    {
@@ -74,7 +74,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
             receptionSocket.Linger = TimeSpan.FromSeconds(1);
             receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             receptionSocket.Bind(endpoint);
-           // receptionSocket.SubscribeAll();
             _receptionPoller.AddSocket(receptionSocket);
             Console.WriteLine("Command processor socket bound to {0}", endpoint);
         }

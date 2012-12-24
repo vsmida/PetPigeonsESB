@@ -27,14 +27,14 @@ namespace ZmqServiceBus.Tests
         private Mock<ISendingReliabilityStrategy> _sendingReliabilityStrategyMock;
         private Mock<IStartupReliabilityStrategy> _startupStrategyMock;
         private Mock<IReliabilityStrategyFactory> _reliabilityStrategyFactoryMock;
-        private Mock<IEndpointManager> _endpointManagerMock;
+        private Mock<IDataReceiver> _dataReceiverMock;
         private Mock<ISendingStrategyStateManager> _sendingStrategyManagerMock;
         private Mock<IStartupStrategyManager> _startupStrategyManagerMock;
 
         [SetUp]
         public void setup()
         {
-            _endpointManagerMock = new Mock<IEndpointManager>();
+            _dataReceiverMock = new Mock<IDataReceiver>();
             _reliabilityStrategyFactoryMock = new Mock<IReliabilityStrategyFactory>();
             _sendingReliabilityStrategyMock = new Mock<ISendingReliabilityStrategy>();
             _startupStrategyMock = new Mock<IStartupReliabilityStrategy>();
@@ -44,7 +44,7 @@ namespace ZmqServiceBus.Tests
                 <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
             _sendingStrategyManagerMock = new Mock<ISendingStrategyStateManager>();
             _startupStrategyManagerMock = new Mock<IStartupStrategyManager>();
-            _receptionLayer = new ReceptionLayer(_endpointManagerMock.Object, _sendingStrategyManagerMock.Object, _startupStrategyManagerMock.Object);
+            _receptionLayer = new ReceptionLayer(_dataReceiverMock.Object, _sendingStrategyManagerMock.Object, _startupStrategyManagerMock.Object);
             _startupStrategyManagerMock.Setup(x => x.CheckMessage(It.IsAny<IReceivedTransportMessage>())).Returns
     <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
         }
@@ -65,7 +65,7 @@ namespace ZmqServiceBus.Tests
             _startupStrategyManagerMock.Setup(x => x.CheckMessage(It.IsAny<IReceivedTransportMessage>())).Returns(new List<IReceivedTransportMessage> { otherMessage });
             var sentMessage = TestData.GenerateDummyReceivedMessage<FakeMessage>();
 
-            _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, sentMessage);
+            _dataReceiverMock.Raise(x => x.OnMessageReceived += OnMessageReceived, sentMessage);
 
             waitForProcessing.WaitOne();
             Assert.AreEqual(otherMessage, capturedMessage);
@@ -78,7 +78,7 @@ namespace ZmqServiceBus.Tests
 
             var transportMessage = new ReceivedTransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
          //   _sendingStrategyManagerMock.Setup(x => x.GetSendingStrategy(transportMessage)).Returns(_sendingReliabilityStrategyMock.Object);
-            _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
+            _dataReceiverMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
 
 
 
@@ -102,8 +102,8 @@ namespace ZmqServiceBus.Tests
 
             var transportMessageTest = new ReceivedTransportMessage(typeof(ReceivedOnTransportAcknowledgement).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
             var transportMessageBubble = new ReceivedTransportMessage(typeof(FakeMessage).FullName, "DO", sentMessage.MessageIdentity, new byte[0]);
-            _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageTest);
-            _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageBubble);
+            _dataReceiverMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageTest);
+            _dataReceiverMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessageBubble);
 
             waitForOneMessageToBeProcessed.WaitOne();
             Assert.IsFalse(messageReceivedRaised);
@@ -121,7 +121,7 @@ namespace ZmqServiceBus.Tests
             };
 
             var transportMessage = new ReceivedTransportMessage(typeof(FakeMessage).FullName, "DO", Guid.NewGuid(), new byte[0]);
-            _endpointManagerMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
+            _dataReceiverMock.Raise(x => x.OnMessageReceived += OnMessageReceived, transportMessage);
             waitForProcessing.WaitOne();
             Assert.AreEqual(transportMessage, capturedMessage);
 
@@ -131,14 +131,14 @@ namespace ZmqServiceBus.Tests
         public void should_dispose_transport()
         {
             _receptionLayer.Dispose();
-            _endpointManagerMock.Verify(x => x.Dispose());
+            _dataReceiverMock.Verify(x => x.Dispose());
         }
 
         [Test]
         public void should_initialize_transport()
         {
             _receptionLayer.Initialize();
-            _endpointManagerMock.Verify(x => x.Initialize());
+            _dataReceiverMock.Verify(x => x.Initialize());
         }
 
 

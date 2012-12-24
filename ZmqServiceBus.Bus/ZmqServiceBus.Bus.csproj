@@ -109,7 +109,7 @@
     <Compile Include="Transport\ReceptionPipe\IStartupReliabilityStrategy.cs" />
     <Compile Include="Transport\ReceptionPipe\IStartupStrategyManager.cs" />
     <Compile Include="Transport\ReceptionPipe\ISubscriptionManager.cs" />
-    <Compile Include="Transport\ITransportConfiguration.cs" />
+    <Compile Include="Transport\IZmqTransportConfiguration.cs" />
     <Compile Include="Transport\IReceivedTransportMessage.cs" />
     <Compile Include="Transport\Network\IZmqSocketManager.cs" />
     <Compile Include="Transport\ReceivedOnTransportAcknowledgement.cs" />

@@ -47,7 +47,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 
         public void Publish(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
-            var brokerMessage = new SendingBusMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
+            var brokerMessage = new SendingBusMessage(message.MessageType, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
 
             var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
             var strategyStateMessage = new PublishWaitForAckState(message.MessageIdentity, concernedSubscriptions.Select(x => x.Peer));

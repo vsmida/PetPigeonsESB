@@ -110,6 +110,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 
         public void Dispose()
         {
+            _strategyFactory.Dispose();
             _itemsToSend.CompleteAdding();
         }
     }

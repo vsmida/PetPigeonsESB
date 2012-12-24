@@ -6,33 +6,21 @@ namespace ZmqServiceBus.Tests.Transport
 {
     public class FakeTransportConfiguration : ZmqTransportConfiguration
     {
-        private int? _eventsPort;
-        private int? _commandsPort;
+        private int? _port;
 
-        public override int EventsPort
+        public override int Port
         {
             get
             {
-                if (_eventsPort == null)
-                    _eventsPort = NetworkUtils.GetRandomUnusedPort();
-                return _eventsPort.Value;
+                if (_port == null)
+                    _port = NetworkUtils.GetRandomUnusedPort();
+                return _port.Value;
             }
-         //    set { _eventsPort = value; }
+         //    set { _port = value; }
         }
 
-        public override int CommandsPort
-        {
-            get { if(_commandsPort == null)
-            {
-                _commandsPort = NetworkUtils.GetRandomUnusedPort();
-            }
-                return _commandsPort.Value;
-            }
-      //      set { _commandsPort = value; }
-        }
-
-        public override string EventsProtocol { get { return "tcp"; }  }
-        public override string CommandsProtocol { get { return "tcp"; } }
+   
+        public override string Protocol { get { return "tcp"; } }
 
         public override string PeerName
         {

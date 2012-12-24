@@ -54,6 +54,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var socket = _context.CreateSocket(SocketType.PUSH);
             socket.SendHighWatermark = 10000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
+            socket.Connect(zmqEndpoint.Endpoint);
             return socket;
         }
 
