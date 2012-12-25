@@ -8,6 +8,7 @@ using NUnit.Framework;
 using ProtoBuf;
 using ProtoBuf.Meta;
 using Shared;
+using StructureMap;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
@@ -38,17 +39,11 @@ namespace ZmqServiceBus.Tests.Integration
 
     public class FakeCommandHandler : MarshalByRefObject, ICommandHandler<FakeCommand>
     {
-        private static event Action<int> _onCommandReceived = delegate { };
+        public static event Action<int> OnCommandReceived = delegate { };
 
         public void Handle(FakeCommand item)
         {
-            _onCommandReceived(item.Number);
-        }
-
-        public event Action<int> OnCommandReceived
-        {
-            add { _onCommandReceived += value; }
-            remove { _onCommandReceived -= value; }
+            OnCommandReceived(item.Number);
         }
 
     }
@@ -58,31 +53,27 @@ namespace ZmqServiceBus.Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
 
-
-        [Test, Timeout(80000)]
-        public void should_be_able_to_exchange_messages_between_services()
+        [Test, Timeout(5000), Repeat(3)]
+        public void should_be_able_to_exchange_messages()
         {
-            AppDomainSetup setup = AppDomain.CurrentDomain.SetupInformation;
+            var randomPort1 = NetworkUtils.GetRandomUnusedPort();
+            var randomPort2 = NetworkUtils.GetRandomUnusedPort();
+            var randomPort3 = NetworkUtils.GetRandomUnusedPort();
+            var busName1 = "Service1";
+            var busName2 = "Service2";
+            var directoryServiceName = "DirectoryService";
+            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort3, directoryServiceName);
+            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort3, directoryServiceName);
 
-            var appDomain1 = AppDomain.CreateDomain("Service1Domain", null, setup);
-            var appDomain2 = AppDomain.CreateDomain("Service2Domain", null, setup);
-            var appDomainDirectoryService = AppDomain.CreateDomain("DirServiceDomain", null, setup);
-
-            var testBusCreator1 = appDomain1.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
-            var testBusCreator2 = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
-            var testBusCreatorDirService = appDomainDirectoryService.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof(TestBusCreator)).FullName, typeof(TestBusCreator).FullName) as TestBusCreator;
-
-            testBusCreatorDirService.CreateFakeDirectoryService();
-            var bus1 = testBusCreator1.GetBus("Service1");
-            var bus2 = testBusCreator2.GetBus("Service2");
+            IntegrationTestsMockCreator mockCreator = new IntegrationTestsMockCreator();
+            mockCreator.CreateFakeDirectoryService(randomPort3);
 
             bus2.Initialize();
             bus1.Initialize();
 
             _waitForCommandToBeHandled = new AutoResetEvent(false);
-            var appDomain2FakeCommandHandler  = appDomain2.CreateInstanceAndUnwrap(Assembly.GetAssembly(typeof (FakeCommandHandler)).FullName, typeof (FakeCommandHandler).FullName) as FakeCommandHandler;
-            appDomain2FakeCommandHandler.OnCommandReceived += OnCommandReceived;
-            
+            FakeCommandHandler.OnCommandReceived += OnCommandReceived;
+
             bus1.Send(new FakeCommand(5));
 
             _waitForCommandToBeHandled.WaitOne();
@@ -98,12 +89,41 @@ namespace ZmqServiceBus.Tests.Integration
             }
 
             watch.Stop();
-            Console.WriteLine(" 1000 resend took " +watch.ElapsedMilliseconds+" ms");
-
+            Console.WriteLine(" 1000 resend took " + watch.ElapsedMilliseconds + " ms");
             bus1.Dispose();
             bus2.Dispose();
-            testBusCreatorDirService.StopDirectoryService();
+            
+            mockCreator.StopDirectoryService();
+
         }
+
+        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName)
+        {
+            return BusFactory.CreateBus(containerConfigurationExpression: ctx =>
+                                                                              {
+                                                                                  ctx.For
+                                                                                      <ZmqTransportConfiguration>()
+                                                                                      .Use(
+                                                                                          new DummyTransportConfig(
+                                                                                              busReceptionPort, busName));
+                                                                                  ctx.For
+                                                                                      <IBusBootstrapperConfiguration
+                                                                                          >().Use(new DummyBootstrapperConfig
+                                                                                                      {
+                                                                                                          DirectoryServiceEndpoint
+                                                                                                              =
+                                                                                                              "tcp://localhost:" +
+                                                                                                              directoryServicePort,
+                                                                                                          DirectoryServiceName
+                                                                                                              =
+                                                                                                              directoryServiceName
+
+                                                                                                      });
+                                                                              });
+        }
+
+
+
 
         private void OnCommandReceived(int number)
         {

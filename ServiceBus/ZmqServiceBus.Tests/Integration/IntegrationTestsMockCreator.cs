@@ -13,46 +13,26 @@ using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Tests.Integration
 {
-    public class TestBusCreator : MarshalByRefObject
+    public class IntegrationTestsMockCreator
     {
         private List<ServicePeer> _peers = new List<ServicePeer>();
         private Dictionary<string, ZmqSocket> _peerToZmqSocket = new Dictionary<string, ZmqSocket>(); 
         private volatile bool _running = true;
-
-        public IBus GetBus(string peerName)
-        {
-            StructureMap.ObjectFactory.Initialize(x => x.AddRegistry<BusRegistry>());
-            var randomPort1 = NetworkUtils.GetRandomUnusedPort();
-            var randomPort2 = NetworkUtils.GetRandomUnusedPort();
-            StructureMap.ObjectFactory.Configure(x => x.For<ZmqTransportConfiguration>()
-                                                           .Use(new DummyTransportConfig(randomPort1,peerName)));
-            StructureMap.ObjectFactory.Configure(x => x.For<IBusBootstrapperConfiguration>().Use(new DummyBootstrapperConfig
-            {
-                DirectoryServiceEndpoint = "tcp://localhost:111",
-                DirectoryServiceName = "DirectoryService"
-            }));
-            return StructureMap.ObjectFactory.GetInstance<IBus>();
-        }
 
         public void StopDirectoryService()
         {
             _running = false;
         }
 
-        public void CreateFakeDirectoryService()
+        public void CreateFakeDirectoryService(int port)
         {
             new Thread(() =>
                                       {
                                           var context = ZmqContext.Create();
                                           var receptionSocket = context.CreateSocket(SocketType.PULL);
                                           receptionSocket.Linger = TimeSpan.Zero;
-                                          receptionSocket.Bind("tcp://*:111");
+                                          receptionSocket.Bind("tcp://*:"+port);
                                           receptionSocket.ReceiveReady += (s,e) =>OnReceptionRouterReceive(s,e,context);
-
-
-//                                          _pushSocket1 = context.CreateSocket(SocketType.PUSH);
-  //                                        _pushSocket1.Linger = TimeSpan.Zero;
-    //                                      _pushSocket1.Bind("tcp://*:222");
 
                                           Poller poller = new Poller();
                                           poller.AddSocket(receptionSocket);
@@ -66,6 +46,7 @@ namespace ZmqServiceBus.Tests.Integration
                                               zmqSocket.Dispose();
                                           }
                                           receptionSocket.Dispose();
+                                          poller.Dispose();
                                           context.Dispose();
 
 

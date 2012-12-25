@@ -89,7 +89,7 @@
   <ItemGroup>
     <Compile Include="AssemblyScannerTests.cs" />
     <Compile Include="BusBootStrapperTests.cs" />
-    <Compile Include="BusRegistryTests.cs" />
+    <Compile Include="BusCreationTest.cs" />
     <Compile Include="CallbackRepositoryTests.cs" />
     <Compile Include="DefaultCompletionCallbackTests.cs" />
     <Compile Include="InfrastructureHandlers\CompletionMessageHandlerTests.cs" />
@@ -97,7 +97,7 @@
     <Compile Include="InfrastructureHandlers\DirectoryServiceMessagesHandlerTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />
     <Compile Include="Integration\SimpleMessageExchange.cs" />
-    <Compile Include="Integration\TestBusCreator.cs" />
+    <Compile Include="Integration\IntegrationTestsMockCreator.cs" />
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="BrokerPersistenceSynchronizerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

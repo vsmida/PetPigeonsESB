@@ -7,13 +7,13 @@ using ObjectFactory = StructureMap.ObjectFactory;
 namespace ZmqServiceBus.Tests
 {
     [TestFixture]
-    public class BusRegistryTests
+    public class BusCreationTest
     {
+
         [Test]
-        public void should_be_able_to_instantiate_bus()
+        public void should_create_bus()
         {
-            ObjectFactory.Initialize(x => x.AddRegistry<BusRegistry>());
-            Assert.DoesNotThrow(() =>ObjectFactory.GetInstance<IBus>());
+            Assert.DoesNotThrow(() => BusFactory.CreateBus());
         }
     }
 }

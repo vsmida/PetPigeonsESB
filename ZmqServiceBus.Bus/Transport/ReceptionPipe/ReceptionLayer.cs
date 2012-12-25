@@ -18,7 +18,6 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             _dataReceiver.Initialize();
         }
 
-        private volatile bool _running = true;
 
 
         public ReceptionLayer(IDataReceiver dataReceiver, ISendingStrategyStateManager sendingStrategyStateManager, IStartupStrategyManager startupStrategyManager)
@@ -27,24 +26,9 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             _sendingStrategyStateManager = sendingStrategyStateManager;
             _startupStrategyManager = startupStrategyManager;
             _dataReceiver.OnMessageReceived += OnEndpointManagerMessageReceived;
-            CreateEventThread();
         }
 
 
-        private void CreateEventThread()
-        {
-            new BackgroundThread(() =>
-                                     {
-                                         while (_running)
-                                         {
-                                             IReceivedTransportMessage message;
-                                             if (_messagesToForward.TryTake(out message, TimeSpan.FromSeconds(1)))
-                                             {
-                                                 OnMessageReceived(message);
-                                             }
-                                         }
-                                     }).Start();
-        }
 
         private void OnEndpointManagerMessageReceived(IReceivedTransportMessage receivedTransportMessage)
         {
@@ -66,7 +50,6 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 
         public void Dispose()
         {
-            _running = false;
             _dataReceiver.Dispose();
         }
     }

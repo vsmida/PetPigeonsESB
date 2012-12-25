@@ -74,7 +74,7 @@
     <Compile Include="InternalBus.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="Dispatch\IMessageDispatcher.cs" />
-    <Compile Include="IObjectFactory.cs" />
+    <Compile Include="BusFactory.cs" />
     <Compile Include="MessageContext.cs" />
     <Compile Include="Dispatch\MessageDispatcher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

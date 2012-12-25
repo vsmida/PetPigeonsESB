@@ -1,4 +1,5 @@
-﻿using StructureMap.Configuration.DSL;
+﻿using StructureMap;
+using StructureMap.Configuration.DSL;
 using ZeroMQ;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.Handlers;
@@ -7,6 +8,7 @@ using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates;
+using IMessageSender = ZmqServiceBus.Bus.Transport.SendingPipe.IMessageSender;
 
 namespace ZmqServiceBus.Bus.Startup
 {
@@ -14,7 +16,6 @@ namespace ZmqServiceBus.Bus.Startup
     {
          public BusRegistry()
          {
-             ForSingletonOf<IObjectFactory>().Use<ObjectFactory>();
              For<IAssemblyScanner>().Use<AssemblyScanner>();
              ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
              ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(ZmqContext.Create());
@@ -33,10 +34,8 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<ICallbackRepository>().Use<CallbackRepository>();
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
              ForSingletonOf<IBusBootstrapperConfiguration>().Use<BusBootstrapperConfiguration>();
-             ForSingletonOf<CompletionMessagesHandler>().Use(
-                 ctx => new CompletionMessagesHandler(ctx.GetInstance<ICallbackRepository>()));
              ForSingletonOf<IBus>().Use<InternalBus>();
-             
+
          }
     }
 }

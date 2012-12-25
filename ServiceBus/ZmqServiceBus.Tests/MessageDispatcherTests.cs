@@ -7,6 +7,7 @@ using NUnit.Framework;
 using ProtoBuf;
 using Shared;
 using Shared.Attributes;
+using StructureMap;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Contracts;
@@ -17,13 +18,13 @@ namespace ZmqServiceBus.Tests
     public class MessageDispatcherTests
     {
         private MessageDispatcher _dispatcher;
-        private Mock<IObjectFactory> _objectFactoryMock;
+        private Mock<IContainer> _objectFactoryMock;
         private Mock<IAssemblyScanner> _assemblyScannerMock;
 
         [SetUp]
         public void setup()
         {
-            _objectFactoryMock = new Mock<IObjectFactory>();
+            _objectFactoryMock = new Mock<IContainer>();
             _assemblyScannerMock = new Mock<IAssemblyScanner>();
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeCommandHandler))).Returns(new FakeCommandHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(FakeEventHandler))).Returns(new FakeEventHandler());

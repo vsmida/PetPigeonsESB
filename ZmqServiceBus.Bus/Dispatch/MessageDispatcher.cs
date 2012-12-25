@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using Shared;
 using Shared.Attributes;
+using StructureMap;
 using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.Dispatch
@@ -25,15 +26,14 @@ namespace ZmqServiceBus.Bus.Dispatch
             }
         }
 
-
-        private readonly IObjectFactory _objectFactory;
+        private readonly IContainer _objectFactory;
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly Dictionary<Type, HandlerDispatcher> _messageTypeToCommandHandler = new Dictionary<Type, HandlerDispatcher>();
         private readonly Dictionary<Type, List<HandlerDispatcher>> _messageTypeToEventHandlers = new Dictionary<Type, List<HandlerDispatcher>>();
         private readonly BlockingCollection<IMessage> _standardMessagesToDispatch = new BlockingCollection<IMessage>();
 
 
-        public MessageDispatcher(IObjectFactory objectFactory, IAssemblyScanner assemblyScanner)
+        public MessageDispatcher(IContainer objectFactory, IAssemblyScanner assemblyScanner)
         {
             _objectFactory = objectFactory;
             _assemblyScanner = assemblyScanner;
