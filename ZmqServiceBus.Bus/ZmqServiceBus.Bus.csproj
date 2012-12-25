@@ -92,7 +92,9 @@
     <Compile Include="Transport\Network\EndpointManager.cs" />
     <Compile Include="Transport\Network\IDataReceiver.cs" />
     <Compile Include="Transport\Network\IDataSender.cs" />
+    <Compile Include="Transport\Network\IWireReceiverTransport.cs" />
     <Compile Include="Transport\Network\IWireSendingTransport.cs" />
+    <Compile Include="Transport\Network\ZmqDataReceiver.cs" />
     <Compile Include="Transport\Network\ZmqEndpoint.cs" />
     <Compile Include="Transport\Network\ZmqPushWireSendingTransport.cs" />
     <Compile Include="Transport\ReceptionPipe\SubscriptionManager.cs" />

@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading;
 using Shared;
-using ZeroMQ;
 using ZeroMQ.Monitoring;
 
 namespace ZmqServiceBus.Bus.Transport.Network
@@ -15,88 +12,45 @@ namespace ZmqServiceBus.Bus.Transport.Network
         void Initialize();
     }
 
-    public class ZmqDataReceiver : IDataReceiver
+    public class DataReceiver : IDataReceiver
     {
+        private readonly IWireReceiverTransport[] _transports;
         public event Action<IReceivedTransportMessage> OnMessageReceived;
-        private readonly ZmqContext _context;
-        private ZmqSocket receptionSocket;
-        private readonly Poller _receptionPoller = new Poller();
-        private volatile bool _running = true;
-        private BackgroundThread _pollingReceptionThread;
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
-        private readonly ZmqTransportConfiguration _configuration;
 
-        public ZmqDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
+
+        public DataReceiver(IWireReceiverTransport[] transports)
         {
-            _context = context;
-            _configuration = configuration;
+            _transports = transports;
         }
-
 
         public void Initialize()
         {
-            CreatePollingThread();
+            foreach (IWireReceiverTransport wireReceiverTransport in _transports)
+            {
+                wireReceiverTransport.Initialize(_messagesToForward);
+            }
             CreateDequeueThread();
         }
+
 
         private void CreateDequeueThread()
         {
             new BackgroundThread(() =>
-                                     {
-                                         foreach (var message in _messagesToForward.GetConsumingEnumerable())
-                                         {
-                                             OnMessageReceived(message);
-                                         }
-                                     }).Start();
-        }
-
-        private void CreatePollingThread()
-        {
-            var socketsCreated = new AutoResetEvent(false);
-            _pollingReceptionThread = new BackgroundThread(() =>
-                                                               {
-                                                                   CreateCommandReceiverSocket(_configuration.GetBindEndpoint());
-                                                                   socketsCreated.Set();
-                                                                   while (_running)
-                                                                   {
-                                                                       _receptionPoller.Poll(TimeSpan.FromMilliseconds(500));
-                                                                   }
-                                                                   _receptionPoller.Dispose();
-                                                               });
-
-            _pollingReceptionThread.Start();
-            socketsCreated.WaitOne();
-        }
-
-        public void CreateCommandReceiverSocket(string endpoint)
-        {
-            receptionSocket = _context.CreateSocket(SocketType.PULL);
-            receptionSocket.Linger = TimeSpan.FromSeconds(1);
-            receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
-            receptionSocket.Bind(endpoint);
-            _receptionPoller.AddSocket(receptionSocket);
-            Console.WriteLine("Command processor socket bound to {0}", endpoint);
-        }
-
-
-        private void ReceiveFromSocket(SocketEventArgs socketEventArgs)
-        {
-            var zmqSocket = socketEventArgs.Socket;
-            var type = zmqSocket.Receive(Encoding.ASCII);
-            var peerName = zmqSocket.Receive(Encoding.ASCII);
-            var serializedId = zmqSocket.Receive();
-            var messageId = new Guid(serializedId);
-            var serializedItem = zmqSocket.Receive();
-            _messagesToForward.Add(new ReceptionPipe.ReceivedTransportMessage(type, peerName, messageId, serializedItem));
-
+            {
+                foreach (var message in _messagesToForward.GetConsumingEnumerable())
+                {
+                    OnMessageReceived(message);
+                }
+            }).Start();
         }
 
         public void Dispose()
         {
-            _running = false;
-            if (_pollingReceptionThread != null)
-                _pollingReceptionThread.Join();
-            receptionSocket.Dispose();
+            foreach (IWireReceiverTransport wireReceiverTransport in _transports)
+            {
+                wireReceiverTransport.Dispose();
+            }
             _messagesToForward.CompleteAdding();
         }
     }
