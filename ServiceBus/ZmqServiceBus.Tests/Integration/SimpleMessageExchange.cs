@@ -65,7 +65,7 @@ namespace ZmqServiceBus.Tests.Integration
             var bus1 = CreateFakeBus(randomPort1, busName1, randomPort3, directoryServiceName);
             var bus2 = CreateFakeBus(randomPort2, busName2, randomPort3, directoryServiceName);
 
-            IntegrationTestsMockCreator mockCreator = new IntegrationTestsMockCreator();
+            var mockCreator = new IntegrationTestsMockCreator();
             mockCreator.CreateFakeDirectoryService(randomPort3);
 
             bus2.Initialize();

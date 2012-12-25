@@ -15,7 +15,7 @@ using IReceivedTransportMessage = ZmqServiceBus.Bus.Transport.IReceivedTransport
 
 namespace ZmqServiceBus.Bus
 {
-    public class InternalBus : MarshalByRefObject, IBus, IReplier
+    public class InternalBus : IBus, IReplier
     {
         private readonly IReceptionLayer _startupLayer;
         private readonly IMessageDispatcher _dispatcher;

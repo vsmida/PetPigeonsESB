@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Shared;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
@@ -13,6 +14,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         IMessageSubscription GetPeerSubscriptionFor(string messageType, string destinationPeer);
     }
 
+
     public class PeerManager : IPeerManager
     {
         public event Action<IServicePeer> PeerConnected = delegate { };
@@ -22,17 +24,18 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public void RegisterPeer(IServicePeer peer)
         {
             _peers.AddOrUpdate(peer.PeerName, peer, (key, oldValue) => peer);
- 
+
             foreach (var messageToEndpoint in peer.HandledMessages)
             {
-                _messagesToEndpoints.AddOrUpdate(messageToEndpoint.MessageType.FullName, key => new List<IMessageSubscription> { messageToEndpoint }, (key, oldValue) =>
+                _messagesToEndpoints.AddOrUpdate(messageToEndpoint.MessageType.FullName,
+                key => new List<IMessageSubscription> { messageToEndpoint },
+                (key, oldValue) =>
                 {
                     var list = new List<IMessageSubscription>(oldValue);
                     list.Add(messageToEndpoint);
                     return list;
                 });
             }
-
             PeerConnected(peer);
         }
 
