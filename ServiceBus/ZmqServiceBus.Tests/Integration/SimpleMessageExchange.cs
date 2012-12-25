@@ -37,7 +37,7 @@ namespace ZmqServiceBus.Tests.Integration
 
     }
 
-    public class FakeCommandHandler : MarshalByRefObject, ICommandHandler<FakeCommand>
+    public class FakeCommandHandler : ICommandHandler<FakeCommand>
     {
         public static event Action<int> OnCommandReceived = delegate { };
 
@@ -49,7 +49,7 @@ namespace ZmqServiceBus.Tests.Integration
     }
 
     [TestFixture]
-    public class SimpleMessageExchange : MarshalByRefObject
+    public class SimpleMessageExchange
     {
         private AutoResetEvent _waitForCommandToBeHandled;
 

@@ -15,7 +15,7 @@ namespace ZmqServiceBus.Bus
         void WaitForCompletion();        
     }
 
-    public class DefaultCompletionCallback : MarshalByRefObject, ICompletionCallback
+    public class DefaultCompletionCallback : ICompletionCallback
     {
         private event Action<CompletionAcknowledgementMessage> _callbacks = delegate { };
         private AutoResetEvent _waitForCompletionHandle = new AutoResetEvent(false);
