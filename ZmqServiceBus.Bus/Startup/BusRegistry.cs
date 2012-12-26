@@ -21,6 +21,8 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IWireReceiverTransport>().Use<ZmqDataReceiver>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IDataReceiver>().Use<DataReceiver>();
+             ForSingletonOf<IHeartbeatManager>().Use<HeartbeatManager>();
+             ForSingletonOf<IHeartbeatingConfiguration>().Use<DummyHeartbeatingConfig>();
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
              ForSingletonOf<IDataSender>().Use<DataSender>();
              ForSingletonOf<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();

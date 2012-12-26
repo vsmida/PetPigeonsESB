@@ -41,7 +41,7 @@ namespace ZmqServiceBus.Tests.Transport
             _callbackManagerMock = new Mock<ICallbackRepository>();
             _optionsRepositoryMock = new Mock<IMessageOptionsRepository>();
             _reliabilityStratFactoryMock = new Mock<IReliabilityStrategyFactory>();
-            _messageSender = new MessageSender(_optionsRepositoryMock.Object, _reliabilityStratFactoryMock.Object, _callbackManagerMock.Object, _peerManagerMock.Object);
+         //   _messageSender = new MessageSender(_optionsRepositoryMock.Object, _reliabilityStratFactoryMock.Object, _callbackManagerMock.Object, _peerManagerMock.Object);
         }
 
         [Test]

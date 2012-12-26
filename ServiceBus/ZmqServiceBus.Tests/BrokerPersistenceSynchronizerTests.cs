@@ -17,7 +17,7 @@ namespace ZmqServiceBus.Tests
         public void setup()
         {
             _messageSenderMock = new Mock<IMessageSender>();
-            _synchronizer = new BrokerPersistenceSynchronizer(_messageSenderMock.Object);
+          //  _synchronizer = new BrokerPersistenceSynchronizer(_messageSenderMock.Object);
         }
 
         [Test]

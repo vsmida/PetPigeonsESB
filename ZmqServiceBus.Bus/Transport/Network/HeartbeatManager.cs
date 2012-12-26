@@ -7,7 +7,17 @@ using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
-    public class HeartbeatManager
+    public interface IHeartbeatManager
+    {
+        event Action<IEndpoint> Disconnected;
+        event Action<IEndpoint> Reconnected;
+        void StartMonitoring(IEndpoint endpoint);
+        void RegisterHeartbeat(IEndpoint endpoint, HeartbeatMessage heartbeat);
+        void Initialize();
+        event Action<ISendingBusMessage> CheckPeerHeartbeat;
+    }
+
+    public class HeartbeatManager : IHeartbeatManager
     {
         private class HeartbeatInformation
         {
@@ -16,18 +26,18 @@ namespace ZmqServiceBus.Bus.Transport.Network
         }
 
         private readonly ConcurrentDictionary<IEndpoint, HeartbeatInformation> _heartbeatsByEndpoint = new ConcurrentDictionary<IEndpoint, HeartbeatInformation>();
-        private readonly IDataSender _dataSender;
         private readonly IHeartbeatingConfiguration _heartbeatingConfiguration;
         private Timer _timer;
+        public event Action<ISendingBusMessage> CheckPeerHeartbeat = delegate { };
 
-        public HeartbeatManager(IDataSender dataSender, IHeartbeatingConfiguration heartbeatingConfiguration)
+        public HeartbeatManager(IHeartbeatingConfiguration heartbeatingConfiguration)
         {
-            _dataSender = dataSender;
             _heartbeatingConfiguration = heartbeatingConfiguration;
         }
 
         public event Action<IEndpoint> Disconnected = delegate { };
         public event Action<IEndpoint> Reconnected = delegate { };
+
 
         public void StartMonitoring(IEndpoint endpoint)
         {
@@ -57,14 +67,15 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                        foreach (var endpointToInfo in _heartbeatsByEndpoint.ToArray())
                                        {
                                            if (endpointToInfo.Value.LastHeartbeat != null)
-                                               if (( DateTime.UtcNow - endpointToInfo.Value.LastHeartbeat) > _heartbeatingConfiguration.HeartbeatInterval)
+                                               if ((DateTime.UtcNow - endpointToInfo.Value.LastHeartbeat) > _heartbeatingConfiguration.HeartbeatInterval)
                                                {
                                                    Disconnected(endpointToInfo.Key);
                                                    endpointToInfo.Value.IsConnected = false;
                                                }
-
-                                           _dataSender.SendMessage(new SendingBusMessage(typeof(HeartbeatRequest).FullName, Guid.NewGuid(),
-                                                                                         Serializer.Serialize(new HeartbeatRequest(DateTime.UtcNow))), endpointToInfo.Key);
+                                           CheckPeerHeartbeat(
+                                           new SendingBusMessage(typeof(HeartbeatRequest).FullName, Guid.NewGuid(),
+                                                                 Serializer.Serialize(new HeartbeatRequest(DateTime.UtcNow, endpointToInfo.Key)),
+                                                                 new[] { endpointToInfo.Key }));
                                        }
                                    }, null, 0, (int)_heartbeatingConfiguration.HeartbeatInterval.TotalMilliseconds);
         }
@@ -73,5 +84,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public interface IHeartbeatingConfiguration
     {
         TimeSpan HeartbeatInterval { get; }
+    }
+
+    class DummyHeartbeatingConfig : IHeartbeatingConfiguration
+    {
+        public TimeSpan HeartbeatInterval { get { return TimeSpan.FromSeconds(1); }}
     }
 }

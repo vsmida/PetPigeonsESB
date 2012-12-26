@@ -59,12 +59,12 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static SendingBusMessage GenerateDummySendingMessage<T>()
         {
-            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0]);
+            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0], null);
         }
 
         public static SendingBusMessage GenerateDummySendingMessage<T>(T item)
         {
-            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item));
+            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item), null);
         }
 
         public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

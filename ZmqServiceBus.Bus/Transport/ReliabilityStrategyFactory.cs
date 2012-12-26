@@ -1,7 +1,6 @@
 using System;
 using Shared;
 using ZmqServiceBus.Bus.InfrastructureMessages;
-using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies;
@@ -12,13 +11,11 @@ namespace ZmqServiceBus.Bus.Transport
     {
 
         private readonly ISendingStrategyStateManager _stateManager;
-        private readonly IDataSender _dataSender;
 
 
-        public ReliabilityStrategyFactory(ISendingStrategyStateManager stateManager, IDataSender dataSender)
+        public ReliabilityStrategyFactory(ISendingStrategyStateManager stateManager)
         {
             _stateManager = stateManager;
-            _dataSender = dataSender;
         }
 
         public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptions)
@@ -26,12 +23,12 @@ namespace ZmqServiceBus.Bus.Transport
             switch (messageOptions.ReliabilityInfo.ReliabilityLevel)
             {
                 case ReliabilityLevel.FireAndForget:
-                    return new FireAndForget(_dataSender);
+                    return new FireAndForget();
                     break;
                     //case ReliabilityOption.SendToClientAndBrokerNoAck:
                     //    break;
                 case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
-                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerEndpoint, _stateManager, _dataSender);
+                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerEndpoint, _stateManager);
                     break;
                     //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                     //    break;
@@ -53,11 +50,6 @@ namespace ZmqServiceBus.Bus.Transport
                 default:
                     throw new ArgumentOutOfRangeException("messageOptions");
             }
-        }
-
-        public void Dispose()
-        {
-            _dataSender.Dispose();
         }
     }
 }

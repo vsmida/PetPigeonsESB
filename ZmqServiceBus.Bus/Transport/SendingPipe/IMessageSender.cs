@@ -7,6 +7,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
     {
         ICompletionCallback Send(ICommand command, ICompletionCallback callback = null);
         void Publish(IEvent message);
-        void Route(IMessage message, string peerName);
+        ICompletionCallback Route(IMessage message, string peerName);
     }
 }

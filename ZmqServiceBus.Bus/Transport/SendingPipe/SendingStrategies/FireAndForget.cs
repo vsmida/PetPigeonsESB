@@ -2,30 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ZmqServiceBus.Bus.Transport.Network;
+using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
-    internal class FireAndForget : ISendingReliabilityStrategy
+    internal class FireAndForget : SendingReliabilityStrategy
     {
-        private readonly IDataSender _dataSender;
 
-        public FireAndForget(IDataSender dataSender)
+        public override IEnumerable<ISendingBusMessage> Send(IMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
-            _dataSender = dataSender;
-        }
-
-        public void Send(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
-        {
-            _dataSender.SendMessage(message, concernedSubscriptions.Select(x => x.Endpoint));
             ReliabilityAchieved();
+            return new[] {GetTransportMessage(message, concernedSubscriptions.Select(x => x.Endpoint))  };
         }
 
-        public void Publish(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
+        public override IEnumerable<ISendingBusMessage> Publish(IMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
-            _dataSender.SendMessage(message, concernedSubscriptions.Select(x => x.Endpoint));
             ReliabilityAchieved();
+            return new[] { GetTransportMessage(message, concernedSubscriptions.Select(x => x.Endpoint)) };
         }
 
-        public event Action ReliabilityAchieved = delegate{};
+        public override event Action ReliabilityAchieved = delegate{};
     }
 }

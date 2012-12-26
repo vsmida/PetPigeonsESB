@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
@@ -7,5 +9,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         string MessageType { get; }
         Guid MessageIdentity { get; }
         byte[] Data { get; }
+        IEnumerable<IEndpoint> TargetEndpoints { get; }
     }
 }

@@ -18,6 +18,7 @@ namespace ZmqServiceBus.Bus
     public interface IBlockableUntilMessageReliablySent
     {
         void WaitForMessageToBeReliablySent();
+        event Action MessageReliablySent;
         void Release();
     }
 
@@ -49,9 +50,12 @@ namespace ZmqServiceBus.Bus
             _waitForMessageSendHandle.WaitOne();
         }
 
+        public event Action MessageReliablySent = delegate {};
+
         public void Release()
         {
             _waitForMessageSendHandle.Set();
+            MessageReliablySent();
         }
     }
 }
