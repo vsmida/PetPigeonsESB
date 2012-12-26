@@ -10,7 +10,6 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
     {
         private readonly ISendingStrategyStateManager _sendingStrategyStateManager;
         private readonly IStartupStrategyManager _startupStrategyManager;
-        private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<Transport.IReceivedTransportMessage>();
         private readonly IDataReceiver _dataReceiver;
         public event Action<IReceivedTransportMessage> OnMessageReceived = delegate { };
         public void Initialize()

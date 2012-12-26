@@ -24,6 +24,7 @@ namespace ZmqServiceBus.Bus
         private readonly Dictionary<Type, bool> _messageTypeToInfrastructureCondition = new Dictionary<Type, bool>();
         private readonly BlockingCollection<IReceivedTransportMessage> _standardMessagesToDispatch = new BlockingCollection<IReceivedTransportMessage>();
         private volatile bool _running = true;
+        private Thread _standardDispatchThread;
 
         public InternalBus(IReceptionLayer startupLayer, IMessageDispatcher dispatcher, IMessageSender messageSender, IBusBootstrapper busBootstrapper)
         {
@@ -35,7 +36,9 @@ namespace ZmqServiceBus.Bus
 
         public IBlockableUntilCompletion Send(ICommand command)
         {
-            return _messageSender.Send(command);
+            var blockableUntilCompletion = _messageSender.Send(command);
+            blockableUntilCompletion.WaitForMessageToBeReliablySent();
+            return blockableUntilCompletion;
         }
 
         public void Publish(IEvent message)
@@ -49,17 +52,18 @@ namespace ZmqServiceBus.Bus
             _startupLayer.OnMessageReceived += OnTransportMessageReceived;
             _busBootstrapper.BootStrapTopology();
 
-            new Thread(() =>
-                           {
-                               while (_running)
-                               {
-                                   IReceivedTransportMessage transportMessage;
-                                   if (_standardMessagesToDispatch.TryTake(out transportMessage,
-                                                                           TimeSpan.FromMilliseconds(100)))
-                                       DoDispatch(transportMessage);
-                               }
+            _standardDispatchThread = new Thread(() =>
+                                                     {
+                                                         while (_running)
+                                                         {
+                                                             IReceivedTransportMessage transportMessage;
+                                                             if (_standardMessagesToDispatch.TryTake(out transportMessage,
+                                                                                                     TimeSpan.FromMilliseconds(100)))
+                                                                 DoDispatch(transportMessage);
+                                                         }
 
-                           }).Start();
+                                                     });
+            _standardDispatchThread.Start();
         }
 
         public void Reply(IMessage message)
@@ -110,6 +114,8 @@ namespace ZmqServiceBus.Bus
             _running = false;
             _startupLayer.Dispose();
             _messageSender.Dispose();
+            _standardMessagesToDispatch.CompleteAdding();
+            _standardDispatchThread.Join();
         }
     }
 }

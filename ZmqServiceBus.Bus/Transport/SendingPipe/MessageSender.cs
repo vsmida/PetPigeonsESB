@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using Shared;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Contracts;
@@ -28,6 +29,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         private readonly ICallbackRepository _callbackRepository;
         private readonly BlockingCollection<ItemToSend> _itemsToSend = new BlockingCollection<ItemToSend>();
         private readonly IPeerManager _peerManager;
+        private Thread _sendingThread;
 
         public MessageSender(IMessageOptionsRepository messageOptionsRepository, IReliabilityStrategyFactory strategyFactory, ICallbackRepository callbackRepository, IPeerManager peerManager)
         {
@@ -36,7 +38,8 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             _callbackRepository = callbackRepository;
             _peerManager = peerManager;
 
-            new BackgroundThread(MainSendingLoop).Start();
+            _sendingThread = new Thread(MainSendingLoop);
+            _sendingThread.Start();
         }
 
         private void MainSendingLoop()
@@ -60,7 +63,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             }
         }
         
-        public IBlockableUntilCompletion Send(ICommand message, ICompletionCallback callback = null)
+        public ICompletionCallback Send(ICommand message, ICompletionCallback callback = null)
         {
             var nonNullCallback = callback ?? new DefaultCompletionCallback();
             _itemsToSend.Add(new ItemToSend { Callback = nonNullCallback, Message = message, SendAction = SendAction.Send });
@@ -83,8 +86,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             var sendingStrat = _strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(message.GetType().FullName));
             ISendingBusMessage sendingMessage = GetTransportMessage(message);
             _callbackRepository.RegisterCallback(sendingMessage.MessageIdentity, callback);
+            sendingStrat.ReliabilityAchieved += callback.Release;
             sendingStrat.Send(sendingMessage, concernedSubscriptions);
-        }
+       }
 
 
         private ISendingBusMessage GetTransportMessage(IMessage message)
@@ -112,6 +116,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         {
             _strategyFactory.Dispose();
             _itemsToSend.CompleteAdding();
+            _sendingThread.Join();
         }
     }
 }

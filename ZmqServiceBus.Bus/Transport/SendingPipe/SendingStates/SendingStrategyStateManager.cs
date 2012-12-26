@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates
 {
@@ -21,7 +22,10 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates
 
         public void RegisterStrategy(ISendingReliabilityStrategyState state)
         {
-            _reliabilityStrategies.TryAdd(state.SentMessageId, state);
+            foreach (Guid relevantMessageId in state.RelevantMessageIds)
+            {
+                _reliabilityStrategies.TryAdd(relevantMessageId, state);
+            }
         }
     }
 }

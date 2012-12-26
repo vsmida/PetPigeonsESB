@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using Shared;
 using ZeroMQ.Monitoring;
 
@@ -17,6 +18,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private readonly IWireReceiverTransport[] _transports;
         public event Action<IReceivedTransportMessage> OnMessageReceived;
         private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
+        private Thread _dequeueThread;
 
 
         public DataReceiver(IWireReceiverTransport[] transports)
@@ -36,13 +38,14 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         private void CreateDequeueThread()
         {
-            new BackgroundThread(() =>
-            {
-                foreach (var message in _messagesToForward.GetConsumingEnumerable())
-                {
-                    OnMessageReceived(message);
-                }
-            }).Start();
+            _dequeueThread = new Thread(() =>
+                                            {
+                                                foreach (var message in _messagesToForward.GetConsumingEnumerable())
+                                                {
+                                                    OnMessageReceived(message);
+                                                }
+                                            });
+            _dequeueThread.Start();
         }
 
         public void Dispose()
@@ -52,6 +55,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                 wireReceiverTransport.Dispose();
             }
             _messagesToForward.CompleteAdding();
+            _dequeueThread.Join();
         }
     }
 }

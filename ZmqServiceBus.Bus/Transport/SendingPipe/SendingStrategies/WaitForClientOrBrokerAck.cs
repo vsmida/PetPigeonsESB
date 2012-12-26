@@ -14,6 +14,7 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
         private readonly IEndpoint _brokerEndpoint;
         private readonly ISendingStrategyStateManager _stateManager;
         private readonly IDataSender _dataSender;
+        public event Action ReliabilityAchieved = delegate{};
 
         //todo: special case when acknowledgement message. special message to broker to flush from queue? only for routing?
         public WaitForClientOrBrokerAck(IEndpoint brokerEndpoint, ISendingStrategyStateManager stateManager, IDataSender dataSender)
@@ -31,36 +32,41 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
             else
                 brokerMessage = new SendingBusMessage(typeof(PersistMessageCommand).FullName, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
 
-            var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
-            var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
+            var strategyState = new WaitForAckState(new[] {brokerMessage.MessageIdentity, message.MessageIdentity});
 
-            _stateManager.RegisterStrategy(strategyStateBroker);
-            _stateManager.RegisterStrategy(strategyStateMessage);
+         //  var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
+         //   var strategyStateMessage = new WaitForAckState(message.MessageIdentity);
+
+        //    _stateManager.RegisterStrategy(strategyStateBroker);
+        //    _stateManager.RegisterStrategy(strategyStateMessage);
+
+            _stateManager.RegisterStrategy(strategyState);
 
             _dataSender.SendMessage(brokerMessage, _brokerEndpoint);
             foreach (var endpoint in concernedSubscriptions.Select(x => x.Endpoint))
             {
                 _dataSender.SendMessage(message, endpoint);
             }
-            WaitHandle.WaitAny(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
+            strategyState.WaitConditionFulfilled += ReliabilityAchieved;
+            //  WaitHandle.WaitAny(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
         }
 
         public void Publish(ISendingBusMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
         {
             var brokerMessage = new SendingBusMessage(message.MessageType, message.MessageIdentity, Serializer.Serialize(new PersistMessageCommand(message)));
 
-            var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
-            var strategyStateMessage = new PublishWaitForAckState(message.MessageIdentity, concernedSubscriptions.Select(x => x.Peer));
+         //   var strategyStateBroker = new WaitForAckState(brokerMessage.MessageIdentity);
+   //         var strategyStateMessage = new PublishWaitForAckState(message.MessageIdentity, concernedSubscriptions.Select(x => x.Peer));
 
-            _stateManager.RegisterStrategy(strategyStateBroker);
-            _stateManager.RegisterStrategy(strategyStateMessage);
+           // _stateManager.RegisterStrategy(strategyStateBroker);
+     //       _stateManager.RegisterStrategy(strategyStateMessage);
 
             _dataSender.SendMessage(brokerMessage, _brokerEndpoint);
             foreach (var endpoint in concernedSubscriptions.Select(x => x.Endpoint))
             {
                 _dataSender.SendMessage(message, endpoint);
             }
-            WaitHandle.WaitAny(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
+       //     WaitHandle.WaitAny(new[] { strategyStateBroker.WaitHandle, strategyStateMessage.WaitHandle });
         }
     }
 }

@@ -53,7 +53,7 @@ namespace ZmqServiceBus.Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
 
-        [Test, Timeout(5000), Repeat(3)]
+        [Test, Timeout(5000), Repeat(10)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();

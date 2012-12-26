@@ -30,7 +30,7 @@ namespace ZmqServiceBus.Tests.Transport
             var state1Mock = new Mock<ISendingReliabilityStrategyState>();
             var state2Mock = new Mock<ISendingReliabilityStrategyState>();
             var id = Guid.NewGuid();
-            state2Mock.SetupGet(x => x.SentMessageId).Returns(id); //avoid dictionary collision
+            state2Mock.SetupGet(x => x.RelevantMessageIds).Returns(new[]{id}); //avoid dictionary collision
            
             _manager.RegisterStrategy(state1Mock.Object);
             _manager.RegisterStrategy(state2Mock.Object);

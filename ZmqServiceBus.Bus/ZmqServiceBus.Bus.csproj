@@ -99,7 +99,6 @@
     <Compile Include="Transport\Network\ZmqPushWireSendingTransport.cs" />
     <Compile Include="Transport\ReceptionPipe\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
-    <Compile Include="Transport\SendingPipe\SendingStates\PublishWaitForAckState.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
     <Compile Include="Transport\Network\IEndpointManager.cs" />
     <Compile Include="Transport\Network\IMessageOptionsRepository.cs" />
@@ -126,7 +125,6 @@
     <Compile Include="Transport\SendingPipe\SendingBusMessage.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\WaitForClientOrBrokerAck.cs" />
     <Compile Include="Transport\SendingPipe\SendingStates\WaitForAckState.cs" />
-    <Compile Include="Transport\Network\ZmqSocketManager.cs" />
     <Compile Include="Transport\ServicePeer.cs" />
   </ItemGroup>
   <ItemGroup>

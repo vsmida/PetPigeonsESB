@@ -17,43 +17,45 @@ namespace ZmqServiceBus.Tests.Integration
     public class IntegrationTestsMockCreator
     {
         private volatile bool _running = true;
+        private Thread _directoryServiceThread;
 
         public void StopDirectoryService()
         {
             _running = false;
+            _directoryServiceThread.Join();
         }
 
         public void CreateFakeDirectoryService(int port)
         {
-            new Thread(() =>
-                                      {
-                                          var peerList = new List<ServicePeer>();
-                                          var peerSockets = new Dictionary<string, ZmqSocket>();
-                                          var context = ZmqContext.Create();
-                                          var receptionSocket = context.CreateSocket(SocketType.PULL);
-                                          receptionSocket.Linger = TimeSpan.Zero;
-                                          receptionSocket.Bind("tcp://*:"+port);
-                                          receptionSocket.ReceiveReady += (s, e) => OnFakeDirectoryServiceReceptionRouterReceive(s, e, context, peerSockets, peerList);
+            _directoryServiceThread = new Thread(() =>
+                                                     {
+                                                         var peerList = new List<ServicePeer>();
+                                                         var peerSockets = new Dictionary<string, ZmqSocket>();
+                                                         var context = ZmqContext.Create();
+                                                         var receptionSocket = context.CreateSocket(SocketType.PULL);
+                                                         receptionSocket.Linger = TimeSpan.Zero;
+                                                         receptionSocket.Bind("tcp://*:"+port);
+                                                         receptionSocket.ReceiveReady += (s, e) => OnFakeDirectoryServiceReceptionRouterReceive(s, e, context, peerSockets, peerList);
 
-                                          var poller = new Poller();
-                                          poller.AddSocket(receptionSocket);
-                                          while(_running)
-                                          {
-                                              poller.Poll(TimeSpan.FromMilliseconds(50));
+                                                         var poller = new Poller();
+                                                         poller.AddSocket(receptionSocket);
+                                                         while(_running)
+                                                         {
+                                                             poller.Poll(TimeSpan.FromMilliseconds(50));
                                               
-                                          }
-                                          foreach (var zmqSocket in peerSockets.Values)
-                                          {
-                                              zmqSocket.Dispose();
-                                          }
-                                          receptionSocket.Dispose();
-                                          poller.Dispose();
-                                          context.Dispose();
+                                                         }
+                                                         foreach (var zmqSocket in peerSockets.Values)
+                                                         {
+                                                             zmqSocket.Dispose();
+                                                         }
+                                                         receptionSocket.Dispose();
+                                                         poller.Dispose();
+                                                         context.Dispose();
 
 
-                                      }) {IsBackground = false}.Start();
+                                                     }) {IsBackground = false};
+            _directoryServiceThread.Start();
         }
-
 
 
         private void OnFakeDirectoryServiceReceptionRouterReceive(object sender, SocketEventArgs e, ZmqContext context, Dictionary<string, ZmqSocket> spawnedSockets, List<ServicePeer> peerList)

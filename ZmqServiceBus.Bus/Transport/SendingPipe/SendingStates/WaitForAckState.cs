@@ -1,28 +1,30 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates
 {
     internal class WaitForAckState : ISendingReliabilityStrategyState
     {
-        public WaitForAckState(Guid sentMessageId)
+        public WaitForAckState(IEnumerable<Guid> relevantMessageIds)
         {
-            SentMessageId = sentMessageId;
+            RelevantMessageIds = new HashSet<Guid>(relevantMessageIds);
         }
 
-        public Guid SentMessageId { get; private set; }
-        public WaitHandle WaitHandle { get { return _waitHandle; } }
-        private AutoResetEvent _waitHandle;
+        
+        public IEnumerable<Guid> RelevantMessageIds { get; private set; }
 
         public bool CheckMessage(IReceivedTransportMessage message)
         {
-            if (message.MessageIdentity == SentMessageId && message.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName)
+            if (RelevantMessageIds.Contains(message.MessageIdentity) && message.MessageType == typeof(ReceivedOnTransportAcknowledgement).FullName)
             {
-                _waitHandle.Set();
+                WaitConditionFulfilled();
                 return true;
             }
             return false;
         }
 
+        public event Action WaitConditionFulfilled = delegate{};
     }
 }

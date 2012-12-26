@@ -11,10 +11,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public class ZmqDataReceiver : IWireReceiverTransport
     {
         private readonly ZmqContext _context;
-        private ZmqSocket receptionSocket;
+        private ZmqSocket _receptionSocket;
         private readonly Poller _receptionPoller = new Poller();
         private volatile bool _running = true;
-        private BackgroundThread _pollingReceptionThread;
+        private Thread _pollingReceptionThread;
         private readonly ZmqTransportConfiguration _configuration;
         private BlockingCollection<IReceivedTransportMessage> _messagesQueue;
 
@@ -28,7 +28,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private void CreatePollingThread()
         {
             var socketsCreated = new AutoResetEvent(false);
-            _pollingReceptionThread = new BackgroundThread(() =>
+            _pollingReceptionThread = new Thread(() =>
                                                                {
                                                                    CreateCommandReceiverSocket(_configuration.GetBindEndpoint());
                                                                    socketsCreated.Set();
@@ -36,6 +36,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                                                    {
                                                                        _receptionPoller.Poll(TimeSpan.FromMilliseconds(500));
                                                                    }
+                                                                   _receptionSocket.Dispose();
                                                                    _receptionPoller.Dispose();
                                                                });
 
@@ -45,11 +46,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void CreateCommandReceiverSocket(string endpoint)
         {
-            receptionSocket = _context.CreateSocket(SocketType.PULL);
-            receptionSocket.Linger = TimeSpan.FromSeconds(1);
-            receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
-            receptionSocket.Bind(endpoint);
-            _receptionPoller.AddSocket(receptionSocket);
+            _receptionSocket = _context.CreateSocket(SocketType.PULL);
+            _receptionSocket.Linger = TimeSpan.FromSeconds(1);
+            _receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
+            _receptionSocket.Bind(endpoint);
+            _receptionPoller.AddSocket(_receptionSocket);
             Console.WriteLine("Command processor socket bound to {0}", endpoint);
         }
 
@@ -71,7 +72,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _running = false;
             if (_pollingReceptionThread != null)
                 _pollingReceptionThread.Join();
-            receptionSocket.Dispose();
+            _context.Dispose();
         }
 
         public void Initialize(BlockingCollection<IReceivedTransportMessage> messageQueue)
