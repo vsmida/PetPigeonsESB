@@ -7,15 +7,8 @@ using System.Linq;
 namespace ZmqServiceBus.Bus.Transport
 {
 
-
-    public interface IServicePeer
-    {
-        string PeerName { get; }
-        IEnumerable<IMessageSubscription> HandledMessages { get; }
-    }
-
     [ProtoContract]
-    public class ServicePeer : IServicePeer
+    public class ServicePeer
     {
         [ProtoMember(1, IsRequired = true)]
         public string PeerName { get; private set; }

@@ -46,7 +46,7 @@ namespace ZmqServiceBus.Tests.Transport
         public void should_register_peers_and_raise_event()
         {
             var peer = GetPeer();
-            IServicePeer raisedPeer = null;
+            ServicePeer raisedPeer = null;
             _peerManager.PeerConnected += x => raisedPeer = x;
             
             _peerManager.RegisterPeer(peer);

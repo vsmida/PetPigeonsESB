@@ -41,7 +41,7 @@ namespace ZmqServiceBus.Tests.Transport
             }
         }
 
-        public static IServicePeer GenerateServicePeer()
+        public static ServicePeer GenerateServicePeer()
         {
             return null;
             //return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) });
@@ -67,13 +67,13 @@ namespace ZmqServiceBus.Tests.Transport
             return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item), null);
         }
 
-        public static IServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)
+        public static ServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)
         {
             return null;
             // return new ServicePeer(peerName ?? "Name", receptionEndpoint, "", new List<Type> { typeof(T) });
         }
 
-        public static IServicePeer CreatePeerThatPublishes<T>(string pubEndpoint)
+        public static ServicePeer CreatePeerThatPublishes<T>(string pubEndpoint)
         {
             return null;
             //  return new ServicePeer("Name", "", pubEndpoint, new List<Type>());
