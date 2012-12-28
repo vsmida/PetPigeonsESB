@@ -1,3 +1,4 @@
+using System;
 using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus.Transport.Network;
@@ -24,6 +25,27 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
 
         private ReliabilityInfo()
         {
+        }
+
+        public bool ShouldAck()
+        {
+            switch (ReliabilityLevel)
+            {
+                case ReliabilityLevel.FireAndForget:
+                    return false;
+                    break;
+                case ReliabilityLevel.SendToClientAndBrokerNoAck:
+                    return false;
+                    break;
+                case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
+                    return true;
+                    break;
+                case ReliabilityLevel.ClientAndBrokerReceivedOnTransport:
+                    return true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

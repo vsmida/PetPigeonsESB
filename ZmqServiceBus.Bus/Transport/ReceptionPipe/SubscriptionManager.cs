@@ -18,7 +18,7 @@ namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
             peerManager.PeerConnected += OnPeerConnected;
         }
 
-        private void OnPeerConnected(IServicePeer peer)
+        private void OnPeerConnected(ServicePeer peer)
         {
            
         }

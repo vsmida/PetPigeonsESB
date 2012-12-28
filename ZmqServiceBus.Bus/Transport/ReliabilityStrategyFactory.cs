@@ -28,7 +28,7 @@ namespace ZmqServiceBus.Bus.Transport
                     //case ReliabilityOption.SendToClientAndBrokerNoAck:
                     //    break;
                 case ReliabilityLevel.SomeoneReceivedMessageOnTransport:
-                    return new WaitForClientOrBrokerAck(messageOptions.ReliabilityInfo.BrokerEndpoint, _stateManager);
+                    return new WaitForClientOrBrokerAck(_stateManager);
                     break;
                     //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                     //    break;

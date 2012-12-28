@@ -44,7 +44,7 @@ namespace ZmqServiceBus.Tests
                 <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
             _sendingStrategyManagerMock = new Mock<ISendingStrategyStateManager>();
             _startupStrategyManagerMock = new Mock<IStartupStrategyManager>();
-            _receptionLayer = new ReceptionLayer(_dataReceiverMock.Object, _sendingStrategyManagerMock.Object, _startupStrategyManagerMock.Object);
+          //  _receptionLayer = new ReceptionLayer(_dataReceiverMock.Object, _sendingStrategyManagerMock.Object, _startupStrategyManagerMock.Object);
             _startupStrategyManagerMock.Setup(x => x.CheckMessage(It.IsAny<IReceivedTransportMessage>())).Returns
     <IReceivedTransportMessage>(x => new List<IReceivedTransportMessage> { x });
         }

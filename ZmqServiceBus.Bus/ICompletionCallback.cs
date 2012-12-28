@@ -4,7 +4,7 @@ using ZmqServiceBus.Bus.InfrastructureMessages;
 
 namespace ZmqServiceBus.Bus
 {
-    public interface ICompletionCallback : IBlockableUntilCompletion, IBlockableUntilMessageReliablySent
+    public interface ICompletionCallback : IBlockableUntilCompletion
     {
         void RegisterCallback(Action<CompletionAcknowledgementMessage> onCompletion);
         void ExecuteCallback(CompletionAcknowledgementMessage message);
@@ -15,12 +15,7 @@ namespace ZmqServiceBus.Bus
         void WaitForCompletion();        
     }
 
-    public interface IBlockableUntilMessageReliablySent
-    {
-        void WaitForMessageToBeReliablySent();
-        event Action MessageReliablySent;
-        void Release();
-    }
+ 
 
     public class DefaultCompletionCallback : ICompletionCallback
     {

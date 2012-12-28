@@ -8,19 +8,16 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
     internal class FireAndForget : SendingReliabilityStrategy
     {
-
-        public override IEnumerable<ISendingBusMessage> Send(IMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
+        public override void SetupCommandReliabilitySafeguards(ISendingBusMessage message)
         {
             ReliabilityAchieved();
-            return new[] {GetTransportMessage(message, concernedSubscriptions.Select(x => x.Endpoint))  };
         }
 
-        public override IEnumerable<ISendingBusMessage> Publish(IMessage message, IEnumerable<IMessageSubscription> concernedSubscriptions)
+        public override void SetupEventReliabilitySafeguards(ISendingBusMessage message)
         {
             ReliabilityAchieved();
-            return new[] { GetTransportMessage(message, concernedSubscriptions.Select(x => x.Endpoint)) };
         }
 
-        public override event Action ReliabilityAchieved = delegate{};
+        public override event Action ReliabilityAchieved;
     }
 }

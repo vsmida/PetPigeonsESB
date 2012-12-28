@@ -7,6 +7,13 @@ using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.Transport
 {
+    public interface IBlockableUntilMessageReliablySent
+    {
+        void WaitForMessageToBeReliablySent();
+        event Action MessageReliablySent;
+        void Release();
+    }
+
     public interface IPersistenceSynchronizer
     {
         event Action<string> MessageTypeSynchronizationRequested;

@@ -42,6 +42,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                             {
                                                 foreach (var message in _messagesToForward.GetConsumingEnumerable())
                                                 {
+                                                    
                                                     OnMessageReceived(message);
                                                 }
                                             });

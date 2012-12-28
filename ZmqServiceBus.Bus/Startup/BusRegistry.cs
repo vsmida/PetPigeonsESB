@@ -38,6 +38,7 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
              ForSingletonOf<IBusBootstrapperConfiguration>().Use<BusBootstrapperConfiguration>();
              ForSingletonOf<IBus>().Use<InternalBus>();
+             ForSingletonOf<IReplier>().Use(ctx => ctx.GetInstance<InternalBus>());
 
          }
     }

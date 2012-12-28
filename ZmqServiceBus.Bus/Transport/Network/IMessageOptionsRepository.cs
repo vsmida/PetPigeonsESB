@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Shared;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 
@@ -10,6 +12,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         event Action<MessageOptions> OptionsUpdated;
         void RegisterOptions(MessageOptions options);
         MessageOptions GetOptionsFor(string messageType);
+        List<MessageOptions> GetAllOptions();
     }
 
     public class MessageOptionsRepository : IMessageOptionsRepository
@@ -28,6 +31,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
             MessageOptions option;
             _options.TryGetValue(messageType, out option);
             return option;
+        }
+
+        public List<MessageOptions> GetAllOptions()
+        {
+            return _options.Values.ToList();
         }
     }
 }

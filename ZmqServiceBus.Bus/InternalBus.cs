@@ -37,7 +37,6 @@ namespace ZmqServiceBus.Bus
         public IBlockableUntilCompletion Send(ICommand command)
         {
             var blockableUntilCompletion = _messageSender.Send(command);
-            blockableUntilCompletion.WaitForMessageToBeReliablySent();
             return blockableUntilCompletion;
         }
 

@@ -108,8 +108,8 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_register_directory_service_as_peer()
         {
-            IServicePeer dirServicePeer = null;
-            _peerManagerMock.Setup(x => x.RegisterPeer(It.IsAny<IServicePeer>())).Callback<IServicePeer>(x => dirServicePeer = x);
+            ServicePeer dirServicePeer = null;
+            _peerManagerMock.Setup(x => x.RegisterPeer(It.IsAny<ServicePeer>())).Callback<ServicePeer>(x => dirServicePeer = x);
             
             _bootstrapper.BootStrapTopology();
 

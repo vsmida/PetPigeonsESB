@@ -8,20 +8,21 @@ namespace ZmqServiceBus.Bus.Transport.Network
 {
     public interface IPeerManager
     {
-        event Action<IServicePeer> PeerConnected;
-        void RegisterPeer(IServicePeer peer);
+        event Action<ServicePeer> PeerConnected;
+        void RegisterPeer(ServicePeer peer);
         IEnumerable<IMessageSubscription> GetSubscriptionsForMessageType(string messageType);
         IMessageSubscription GetPeerSubscriptionFor(string messageType, string destinationPeer);
+        List<ServicePeer> GetAllPeers();
     }
 
 
     public class PeerManager : IPeerManager
     {
-        public event Action<IServicePeer> PeerConnected = delegate { };
-        private readonly ConcurrentDictionary<string, IServicePeer> _peers = new ConcurrentDictionary<string, IServicePeer>();
+        public event Action<ServicePeer> PeerConnected = delegate { };
+        private readonly ConcurrentDictionary<string, ServicePeer> _peers = new ConcurrentDictionary<string, ServicePeer>();
         private readonly ConcurrentDictionary<string, List<IMessageSubscription>> _messagesToEndpoints = new ConcurrentDictionary<string, List<IMessageSubscription>>();
 
-        public void RegisterPeer(IServicePeer peer)
+        public void RegisterPeer(ServicePeer peer)
         {
             _peers.AddOrUpdate(peer.PeerName, peer, (key, oldValue) => peer);
 
@@ -48,12 +49,17 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public IMessageSubscription GetPeerSubscriptionFor(string messageType, string destinationPeer)
         {
-            IServicePeer peer;
+            ServicePeer peer;
             _peers.TryGetValue(destinationPeer, out peer);
             if (peer == null)
                 return null;
             var messageSubscription = peer.HandledMessages.SingleOrDefault(x => x.MessageType.FullName == messageType);
             return messageSubscription;
+        }
+
+        public List<ServicePeer> GetAllPeers()
+        {
+            return _peers.Values.ToList();
         }
     }
 }
