@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
-using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStates;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies;
 
 namespace ZmqServiceBus.Bus.Transport
 {
@@ -16,43 +18,45 @@ namespace ZmqServiceBus.Bus.Transport
 
     public interface IPersistenceSynchronizer
     {
-        event Action<string> MessageTypeSynchronizationRequested;
-        event Action<string, string> MessageTypeForPeerSynchronizationRequested;
-        void SynchronizeMessageType(string messageType);
-        void SynchronizeMessageType(string messageType, string peer);
-        ICompletionCallback PersistMessage(ISendingBusMessage message);
+        void PersistMessages(IEnumerable<SendingBusMessage> messages);
     }
 
-   public class BrokerPersistenceSynchronizer : IPersistenceSynchronizer
+    public class PeerQueue
     {
-       
-        public event Action<string> MessageTypeSynchronizationRequested = delegate{};
-        public event Action<string, string> MessageTypeForPeerSynchronizationRequested = delegate{};
-       private readonly IMessageSender _messageSender;
-       private readonly IMessageOptionsRepository _messageOptionsRepository;
-       private readonly ISendingStrategyStateManager _sendingStrategyStateManager;
-
-       public BrokerPersistenceSynchronizer(IMessageSender messageSender, IMessageOptionsRepository messageOptionsRepository)
-       {
-           _messageSender = messageSender;
-           _messageOptionsRepository = messageOptionsRepository;
-       }
-
-       public void SynchronizeMessageType(string messageType)
+        private Queue<SendingBusMessage> _messages = new Queue<SendingBusMessage>();
+        public string PeerName { get; private set; }
+        public Queue<SendingBusMessage> Messages
         {
-            _messageSender.Send(new SynchronizeMessageCommand(messageType));
-            MessageTypeSynchronizationRequested(messageType);
+            get { return _messages; }
         }
 
-        public void SynchronizeMessageType(string messageType, string peer)
+
+        public PeerQueue(string peerName)
         {
-            _messageSender.Send(new SynchronizePeerMessageCommand(messageType, peer));
-            MessageTypeForPeerSynchronizationRequested(messageType, peer);
+            PeerName = peerName;
         }
 
-       public ICompletionCallback PersistMessage(ISendingBusMessage message)
-       {
-           return _messageSender.Route(new PersistMessageCommand(message),_messageOptionsRepository.GetOptionsFor(message.MessageType).ReliabilityInfo.BrokerName);   
-       }
+        public void AddMessage(SendingBusMessage message)
+        {
+            _messages.Enqueue(message);
+        }
+    }
+
+    public class InMemoryPersistenceSynchronizer
+    {
+
+
+        private IPeerManager _peerManager;
+        private Dictionary<IEndpoint, string> _endpointsToPeers = new Dictionary<IEndpoint, string>();
+        private ConcurrentDictionary<string, ConcurrentQueue<SendingBusMessage>> _messagesByPeer = new ConcurrentDictionary<string, ConcurrentQueue<SendingBusMessage>>();
+        private ConcurrentDictionary<IEndpoint, ConcurrentQueue<SendingBusMessage>> _endpointsToSavedMessages = new ConcurrentDictionary<IEndpoint, ConcurrentQueue<SendingBusMessage>>();
+        private IDataSender _dataSender;
+
+        public InMemoryPersistenceSynchronizer(IPeerManager peerManager, IDataSender dataSender)
+        {
+            _peerManager = peerManager;
+            _dataSender = dataSender;
+        }
+
     }
 }

@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Shared;
+using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Transport
 {
@@ -15,11 +17,13 @@ namespace ZmqServiceBus.Tests.Transport
 
         private class FakeCommand : ICommand
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
         }
 
         private class FakeEvent : IEvent
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
         }
 
@@ -27,7 +31,7 @@ namespace ZmqServiceBus.Tests.Transport
         [SetUp]
         public void setup()
         {
-            _peerManager = new PeerManager();
+            //_peerManager = new PeerManager();
         }
 
         //[Test]
@@ -49,7 +53,7 @@ namespace ZmqServiceBus.Tests.Transport
             ServicePeer raisedPeer = null;
             _peerManager.PeerConnected += x => raisedPeer = x;
             
-            _peerManager.RegisterPeer(peer);
+            _peerManager.RegisterPeerConnection(peer);
 
             Assert.AreEqual(raisedPeer, peer);
         }
@@ -60,8 +64,8 @@ namespace ZmqServiceBus.Tests.Transport
             var peer = GetPeer();
             var peer2 = GetPeer("Test2", "T12");
 
-            _peerManager.RegisterPeer(peer);
-            _peerManager.RegisterPeer(peer2);
+            _peerManager.RegisterPeerConnection(peer);
+            _peerManager.RegisterPeerConnection(peer2);
 
             Assert.AreEqual(peer2.HandledMessages.Single(), _peerManager.GetPeerSubscriptionFor(typeof(FakeCommand).FullName, peer2.PeerName));
         }

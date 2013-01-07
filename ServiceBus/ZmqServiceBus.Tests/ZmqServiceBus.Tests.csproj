@@ -68,6 +68,15 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Atomic">
+      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Atomic.dll</HintPath>
+    </Reference>
+    <Reference Include="Disruptor">
+      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Disruptor.dll</HintPath>
+    </Reference>
+    <Reference Include="Disruptor.Scheduler">
+      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Disruptor.Scheduler.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework, Version=2.5.2.9222, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Libraries\Nunit\framework\nunit.framework.dll</HintPath>
@@ -92,24 +101,21 @@
     <Compile Include="BusCreationTest.cs" />
     <Compile Include="CallbackRepositoryTests.cs" />
     <Compile Include="DefaultCompletionCallbackTests.cs" />
+    <Compile Include="Disruptor\PlayTest.cs" />
     <Compile Include="InfrastructureHandlers\CompletionMessageHandlerTests.cs" />
-    <Compile Include="InternalBusTests.cs" />
     <Compile Include="InfrastructureHandlers\DirectoryServiceMessagesHandlerTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />
+    <Compile Include="Integration\DummyPeerConfig.cs" />
     <Compile Include="Integration\SimpleMessageExchange.cs" />
     <Compile Include="Integration\IntegrationTestsMockCreator.cs" />
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="BrokerPersistenceSynchronizerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReceptionLayerTests.cs" />
-    <Compile Include="StartupStrategyManagerTests.cs" />
     <Compile Include="SubscriptionManagerTests.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />
     <Compile Include="Transport\MessageSenderTests.cs" />
     <Compile Include="Transport\PeerManagerTests.cs" />
-    <Compile Include="Transport\SendingStrategyStateManagerTests.cs" />
     <Compile Include="Transport\TestData.cs" />
-    <Compile Include="Transport\ZmqDataReceiverTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -120,10 +126,6 @@
     <ProjectReference Include="..\..\..\Moq\Source\Moq.csproj">
       <Project>{1c91ac30-5977-4be5-ba67-8eb186c03514}</Project>
       <Name>Moq</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\DirectoryService\DirectoryService.Commands\DirectoryService.Commands.csproj">
-      <Project>{49ea8413-2ffb-48f8-bbcf-2bff26b1df99}</Project>
-      <Name>DirectoryService.Commands</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\DirectoryService\DirectoryService.Events\DirectoryService.Events.csproj">
       <Project>{9ebb2a67-a2b4-4517-ab16-8234e6fa612b}</Project>

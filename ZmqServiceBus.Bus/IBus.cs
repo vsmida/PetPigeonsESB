@@ -1,6 +1,6 @@
 ﻿using System;
 using Shared;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.MessageInterfaces;
 
 namespace ZmqServiceBus.Bus
 {

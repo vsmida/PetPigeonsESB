@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using ProtoBuf;
 using Shared;
 using Shared.Attributes;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
@@ -21,6 +21,11 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         {
             KnownPeers = knownPeers;
             MessageOptions = messageOptions;
+        }
+
+        public ReliabilityLevel DesiredReliability
+        {
+            get { return ReliabilityLevel.FireAndForget; }
         }
     }
 }

@@ -2,9 +2,8 @@
 {
     public enum ReliabilityLevel
     {
-        FireAndForget = 1,
-        SendToClientAndBrokerNoAck = 2,
-        SomeoneReceivedMessageOnTransport =3,
-        ClientAndBrokerReceivedOnTransport = 4,
+        FireAndForget = 0,
+        Ordered = 1, //sequence number
+        Persisted = 2, //sequence number + broker when disconnected
     }
 }

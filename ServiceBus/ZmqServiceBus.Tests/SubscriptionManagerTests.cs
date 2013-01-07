@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
 using Shared;
+using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
+using ZmqServiceBus.Bus.Subscriptions;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests
 {
@@ -15,6 +18,7 @@ namespace ZmqServiceBus.Tests
     {
         private class FakeMessage : IEvent
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
             
         }
 

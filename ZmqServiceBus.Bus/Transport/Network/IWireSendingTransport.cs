@@ -9,7 +9,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         event Action<IEndpoint> EndpointDisconnected;
         WireSendingTransportType TransportType { get; }
         void Initialize();
-        void SendMessage(ISendingBusMessage message, IEndpoint endpoint);
-        void SendMessage(ISendingBusMessage message, IEnumerable<IEndpoint> endpoint);
+        void SendMessage(WireSendingMessage message, IEndpoint endpoint);
+        void SendMessage(WireSendingMessage message, IEnumerable<IEndpoint> endpoint);
     }
 }

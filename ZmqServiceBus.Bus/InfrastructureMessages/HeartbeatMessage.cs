@@ -1,18 +1,30 @@
 ﻿using System;
+using ProtoBuf;
+using Shared;
+using Shared.Attributes;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport.Network;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
-    public class HeartbeatMessage : IMessage
+    [InfrastructureMessage]
+    [ProtoContract]
+    public class HeartbeatMessage : IMessage, ICommand
     {
+        [ProtoMember(1, IsRequired = true)]
         public readonly DateTime TimestampUtc;
+        [ProtoMember(2, IsRequired = true)]
         public readonly IEndpoint Endpoint;
 
         public HeartbeatMessage(DateTime timestampUtc, IEndpoint endpoint)
         {
             TimestampUtc = timestampUtc;
             Endpoint = endpoint;
+        }
+
+        public ReliabilityLevel DesiredReliability
+        {
+            get { return ReliabilityLevel.FireAndForget; }
         }
     }
 }

@@ -2,21 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ZmqServiceBus.Bus.Transport.Network;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies
 {
     internal class FireAndForget : SendingReliabilityStrategy
     {
-        public override void SetupCommandReliabilitySafeguards(ISendingBusMessage message)
+        public override void SetupReliabilitySafeguards(SendingBusMessage message)
         {
             ReliabilityAchieved();
         }
 
-        public override void SetupEventReliabilitySafeguards(ISendingBusMessage message)
+        public override void RegisterAck(Guid messageId, string originatingPeer)
         {
-            ReliabilityAchieved();
         }
+
+
 
         public override event Action ReliabilityAchieved;
     }

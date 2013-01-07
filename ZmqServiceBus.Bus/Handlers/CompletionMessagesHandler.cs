@@ -1,10 +1,13 @@
 ﻿using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
+using ZmqServiceBus.Bus.Transport;
 
 namespace ZmqServiceBus.Bus.Handlers
 {
     public class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
     {
         private readonly ICallbackRepository _callbackRepository;
+        private readonly ReliabilityStrategyFactory _reliabilityStrategyFactory;
 
         public CompletionMessagesHandler(ICallbackRepository callbackRepository)
         {
@@ -20,6 +23,7 @@ namespace ZmqServiceBus.Bus.Handlers
             callback.ExecuteCallback(item);
 
             _callbackRepository.RemoveCallback(item.MessageId);
+            //_persistenceSynchronizer.Forget(item.MessageId);
         }
     }
 }

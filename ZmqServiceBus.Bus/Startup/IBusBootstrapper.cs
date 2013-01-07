@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shared;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Subscriptions;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
@@ -25,9 +26,10 @@ namespace ZmqServiceBus.Bus.Startup
         private readonly IMessageSender _messageSender;
         private readonly IPeerManager _peerManager;
         private readonly ISubscriptionManager _subscriptionManager;
+        private readonly IPeerConfiguration _peerConfiguration;
 
         public BusBootstrapper(IAssemblyScanner assemblyScanner, ZmqTransportConfiguration zmqTransportConfiguration, IBusBootstrapperConfiguration bootstrapperConfiguration,
-            IMessageOptionsRepository optionsRepo, IMessageSender messageSender, IPeerManager peerManager, ISubscriptionManager subscriptionManager)
+            IMessageOptionsRepository optionsRepo, IMessageSender messageSender, IPeerManager peerManager, ISubscriptionManager subscriptionManager, IPeerConfiguration peerConfiguration)
         {
             _assemblyScanner = assemblyScanner;
             _zmqTransportConfiguration = zmqTransportConfiguration;
@@ -36,14 +38,12 @@ namespace ZmqServiceBus.Bus.Startup
             _messageSender = messageSender;
             _peerManager = peerManager;
             _subscriptionManager = subscriptionManager;
+            _peerConfiguration = peerConfiguration;
         }
 
         public void BootStrapTopology()
         {
-            _optionsRepo.RegisterOptions(new MessageOptions(typeof(InitializeTopologyAndMessageSettings).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
-            _optionsRepo.RegisterOptions(new MessageOptions(typeof(RegisterPeerCommand).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
-            _optionsRepo.RegisterOptions(new MessageOptions(typeof(PeerConnected).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
-            _optionsRepo.RegisterOptions(new MessageOptions(typeof(CompletionAcknowledgementMessage).FullName, new ReliabilityInfo(ReliabilityLevel.FireAndForget)));
+            _optionsRepo.InitializeOptions();
 
             var messageSubscriptions =
                 _assemblyScanner.GetHandledCommands().Concat(_assemblyScanner.GetHandledEvents()).Select(
@@ -51,16 +51,26 @@ namespace ZmqServiceBus.Bus.Startup
                     new MessageSubscription(x, _zmqTransportConfiguration.PeerName,
                                             new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), null));
 
-            var peer = new ServicePeer(_zmqTransportConfiguration.PeerName, messageSubscriptions);
-            var command = new RegisterPeerCommand(peer);
+            var peer = new ServicePeer(_zmqTransportConfiguration.PeerName, messageSubscriptions.ToList(), _peerConfiguration.ShadowedPeers);
+            _peerManager.RegisterPeerConnection(peer); //register yourself.
+            var commandRequest = new InitializeTopologyRequest(peer);
 
-            var directoryServiceRegisterPeerSubscription = new MessageSubscription(typeof (RegisterPeerCommand),
+            var directoryServiceRegisterPeerSubscription = new MessageSubscription(typeof(InitializeTopologyRequest),
                                                                                    _bootstrapperConfiguration.
                                                                                        DirectoryServiceName,
                                                                                    new ZmqEndpoint(
                                                                                        _bootstrapperConfiguration.
                                                                                            DirectoryServiceEndpoint),
                                                                                    null);
+
+            var directoryServiceRegisterPeerSubscription2 = new MessageSubscription(typeof(InitializeTopologyAndMessageSettings),
+                                                                       _bootstrapperConfiguration.
+                                                                           DirectoryServiceName,
+                                                                       new ZmqEndpoint(
+                                                                           _bootstrapperConfiguration.
+                                                                               DirectoryServiceEndpoint),
+                                                                       null);
+
 
             var directoryServiceCompletionMessageSubscription = new MessageSubscription(typeof(CompletionAcknowledgementMessage),
                                                                        _bootstrapperConfiguration.
@@ -71,10 +81,19 @@ namespace ZmqServiceBus.Bus.Startup
                                                                        null);
 
             var directoryServiceBarebonesPeer = new ServicePeer(_bootstrapperConfiguration.DirectoryServiceName,
-                                                                new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription });
-            _peerManager.RegisterPeer(directoryServiceBarebonesPeer);
+                                                                new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription, directoryServiceRegisterPeerSubscription2 }, null);
+          
+            _peerManager.RegisterPeerConnection(directoryServiceBarebonesPeer);
 
-            _messageSender.Send(command).WaitForCompletion(); //now should get a init topo reply and the magic is done?
+            var completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
+            completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?
+
+            //now register with everybody we know of
+            _messageSender.Publish(new PeerConnected(peer));
+
+            //ask for topo again in case someone connected simulataneously to other node
+            completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
+            completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?
         }
     }
 }

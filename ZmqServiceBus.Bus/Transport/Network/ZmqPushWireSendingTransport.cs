@@ -26,7 +26,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         }
 
-        public void SendMessage(ISendingBusMessage message, IEndpoint endpoint)
+        public void SendMessage(WireSendingMessage message, IEndpoint endpoint)
         {
             ZmqSocket socket;
             var zmqEndpoint = (ZmqEndpoint)endpoint;
@@ -36,10 +36,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
                 _endpointsToSockets.Add(zmqEndpoint, socket);
             }
 
-            socket.SendMore(message.MessageType, Encoding.ASCII);
+            socket.SendMore(message.MessageData.MessageType, Encoding.ASCII);
             socket.SendMore(_zmqTransportConfiguration.PeerName, Encoding.ASCII);
-            socket.SendMore(message.MessageIdentity.ToByteArray());
-            var sendStatus = socket.Send(message.Data, TimeSpan.FromMilliseconds(200));
+            socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
+            var sendStatus = socket.Send(message.MessageData.Data, TimeSpan.FromMilliseconds(200));
             if (sendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
                 EndpointDisconnected(endpoint);
@@ -48,7 +48,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
                 _endpointsToSockets.Remove(zmqEndpoint);
             }
         }
-
+        
         private ZmqSocket CreatePushSocket(ZmqEndpoint zmqEndpoint)
         {
             var socket = _context.CreateSocket(SocketType.PUSH);
@@ -58,7 +58,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             return socket;
         }
 
-        public void SendMessage(ISendingBusMessage message, IEnumerable<IEndpoint> endpoints)
+        public void SendMessage(WireSendingMessage message, IEnumerable<IEndpoint> endpoints)
         {
             foreach (var endpoint in endpoints)
             {

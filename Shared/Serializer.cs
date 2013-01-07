@@ -5,8 +5,9 @@ using ProtoBuf.Meta;
 
 namespace Shared
 {
-    public static class Serializer
+    internal static class Serializer
     {
+
         public static byte[] Serialize(object instance)
         {
             using (var stream = new MemoryStream())

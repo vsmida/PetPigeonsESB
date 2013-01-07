@@ -2,24 +2,28 @@
 using System.Collections.Generic;
 using Shared;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Transport
 {
     public static class TestData
     {
         public class FakeCommand : ICommand
-        { }
+        {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
+        }
 
         public class FakeEvent
         { }
 
         public class FakeCommandHandler : ICommandHandler<FakeCommand>
         {
-            public static event Action<FakeCommand> HandlingCommand = delegate {};
+            public static event Action<FakeCommand> HandlingCommand = delegate { };
 
             public void Handle(FakeCommand item)
             {
@@ -29,15 +33,15 @@ namespace ZmqServiceBus.Tests.Transport
 
         public class CommandThatThrows : ICommand
         {
-            
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
         }
 
-        public class CommandThatThrowsHandler:ICommandHandler<CommandThatThrows>
-
+        public class CommandThatThrowsHandler : ICommandHandler<CommandThatThrows>
         {
             public void Handle(CommandThatThrows item)
             {
-                    throw new Exception("throwing");
+                throw new Exception("throwing");
             }
         }
 
@@ -54,7 +58,7 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), Serializer.Serialize(item));
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), BusSerializer.Serialize(item));
         }
 
         public static SendingBusMessage GenerateDummySendingMessage<T>()
@@ -64,7 +68,7 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static SendingBusMessage GenerateDummySendingMessage<T>(T item)
         {
-            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), Serializer.Serialize(item), null);
+            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), BusSerializer.Serialize(item), null);
         }
 
         public static ServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

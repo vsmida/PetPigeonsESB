@@ -34,20 +34,20 @@ namespace ZmqServiceBus.Tests.InfrastructureHandlers
 
             _handler.Handle(peerConnected);
 
-            _peerManagerMock.Verify(x => x.RegisterPeer(servicePeer));
+            _peerManagerMock.Verify(x => x.RegisterPeerConnection(servicePeer));
         }
 
         [Test]
         public void should_initialize_topology_and_messages()
         {
             var peer = TestData.GenerateServicePeer();
-            var option = new MessageOptions("type", new ReliabilityInfo(ReliabilityLevel.FireAndForget));
+            var option = new MessageOptions("type", ReliabilityLevel.FireAndForget);
             var command = new InitializeTopologyAndMessageSettings(new List<ServicePeer> { (ServicePeer)peer },
                                                                     new List<MessageOptions> {option});
 
             _handler.Handle(command);
 
-            _peerManagerMock.Verify(x => x.RegisterPeer(peer));
+            _peerManagerMock.Verify(x => x.RegisterPeerConnection(peer));
             _optionsRepoMock.Verify(x => x.RegisterOptions(option));
         }
     }

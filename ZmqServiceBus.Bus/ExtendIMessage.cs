@@ -1,5 +1,5 @@
 using System.Linq;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.MessageInterfaces;
 
 namespace ZmqServiceBus.Bus
 {

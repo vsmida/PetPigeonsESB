@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using ProtoBuf;
 using ZeroMQ;
+using Serializer = Shared.Serializer;
 
 namespace Shared
 {

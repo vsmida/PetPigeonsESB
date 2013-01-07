@@ -10,7 +10,8 @@ using Shared.Attributes;
 using StructureMap;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Tests.Transport;
 
 namespace ZmqServiceBus.Tests
@@ -86,6 +87,8 @@ namespace ZmqServiceBus.Tests
         [ProtoContract]
         private class FakeEvent : IEvent
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
             [ProtoMember(1, IsRequired = true)]
             public int Number;
 
@@ -99,6 +102,8 @@ namespace ZmqServiceBus.Tests
         [ProtoContract]
         private class UnknownEvent : IEvent
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+            
             [ProtoMember(1, IsRequired = true)]
             public int Number;
 
@@ -111,6 +116,8 @@ namespace ZmqServiceBus.Tests
         [ProtoContract]
         private class FakeCommand : ICommand
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
             [ProtoMember(1, IsRequired = true)]
             public int Number;
 
@@ -123,6 +130,8 @@ namespace ZmqServiceBus.Tests
         [ProtoContract]
         private class FakeCommand2 : ICommand
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
             [ProtoMember(1, IsRequired = true)]
             public int Number;
 
@@ -135,6 +144,8 @@ namespace ZmqServiceBus.Tests
         [ProtoContract]
         private class UnknownCommand : ICommand
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
             [ProtoMember(1, IsRequired = true)]
             public int Number;
 
@@ -144,7 +155,7 @@ namespace ZmqServiceBus.Tests
             }
         }
 
-        private class FakeEventHandler : IEventHandler<FakeEvent>
+        private class FakeEventHandler : IBusEventHandler<FakeEvent>
         {
             public static int? NumberInMessage;
             public static AutoResetEvent HandledMessage = new AutoResetEvent(false);
@@ -156,7 +167,7 @@ namespace ZmqServiceBus.Tests
             }
         }
 
-        private class FakeEventHandler_2 : IEventHandler<FakeEvent>
+        private class FakeEventHandler_2 : IBusEventHandler<FakeEvent>
         {
             public static int? NumberInMessage;
             public static AutoResetEvent HandledMessage = new AutoResetEvent(false);

@@ -2,12 +2,12 @@ using System;
 
 namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 {
-    public class ReceivedTransportMessage : IReceivedTransportMessage
+    public struct ReceivedTransportMessage
     {
-        public string PeerName { get; private set; }
-        public string MessageType { get; private set; }
-        public Guid MessageIdentity { get; private set; }
-        public byte[] Data { get; private set; }
+        public readonly string PeerName;
+        public readonly string MessageType;
+        public readonly Guid MessageIdentity;
+        public readonly byte[] Data;
 
         public ReceivedTransportMessage(string messageType, string peerName, Guid messageIdentity, byte[] data)
         {

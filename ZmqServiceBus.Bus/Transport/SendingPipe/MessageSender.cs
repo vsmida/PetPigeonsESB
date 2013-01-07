@@ -1,30 +1,21 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading;
-using Shared;
+using Disruptor;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport.Network;
-using ZmqServiceBus.Contracts;
 using System.Linq;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
     public class MessageSender : IMessageSender
     {
-        private readonly IMessageOptionsRepository _messageOptionsRepository;
-        private readonly IReliabilityStrategyFactory _strategyFactory;
-        private readonly ICallbackRepository _callbackRepository;
-        private readonly IPeerManager _peerManager;
-        private readonly IDataSender _dataSender;
+        private RingBuffer<OutboundMessageProcessingEntry> _ringBuffer;
 
-        public MessageSender(IMessageOptionsRepository messageOptionsRepository, IReliabilityStrategyFactory strategyFactory, ICallbackRepository callbackRepository, IPeerManager peerManager, IDataSender dataSender)
+        public void Initialize(RingBuffer<OutboundMessageProcessingEntry> buffer)
         {
-            _messageOptionsRepository = messageOptionsRepository;
-            _strategyFactory = strategyFactory;
-            _callbackRepository = callbackRepository;
-            _peerManager = peerManager;
-            _dataSender = dataSender;
-
+            _ringBuffer = buffer;
         }
 
         public ICompletionCallback Send(ICommand message, ICompletionCallback callback = null)
@@ -34,65 +25,47 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             return nonNullCallback;
         }
 
+        private void SendInternal(IMessage message, ICompletionCallback callback)
+        {
+            var sequence = _ringBuffer.Next();
+            var data = _ringBuffer[sequence];
+            data.Message = message;
+            data.Callback = callback;
+            _ringBuffer.Publish(sequence);
+        }
+
         public void Publish(IEvent message)
         {
-          //  _itemsToSend.Add(new ItemToSend { Message = message, SendAction = SendAction.Publish });
+            SendInternal(message, null);
         }
 
         public ICompletionCallback Route(IMessage message, string peerName)
         {
-            return RouteInternal(message, peerName);
-           // _itemsToSend.Add(new ItemToSend { Message = message, PeerName = peerName, SendAction = SendAction.Route });
-        }
-
-        protected ISendingBusMessage GetTransportMessage(IMessage message, IEnumerable<IEndpoint> endpoints)
-        {
-            return new SendingBusMessage(message.GetType().FullName, Guid.NewGuid(), Serializer.Serialize(message), endpoints);
-        }
-
-        private void SendInternal(IMessage message, ICompletionCallback callback)
-        {
-            var concernedSubscriptions = _peerManager.GetSubscriptionsForMessageType(message.GetType().FullName).Where(x => x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(message));
-            SendUsingSubscriptions(message, callback, concernedSubscriptions);
-        }
-
-        private void SendUsingSubscriptions(IMessage message, ICompletionCallback callback, IEnumerable<IMessageSubscription> concernedSubscriptions)
-        {
-            var transportMessage = GetTransportMessage(message, concernedSubscriptions.Select(x => x.Endpoint));
-
-            var waitForReliabilityToBeAchieved = new AutoResetEvent(false);
-            var sendingStrat =
-                _strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(message.GetType().FullName));
-            sendingStrat.ReliabilityAchieved += () => waitForReliabilityToBeAchieved.Set();
-            sendingStrat.SetupCommandReliabilitySafeguards(transportMessage);
-
-            _callbackRepository.RegisterCallback(transportMessage.MessageIdentity, callback);
-
-            _dataSender.SendMessage(transportMessage);
-
-            waitForReliabilityToBeAchieved.WaitOne();
-        }
-
-        public void PublishInternal(IMessage message)
-        {
-            var concernedSubscriptions = _peerManager.GetSubscriptionsForMessageType(message.GetType().FullName).Where(x => x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(message));
-            var sendingStrat = _strategyFactory.GetSendingStrategy(_messageOptionsRepository.GetOptionsFor(message.GetType().FullName));
-         //   ISendingBusMessage sendingMessage = GetTransportMessage(message);
-         //   sendingStrat.Publish(sendingMessage, concernedSubscriptions);
-        }
-
-        public ICompletionCallback RouteInternal(IMessage message, string peerName)
-        {
             var callback = new DefaultCompletionCallback();
-            var subscription = _peerManager.GetPeerSubscriptionFor(message.GetType().FullName, peerName);
-            SendUsingSubscriptions(message, callback, new[]{subscription});
+
+            var sequence = _ringBuffer.Next();
+            var data = _ringBuffer[sequence];
+            
+            data.Message = message;
+            data.Callback = callback;
+            data.TargetPeer = peerName;
+            
+            _ringBuffer.Publish(sequence);
+            
             return callback;
         }
 
-        public void Dispose()
+        public void Acknowledge(Guid messageId, bool processSuccessful, string originatingPeer)
         {
-            _dataSender.Dispose();
-            //_sendingThread.Join();
+            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, processSuccessful);
+            var sequence = _ringBuffer.Next();
+            var data = _ringBuffer[sequence];
+
+            data.Message = acknowledgementMessage;
+            data.TargetPeer = originatingPeer;
+            data.IsAcknowledgement = true;
+            
+            _ringBuffer.Publish(sequence);
         }
     }
 }

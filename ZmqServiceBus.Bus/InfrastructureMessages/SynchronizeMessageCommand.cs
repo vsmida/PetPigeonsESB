@@ -1,5 +1,5 @@
 using ProtoBuf;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.MessageInterfaces;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
@@ -13,5 +13,6 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         {
             MessageType = messageType;
         }
+
     }
 }

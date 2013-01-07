@@ -1,4 +1,5 @@
 using ProtoBuf;
+using Shared;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
@@ -8,12 +9,12 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         [ProtoMember(1, IsRequired = true)]
         public readonly string MessageType;
         [ProtoMember(2, IsRequired = true)]
-        public readonly ReliabilityInfo ReliabilityInfo;
+        public readonly ReliabilityLevel ReliabilityLevel;
 
-        public MessageOptions(string messageType, ReliabilityInfo reliabilityInfo)
+        public MessageOptions(string messageType, ReliabilityLevel ReliabilityLevel)
         {
             MessageType = messageType;
-            ReliabilityInfo = reliabilityInfo;
+            ReliabilityLevel = ReliabilityLevel;
         }
 
         private MessageOptions(){}

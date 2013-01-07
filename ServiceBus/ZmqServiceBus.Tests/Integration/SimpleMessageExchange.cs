@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,12 +9,15 @@ using NUnit.Framework;
 using ProtoBuf;
 using ProtoBuf.Meta;
 using Shared;
+using Shared.Attributes;
 using StructureMap;
 using ZmqServiceBus.Bus;
+using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Integration
 {
@@ -33,7 +37,40 @@ namespace ZmqServiceBus.Tests.Integration
         {
 
         }
+        public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
+    }
+
+
+    [ProtoContract]
+    [BusReliability(ReliabilityLevel.Persisted)]
+    [Serializable]
+    public class FakePersistingCommand : ICommand
+    {
+        [ProtoMember(1, IsRequired = true)]
+        public readonly int Number;
+
+        public FakePersistingCommand(int number)
+        {
+            Number = number;
+        }
+
+        private FakePersistingCommand()
+        {
+        }
+
+    }
+
+
+
+    public class FakePersistingCommandHandler : ICommandHandler<FakePersistingCommand>
+    {
+        public static event Action<int> OnCommandReceived = delegate { };
+
+        public void Handle(FakePersistingCommand item)
+        {
+            OnCommandReceived(item.Number);
+        }
 
     }
 
@@ -53,23 +90,18 @@ namespace ZmqServiceBus.Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
 
-        [Test, Timeout(50000000), Repeat(1)]
+        [Test, Timeout(8000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
-            var randomPort3 = NetworkUtils.GetRandomUnusedPort();
             var busName1 = "Service1";
             var busName2 = "Service2";
-            var directoryServiceName = "DirectoryService";
-            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort3, directoryServiceName);
-            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort3, directoryServiceName);
+            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
+            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
 
-            var mockCreator = new IntegrationTestsMockCreator();
-            mockCreator.CreateFakeDirectoryService(randomPort3);
-
-            bus2.Initialize();
             bus1.Initialize();
+            bus2.Initialize();
 
             _waitForCommandToBeHandled = new AutoResetEvent(false);
             FakeCommandHandler.OnCommandReceived += OnCommandReceived;
@@ -78,26 +110,81 @@ namespace ZmqServiceBus.Tests.Integration
 
             _waitForCommandToBeHandled.WaitOne();
 
-
+            //small benchmark
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
             for (int i = 0; i < 1000; i++)
             {
-                bus1.Send(new FakeCommand(5));
-                _waitForCommandToBeHandled.WaitOne();
+                bus1.Send(new FakeCommand(5)).WaitForCompletion();
+           //     _waitForCommandToBeHandled.WaitOne();
             }
 
             watch.Stop();
             Console.WriteLine(" 1000 resend took " + watch.ElapsedMilliseconds + " ms");
             bus1.Dispose();
             bus2.Dispose();
-            
-            mockCreator.StopDirectoryService();
 
         }
 
-        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName)
+        private class FakeAssemblyScanner : AssemblyScanner
+        {
+
+            public override List<Type> GetHandledCommands()
+            {
+                var result = base.GetHandledCommands();
+                return result.Where(x => x != typeof(FakeCommand) && x != typeof(FakePersistingCommand)).ToList();
+            }
+        }
+
+        [Test, Timeout(500000), Repeat(1)]
+        public void should_be_able_persist_message()
+        {
+            var randomPort1 = NetworkUtils.GetRandomUnusedPort();
+            var randomPort2 = NetworkUtils.GetRandomUnusedPort();
+            var heartbeatConfig = new DummyHeartbeatingConfig();
+            var busName1 = "Service1";
+            var busName2 = "Service2";
+            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner:new FakeAssemblyScanner());
+            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+
+            bus1.Initialize();
+            bus2.Initialize();
+
+            _waitForCommandToBeHandled = new AutoResetEvent(false);
+            int receivedNumber = 0;
+            FakePersistingCommandHandler.OnCommandReceived += s =>
+                                                        {
+                                                            Assert.AreEqual(receivedNumber + 1, s);
+                                                            receivedNumber++;
+                                                            _waitForCommandToBeHandled.Set();
+                                                        };
+
+            bus1.Send(new FakePersistingCommand(1));
+
+            _waitForCommandToBeHandled.WaitOne();
+
+            bus2.Dispose(); //dead
+
+            bus1.Send(new FakePersistingCommand(2));
+            Thread.Sleep(heartbeatConfig.HeartbeatInterval); //  should raise disconnect
+
+            var randomPort3 = NetworkUtils.GetRandomUnusedPort();
+            bus2 = CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            bus2.Initialize(); //alive again
+            bus1.Send(new FakePersistingCommand(3));
+
+            _waitForCommandToBeHandled.WaitOne();
+            _waitForCommandToBeHandled.WaitOne();
+
+            if (_waitForCommandToBeHandled.WaitOne(2000))
+                Assert.Fail();// if there is a fourth unwelcome message;
+
+
+        }
+
+
+        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null)
         {
             return BusFactory.CreateBus(containerConfigurationExpression: ctx =>
                                                                               {
@@ -119,6 +206,12 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                                               directoryServiceName
 
                                                                                                       });
+
+                                                                                  ctx.For<IPeerConfiguration>().Use(
+                                                                                      new DummyPeerConfig(busName, null));
+
+                                                                                  ctx.For<IAssemblyScanner>().Use(
+                                                                                      assemblyScanner?? new AssemblyScanner());
                                                                               });
         }
 

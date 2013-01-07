@@ -7,7 +7,7 @@ using System.Threading;
 using Shared;
 using Shared.Attributes;
 using StructureMap;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.MessageInterfaces;
 
 namespace ZmqServiceBus.Bus.Dispatch
 {
@@ -17,7 +17,6 @@ namespace ZmqServiceBus.Bus.Dispatch
         {
             public Type MessageType;
             public MethodInfo MethodToInvoke;
-            public bool IsInfrastructure;
 
             public HandlerDispatcher(Type messageType, MethodInfo methodToInvoke)
             {
@@ -30,7 +29,6 @@ namespace ZmqServiceBus.Bus.Dispatch
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly Dictionary<Type, HandlerDispatcher> _messageTypeToCommandHandler = new Dictionary<Type, HandlerDispatcher>();
         private readonly Dictionary<Type, List<HandlerDispatcher>> _messageTypeToEventHandlers = new Dictionary<Type, List<HandlerDispatcher>>();
-        private readonly BlockingCollection<IMessage> _standardMessagesToDispatch = new BlockingCollection<IMessage>();
 
 
         public MessageDispatcher(IContainer objectFactory, IAssemblyScanner assemblyScanner)

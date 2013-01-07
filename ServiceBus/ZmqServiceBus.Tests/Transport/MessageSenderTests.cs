@@ -5,11 +5,11 @@ using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe.SendingStrategies;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Tests.Transport
 {
@@ -19,12 +19,14 @@ namespace ZmqServiceBus.Tests.Transport
         [ProtoContract]
         private class FakeCommand : ICommand
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
             
         }
 
         [ProtoContract]
         private class FakeEvent : IEvent
         {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
         }
 
@@ -50,7 +52,7 @@ namespace ZmqServiceBus.Tests.Transport
             var stratMock = new Mock<ISendingReliabilityStrategy>();
             _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
                 stratMock.Object);
-            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", ReliabilityLevel.FireAndForget));
 
             var blockableUntilCompletion = _messageSender.Send(new FakeCommand());
 
@@ -65,7 +67,7 @@ namespace ZmqServiceBus.Tests.Transport
             var stratMock = new Mock<ISendingReliabilityStrategy>();
             _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
                 stratMock.Object);
-            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+            _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", ReliabilityLevel.FireAndForget));
 
             var defaultCompletionCallback = new DefaultCompletionCallback();
             var blockableUntilCompletion = _messageSender.Send(new FakeCommand(), defaultCompletionCallback);
@@ -80,7 +82,7 @@ namespace ZmqServiceBus.Tests.Transport
         //    var stratMock = new Mock<ISendingReliabilityStrategy>();
         //    _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
         //        stratMock.Object);
-        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck,"")));
+        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityLevel(ReliabilityLevel.SendToClientAndBrokerNoAck,"")));
 
         //    _messageSender.Send(new FakeCommand());
 
@@ -93,7 +95,7 @@ namespace ZmqServiceBus.Tests.Transport
         //    var stratMock = new Mock<ISendingReliabilityStrategy>();
         //    _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
         //        stratMock.Object);
-        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityInfo( ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("",new ReliabilityLevel( ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
 
         //    _messageSender.Route(new FakeCommand(),"Test");
 
@@ -106,7 +108,7 @@ namespace ZmqServiceBus.Tests.Transport
         //    var stratMock = new Mock<ISendingReliabilityStrategy>();
         //    _reliabilityStratFactoryMock.Setup(x => x.GetSendingStrategy(It.IsAny<MessageOptions>())).Returns(
         //        stratMock.Object);
-        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityInfo(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
+        //    _optionsRepositoryMock.Setup(x => x.GetOptionsFor(It.IsAny<string>())).Returns(new MessageOptions("", new ReliabilityLevel(ReliabilityLevel.SendToClientAndBrokerNoAck, "")));
 
         //    _messageSender.Publish(new FakeEvent());
 

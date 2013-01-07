@@ -4,7 +4,8 @@ using ProtoBuf;
 using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
-using ZmqServiceBus.Contracts;
+using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 
 namespace ZmqServiceBus.Tests
 {
@@ -24,6 +25,8 @@ namespace ZmqServiceBus.Tests
             {
                 Number = number;
             }
+
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
         }
 
         private class FakeEvent2 : IEvent
@@ -35,9 +38,11 @@ namespace ZmqServiceBus.Tests
             {
                 Number = number;
             }
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
         }
 
-        private class FakeEventHandler : IEventHandler<FakeEvent>, IEventHandler<FakeEvent2>
+        private class FakeEventHandler : IBusEventHandler<FakeEvent>, IBusEventHandler<FakeEvent2>
         {
             public static int? NumberInMessage;
 
@@ -72,6 +77,8 @@ namespace ZmqServiceBus.Tests
             {
                 Number = number;
             }
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+
         }
 
         [SetUp]
@@ -112,13 +119,6 @@ namespace ZmqServiceBus.Tests
             var types = _scanner.GetHandledEvents();
             Assert.Contains(typeof(FakeEvent), types);
             Assert.IsFalse(types.Contains(typeof(FakeCommand)));
-        }
-
-        [Test]
-        public void should_find_possibly_sent_events()
-        {
-            var types = _scanner.GetSentEvents();
-            Assert.Contains(typeof(FakeEvent), types);
         }
 
     }

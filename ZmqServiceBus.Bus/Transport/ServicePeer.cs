@@ -13,19 +13,19 @@ namespace ZmqServiceBus.Bus.Transport
         [ProtoMember(1, IsRequired = true)]
         public string PeerName { get; private set; }
         [ProtoMember(2, IsRequired = true)]
-        private List<MessageSubscription> _handledMessages;
-        public IEnumerable<IMessageSubscription> HandledMessages
-        {
-            get { return _handledMessages; }
-        }
+        public readonly List<MessageSubscription> HandledMessages;
+        [ProtoMember(3, IsRequired = true)]
+        public readonly List<string> ShadowedPeers;
 
-        public ServicePeer(string peerName, IEnumerable<MessageSubscription> handledMessages)
+        public ServicePeer(string peerName, List<MessageSubscription> handledMessages, List<string> shadowedPeers)
         {
             PeerName = peerName;
-            _handledMessages = handledMessages.ToList();
+            HandledMessages = handledMessages;
+            ShadowedPeers = shadowedPeers;
         }
 
         private ServicePeer()
-        {}
+        {
+        }
     }
 }

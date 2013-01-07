@@ -1,10 +1,12 @@
 ﻿using ProtoBuf;
 using Shared;
+using Shared.Attributes;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
+    [InfrastructureMessage]
     [ProtoContract]
     public class RegisterPeerCommand : ICommand
     {
@@ -14,6 +16,11 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         public RegisterPeerCommand(ServicePeer peer)
         {
             Peer = peer;
+        }
+
+        public ReliabilityLevel DesiredReliability
+        {
+            get { return ReliabilityLevel.FireAndForget; }
         }
     }
 }

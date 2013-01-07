@@ -10,6 +10,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
             return string.Equals(Endpoint, other.Endpoint);
         }
 
+        public bool Equals(IEndpoint other)
+        {
+            return Equals((object)other);
+        }
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;

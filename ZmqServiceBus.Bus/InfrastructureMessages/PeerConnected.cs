@@ -1,7 +1,7 @@
 ﻿using ProtoBuf;
 using Shared;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
-using ZmqServiceBus.Contracts;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
@@ -15,6 +15,11 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         public PeerConnected(ServicePeer peer)
         {
             Peer = peer;
+        }
+
+        public ReliabilityLevel DesiredReliability
+        {
+            get { return ReliabilityLevel.FireAndForget; }
         }
     }
 }

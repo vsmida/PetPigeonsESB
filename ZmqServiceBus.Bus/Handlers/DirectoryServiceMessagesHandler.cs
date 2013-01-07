@@ -1,12 +1,13 @@
 ﻿using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using System.Linq;
 
 namespace ZmqServiceBus.Bus.Handlers
 {
-    public class DirectoryServiceMessagesHandler : IEventHandler<PeerConnected>, ICommandHandler<InitializeTopologyAndMessageSettings>,
-                                                   ICommandHandler<RegisterPeerCommand>
+    public class DirectoryServiceMessagesHandler : IBusEventHandler<PeerConnected>, ICommandHandler<InitializeTopologyAndMessageSettings>,
+                                                   ICommandHandler<RegisterPeerCommand>, ICommandHandler<InitializeTopologyRequest>
     {
         private readonly IPeerManager _peerManager;
         private readonly IBus _bus;
@@ -23,14 +24,14 @@ namespace ZmqServiceBus.Bus.Handlers
 
         public void Handle(PeerConnected message)
         {
-            _peerManager.RegisterPeer(message.Peer);
+            _peerManager.RegisterPeerConnection(message.Peer);
         }
 
         public void Handle(InitializeTopologyAndMessageSettings message)
         {
             foreach (var servicePeer in message.KnownPeers)
             {
-                _peerManager.RegisterPeer(servicePeer);
+                _peerManager.RegisterPeerConnection(servicePeer);
             }
             foreach (var messageOption in message.MessageOptions)
             {
@@ -40,13 +41,18 @@ namespace ZmqServiceBus.Bus.Handlers
 
         public void Handle(RegisterPeerCommand item)
         {
-            _peerManager.RegisterPeer(item.Peer);
+            _peerManager.RegisterPeerConnection(item.Peer);
 
+         //   _bus.Publish(new PeerConnected(item.Peer));
+        }
+
+        public void Handle(InitializeTopologyRequest item)
+        {
             var initCommand = new InitializeTopologyAndMessageSettings(_peerManager.GetAllPeers().ToList(),
                                                                        _optionsRepository.GetAllOptions());
-            _replier.Reply(initCommand);
+            _peerManager.RegisterPeerConnection(item.Peer);
 
-            _bus.Publish(new PeerConnected(item.Peer));
+            _replier.Reply(initCommand);
         }
     }
 }

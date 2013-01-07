@@ -2,23 +2,25 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using Disruptor;
+using Disruptor.Dsl;
 using Shared;
+using StructureMap;
 using ZeroMQ.Monitoring;
+using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using IMessageSender = ZmqServiceBus.Bus.Transport.SendingPipe.IMessageSender;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
     public interface IDataReceiver : IDisposable
     {
-        event Action<IReceivedTransportMessage> OnMessageReceived;
-        void Initialize();
+        void Initialize(RingBuffer<InboundMessageProcessingEntry> disruptor);
     }
-
+    
     public class DataReceiver : IDataReceiver
     {
         private readonly IWireReceiverTransport[] _transports;
-        public event Action<IReceivedTransportMessage> OnMessageReceived;
-        private readonly BlockingCollection<IReceivedTransportMessage> _messagesToForward = new BlockingCollection<IReceivedTransportMessage>();
-        private Thread _dequeueThread;
 
 
         public DataReceiver(IWireReceiverTransport[] transports)
@@ -26,27 +28,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _transports = transports;
         }
 
-        public void Initialize()
+        public void Initialize(RingBuffer<InboundMessageProcessingEntry> ringBuffer)
         {
             foreach (IWireReceiverTransport wireReceiverTransport in _transports)
             {
-                wireReceiverTransport.Initialize(_messagesToForward);
+                wireReceiverTransport.Initialize(ringBuffer);
             }
-            CreateDequeueThread();
-        }
-
-
-        private void CreateDequeueThread()
-        {
-            _dequeueThread = new Thread(() =>
-                                            {
-                                                foreach (var message in _messagesToForward.GetConsumingEnumerable())
-                                                {
-                                                    
-                                                    OnMessageReceived(message);
-                                                }
-                                            });
-            _dequeueThread.Start();
         }
 
         public void Dispose()
@@ -55,8 +42,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
             {
                 wireReceiverTransport.Dispose();
             }
-            _messagesToForward.CompleteAdding();
-            _dequeueThread.Join();
         }
     }
 }

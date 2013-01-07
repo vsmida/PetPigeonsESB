@@ -7,12 +7,13 @@ using Shared;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Startup;
+using ZmqServiceBus.Bus.Subscriptions;
 using ZmqServiceBus.Bus.Transport;
 using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
-using ZmqServiceBus.Contracts;
 using ZmqServiceBus.Tests.Transport;
 
 namespace ZmqServiceBus.Tests
@@ -21,10 +22,16 @@ namespace ZmqServiceBus.Tests
     public class BusBootStrapperTests
     {
         private class FakeCommand : ICommand
-        { }
+        {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+            
+        }
 
         private class FakeEvent : IEvent
-        { }
+        {
+            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
+            
+        }
 
         private class FakeBootstrapperConfig : IBusBootstrapperConfiguration
         {
@@ -64,8 +71,8 @@ namespace ZmqServiceBus.Tests
         {
             _bootstrapper.BootStrapTopology();
 
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(InitializeTopologyAndMessageSettings).FullName && y.ReliabilityInfo.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(RegisterPeerCommand).FullName && y.ReliabilityInfo.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
+            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(InitializeTopologyAndMessageSettings).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
+            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(RegisterPeerCommand).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
         }
 
         [Test]
@@ -73,7 +80,7 @@ namespace ZmqServiceBus.Tests
         {
             _bootstrapper.BootStrapTopology();
 
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(CompletionAcknowledgementMessage).FullName && y.ReliabilityInfo.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
+            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(CompletionAcknowledgementMessage).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
         }
 
 
@@ -95,7 +102,6 @@ namespace ZmqServiceBus.Tests
 
             _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(_completionCallbackMock.Object).Callback<ICommand, ICompletionCallback>((y, z) => command = (RegisterPeerCommand)y);
             _assemblyScannerMock.Setup(x => x.GetHandledCommands()).Returns(new List<Type> { typeof(FakeCommand) });
-            _assemblyScannerMock.Setup(x => x.GetSentEvents()).Returns(new List<Type> { typeof(FakeEvent) });
 
             _bootstrapper.BootStrapTopology();
 
@@ -109,7 +115,7 @@ namespace ZmqServiceBus.Tests
         public void should_register_directory_service_as_peer()
         {
             ServicePeer dirServicePeer = null;
-            _peerManagerMock.Setup(x => x.RegisterPeer(It.IsAny<ServicePeer>())).Callback<ServicePeer>(x => dirServicePeer = x);
+            _peerManagerMock.Setup(x => x.RegisterPeerConnection(It.IsAny<ServicePeer>())).Callback<ServicePeer>(x => dirServicePeer = x);
             
             _bootstrapper.BootStrapTopology();
 

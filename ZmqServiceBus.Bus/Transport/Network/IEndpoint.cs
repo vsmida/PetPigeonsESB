@@ -1,4 +1,5 @@
-﻿using ProtoBuf;
+﻿using System;
+using ProtoBuf;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
@@ -8,7 +9,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         ZmqPushTransport
     }
     [ProtoInclude(1, typeof(ZmqEndpoint))]
-    public interface IEndpoint
+    public interface IEndpoint : IEquatable<IEndpoint>
     {
         WireSendingTransportType WireTransportType { get; }
     }

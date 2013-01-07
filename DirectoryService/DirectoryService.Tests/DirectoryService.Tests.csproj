@@ -95,14 +95,6 @@
       <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
       <Name>ZmqServiceBus.Contracts</Name>
     </ProjectReference>
-    <ProjectReference Include="..\DirectoryService.Commands\DirectoryService.Commands.csproj">
-      <Project>{49ea8413-2ffb-48f8-bbcf-2bff26b1df99}</Project>
-      <Name>DirectoryService.Commands</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj">
-      <Project>{44ca54ad-6338-4449-a96f-0587713c92ee}</Project>
-      <Name>DirectoryService.Core</Name>
-    </ProjectReference>
     <ProjectReference Include="..\DirectoryService.Events\DirectoryService.Events.csproj">
       <Project>{9ebb2a67-a2b4-4517-ab16-8234e6fa612b}</Project>
       <Name>DirectoryService.Events</Name>
