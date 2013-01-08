@@ -114,14 +114,14 @@ namespace ZmqServiceBus.Tests.Integration
 
         //}
 
-        private static void SendCompletionMessage(Guid messageId, ZmqSocket sendingSocket)
-        {
-            var completionMess = new CompletionAcknowledgementMessage(messageId, true);
-            sendingSocket.SendMore(Encoding.ASCII.GetBytes(typeof (CompletionAcknowledgementMessage).FullName));
-            sendingSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
-            sendingSocket.SendMore(Guid.NewGuid().ToByteArray());
-            sendingSocket.Send(BusSerializer.Serialize(completionMess));
-        }
+        //private static void SendCompletionMessage(Guid messageId, ZmqSocket sendingSocket)
+        //{
+        //    var completionMess = new CompletionAcknowledgementMessage(messageId, true);
+        //    sendingSocket.SendMore(Encoding.ASCII.GetBytes(typeof (CompletionAcknowledgementMessage).FullName));
+        //    sendingSocket.SendMore(Encoding.ASCII.GetBytes("DirectoryService"));
+        //    sendingSocket.SendMore(Guid.NewGuid().ToByteArray());
+        //    sendingSocket.Send(BusSerializer.Serialize(completionMess));
+        //}
 
 
     }

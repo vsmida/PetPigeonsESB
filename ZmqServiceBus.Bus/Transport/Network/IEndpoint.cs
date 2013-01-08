@@ -4,13 +4,13 @@ using ProtoBuf;
 namespace ZmqServiceBus.Bus.Transport.Network
 {
     [ProtoContract]
-    public enum WireSendingTransportType
+    public enum WireTransportType
     {
-        ZmqPushTransport
+        ZmqPushPullTransport
     }
     [ProtoInclude(1, typeof(ZmqEndpoint))]
     public interface IEndpoint : IEquatable<IEndpoint>
     {
-        WireSendingTransportType WireTransportType { get; }
+        WireTransportType WireTransportType { get; }
     }
 }

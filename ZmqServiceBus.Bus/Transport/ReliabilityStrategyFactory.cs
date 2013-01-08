@@ -9,12 +9,10 @@ namespace ZmqServiceBus.Bus.Transport
 {
     public class ReliabilityStrategyFactory : IReliabilityStrategyFactory
     {
-        private readonly IPersistenceSynchronizer _persistenceSynchronizer;
         private readonly ConcurrentDictionary<string, ISendingReliabilityStrategy> _messageTypeToStrategies = new ConcurrentDictionary<string, ISendingReliabilityStrategy>();
 
-        public ReliabilityStrategyFactory(IPersistenceSynchronizer persistenceSynchronizer)
+        public ReliabilityStrategyFactory()
         {
-            _persistenceSynchronizer = persistenceSynchronizer;
         }
 
         public ISendingReliabilityStrategy GetSendingStrategy(MessageOptions messageOptions)
@@ -28,18 +26,13 @@ namespace ZmqServiceBus.Bus.Transport
                     //    break;
                 case ReliabilityLevel.Persisted:
                     ISendingReliabilityStrategy strategy;
-                    if(!_messageTypeToStrategies.TryGetValue(messageOptions.MessageType, out strategy))
-                    { //not threadsafe at all
-                        strategy = new PersistStrategyCommands(_persistenceSynchronizer);
-                        _messageTypeToStrategies.TryAdd(messageOptions.MessageType, strategy);
-                    }
-                    return strategy;
                     break;
                     //case ReliabilityOption.ClientAndBrokerReceivedOnTransport:
                     //    break;
                 default:
                     throw new ArgumentOutOfRangeException("level");
             }
+            return null;
         }
     }
 }

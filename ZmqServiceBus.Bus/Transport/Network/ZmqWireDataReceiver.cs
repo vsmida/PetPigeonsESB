@@ -65,7 +65,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             var messageId = new Guid(serializedId);
             var serializedItem = zmqSocket.Receive();
 
-            var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId, serializedItem);
+            var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,this.TransportType, serializedItem);
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = receivedTransportMessage;
@@ -85,6 +85,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
         {
             _ringBuffer = ringBuffer;
             CreatePollingThread();
+        }
+
+        public WireTransportType TransportType
+        {
+            get { return WireTransportType.ZmqPushPullTransport; }
         }
     }
 }

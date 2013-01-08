@@ -4,6 +4,7 @@ using NUnit.Framework;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Handlers;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Tests.InfrastructureHandlers
 {
@@ -24,7 +25,7 @@ namespace ZmqServiceBus.Tests.InfrastructureHandlers
         public void should_invoke_proper_callback_when_receiving_message()
         {
             var messageId = Guid.NewGuid();
-            var completionAcknowledgementMessage = new CompletionAcknowledgementMessage(messageId, true);
+            var completionAcknowledgementMessage = new CompletionAcknowledgementMessage(messageId, true, WireTransportType.ZmqPushPullTransport);
             bool success = false;
             var completionCallbackMock = new Mock<ICompletionCallback>();
             completionCallbackMock.Setup(x => x.ExecuteCallback(completionAcknowledgementMessage)).Callback(() => success = true);

@@ -5,6 +5,7 @@ using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport;
+using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 
@@ -53,12 +54,12 @@ namespace ZmqServiceBus.Tests.Transport
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), new byte[0]);
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), WireTransportType.ZmqPushPullTransport, new byte[0]);
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), BusSerializer.Serialize(item));
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), WireTransportType.ZmqPushPullTransport, BusSerializer.Serialize(item));
         }
 
         public static SendingBusMessage GenerateDummySendingMessage<T>()

@@ -61,13 +61,15 @@
     <Compile Include="CallbackRepository.cs" />
     <Compile Include="DefaultCompletionCallback.cs" />
     <Compile Include="Dispatch\AssemblyScanner.cs" />
-    <Compile Include="DisruptorEventHandlers\MessageSendingHandler.cs" />
+    <Compile Include="DisruptorEventHandlers\MessageTargetsHandler.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
     <Compile Include="FailedMessageProcessingException.cs" />
     <Compile Include="Handlers\CompletionMessagesHandler.cs" />
     <Compile Include="Handlers\DirectoryServiceMessagesHandler.cs" />
     <Compile Include="Handlers\HeartbeatMessageHandler.cs" />
+    <Compile Include="Handlers\PersistenceShadowMessagesHandler.cs" />
+    <Compile Include="Handlers\SavedMessagesStore.cs" />
     <Compile Include="IBlockableUntilCompletion.cs" />
     <Compile Include="ICallbackRepository.cs" />
     <Compile Include="ICompletionCallback.cs" />
@@ -82,6 +84,7 @@
     <Compile Include="InfrastructureMessages\MessageOptions.cs" />
     <Compile Include="InfrastructureMessages\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\EndOfPersistedMessages.cs" />
+    <Compile Include="InfrastructureMessages\PeerEndpointDisconnected.cs" />
     <Compile Include="InfrastructureMessages\ShadowMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\RegisterPeerCommand.cs" />
@@ -106,13 +109,12 @@
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Subscriptions\DummySubscriptionFilter.cs" />
-    <Compile Include="Transport\IPersistenceSynchronizer.cs" />
     <Compile Include="Transport\IMessageSubscription.cs" />
     <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
     <Compile Include="Transport\Network\HeartbeatManager.cs" />
     <Compile Include="Transport\Network\IEndpoint.cs" />
     <Compile Include="Transport\Network\IDataReceiver.cs" />
-    <Compile Include="Transport\Network\IDataSender.cs" />
+    <Compile Include="Transport\Network\INetworkSender.cs" />
     <Compile Include="Transport\Network\IWireReceiverTransport.cs" />
     <Compile Include="Transport\Network\IWireSendingTransport.cs" />
     <Compile Include="Transport\Network\ZmqWireDataReceiver.cs" />
@@ -121,7 +123,7 @@
     <Compile Include="Transport\ReceptionPipe\InboundBusinessMessageEntry.cs" />
     <Compile Include="Transport\ReceptionPipe\InboundInfrastructureEntry.cs" />
     <Compile Include="Transport\ReceptionPipe\InboundMessageProcessingEntry.cs" />
-    <Compile Include="Transport\SendingPipe\OutboundMessageProcessingEntry.cs" />
+    <Compile Include="Transport\SendingPipe\OutboundDisruptorEntry.cs" />
     <Compile Include="Subscriptions\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
     <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
@@ -136,7 +138,6 @@
     <Compile Include="Transport\ReceptionPipe\ReceivedTransportMessage.cs" />
     <Compile Include="Transport\ReliabilityStrategyFactory.cs" />
     <Compile Include="Transport\SendingPipe\SendingBusMessage.cs" />
-    <Compile Include="Transport\SendingPipe\SendingStrategies\PersistStrategyCommands.cs" />
     <Compile Include="Transport\ServicePeer.cs" />
   </ItemGroup>
   <ItemGroup>

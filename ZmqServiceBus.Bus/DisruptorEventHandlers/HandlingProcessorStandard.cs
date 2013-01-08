@@ -20,21 +20,21 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
 
         public void OnNext(InboundBusinessMessageEntry data, long sequence, bool endOfBatch)
         {
-            using (var context = MessageContext.SetContext(data.SendingPeer))
+            using (var context = MessageContext.SetContext(data.SendingPeer, data.TransportType))
             {
                 try
                 {
 
                     _dispatcher.Dispatch(data.DeserializedMessage);
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer);
+                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer,data.TransportType);
 
 
                 }
                 catch (Exception)
                 {
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer);
+                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer, data.TransportType);
                 }
             }
         }
@@ -54,18 +54,18 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
 
         public void OnNext(InboundInfrastructureEntry data, long sequence, bool endOfBatch)
         {
-            using (var context = MessageContext.SetContext(data.SendingPeer))
+            using (var context = MessageContext.SetContext(data.SendingPeer, data.TransportType))
             {
                 try
                 {
                     _dispatcher.Dispatch(data.DeserializedMessage);
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer);
+                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer, data.TransportType);
                 }
                 catch (Exception)
                 {
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer);
+                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer, data.TransportType);
                 }
             }
         }

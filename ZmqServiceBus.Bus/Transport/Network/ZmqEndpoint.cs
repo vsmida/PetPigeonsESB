@@ -28,7 +28,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             return (Endpoint != null ? Endpoint.GetHashCode() : 0);
         }
 
-        private const WireSendingTransportType _wireSendingTransportType = WireSendingTransportType.ZmqPushTransport;
+        private const WireTransportType _wireSendingTransportType = Network.WireTransportType.ZmqPushPullTransport;
 
         [ProtoMember(1, IsRequired = true)]
         public string Endpoint { get; set; }
@@ -43,7 +43,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         }
 
-        public WireSendingTransportType WireTransportType
+        public WireTransportType WireTransportType
         {
             get
             {

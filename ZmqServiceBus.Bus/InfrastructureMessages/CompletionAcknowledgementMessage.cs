@@ -3,6 +3,7 @@ using ProtoBuf;
 using Shared;
 using Shared.Attributes;
 using ZmqServiceBus.Bus.MessageInterfaces;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
@@ -14,11 +15,14 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         public readonly Guid MessageId;
         [ProtoMember(2, IsRequired = true)]
         public readonly bool ProcessingSuccessful;
+        [ProtoMember(3, IsRequired = true)]
+        public readonly WireTransportType TransportType;
 
-        public CompletionAcknowledgementMessage(Guid messageId, bool processingSuccessful)
+        public CompletionAcknowledgementMessage(Guid messageId, bool processingSuccessful, WireTransportType transportType)
         {
             MessageId = messageId;
             ProcessingSuccessful = processingSuccessful;
+            TransportType = transportType;
         }
     }
 
@@ -35,13 +39,16 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         public readonly string ToPeer;
         [ProtoMember(4, IsRequired = true)]
         public readonly bool ProcessingSuccessful;
+        [ProtoMember(5, IsRequired = true)]
+        public readonly WireTransportType TransportType;
 
-        public ShadowCompletionMessage(Guid messageId, string fromPeer, string toPeer, bool processingSuccessful)
+        public ShadowCompletionMessage(Guid messageId, string fromPeer, string toPeer, bool processingSuccessful, WireTransportType transportType)
         {
             MessageId = messageId;
             FromPeer = fromPeer;
             ToPeer = toPeer;
             ProcessingSuccessful = processingSuccessful;
+            TransportType = transportType;
         }
     }
 }

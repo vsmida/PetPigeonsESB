@@ -3,6 +3,7 @@ using System.Threading;
 using NUnit.Framework;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Tests
 {
@@ -25,7 +26,7 @@ namespace ZmqServiceBus.Tests
 
             Assert.False(thread.Join(300));
 
-            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), true));
+            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), true, WireTransportType.ZmqPushPullTransport));
 
             Assert.IsTrue(thread.Join(300));
             
@@ -37,7 +38,7 @@ namespace ZmqServiceBus.Tests
             bool called = false;
 
             _defaultCompletionCallback.RegisterCallback((mess) => called = true);
-            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), true));
+            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), true, WireTransportType.ZmqPushPullTransport));
 
             Assert.IsTrue(called);
         }
@@ -45,7 +46,7 @@ namespace ZmqServiceBus.Tests
         [Test]
         public void should_throw_when_message_processing_failed()
         {
-           Assert.Throws<FailedMessageProcessingException>(() => _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), false)));
+            Assert.Throws<FailedMessageProcessingException>(() => _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), false, WireTransportType.ZmqPushPullTransport)));
             
         }
     }

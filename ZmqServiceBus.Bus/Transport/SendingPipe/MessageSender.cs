@@ -11,9 +11,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
     public class MessageSender : IMessageSender
     {
-        private RingBuffer<OutboundMessageProcessingEntry> _ringBuffer;
+        private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
 
-        public void Initialize(RingBuffer<OutboundMessageProcessingEntry> buffer)
+        public void Initialize(RingBuffer<OutboundDisruptorEntry> buffer)
         {
             _ringBuffer = buffer;
         }
@@ -29,8 +29,8 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         {
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
-            data.Message = message;
-            data.Callback = callback;
+            data.MessageTargetHandlerData.Message = message;
+            data.MessageTargetHandlerData.Callback = callback;
             _ringBuffer.Publish(sequence);
         }
 
@@ -45,25 +45,25 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
-            
-            data.Message = message;
-            data.Callback = callback;
-            data.TargetPeer = peerName;
+
+            data.MessageTargetHandlerData.Message = message;
+            data.MessageTargetHandlerData.Callback = callback;
+            data.MessageTargetHandlerData.TargetPeer = peerName;
             
             _ringBuffer.Publish(sequence);
             
             return callback;
         }
 
-        public void Acknowledge(Guid messageId, bool processSuccessful, string originatingPeer)
+        public void Acknowledge(Guid messageId, bool processSuccessful, string originatingPeer, WireTransportType transportType)
         {
-            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, processSuccessful);
+            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, processSuccessful, transportType);
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
 
-            data.Message = acknowledgementMessage;
-            data.TargetPeer = originatingPeer;
-            data.IsAcknowledgement = true;
+            data.MessageTargetHandlerData.Message = acknowledgementMessage;
+            data.MessageTargetHandlerData.TargetPeer = originatingPeer;
+            data.MessageTargetHandlerData.IsAcknowledgement = true;
             
             _ringBuffer.Publish(sequence);
         }

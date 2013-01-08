@@ -9,7 +9,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
     class ZmqPushWireSendingTransport : IWireSendingTransport
     {
         public event Action<IEndpoint> EndpointDisconnected;
-        public WireSendingTransportType TransportType { get { return WireSendingTransportType.ZmqPushTransport; } }
+        public WireTransportType TransportType { get { return WireTransportType.ZmqPushPullTransport; } }
         private readonly Dictionary<ZmqEndpoint, ZmqSocket> _endpointsToSockets = new Dictionary<ZmqEndpoint, ZmqSocket>();
         private readonly ZmqContext _context;
         private readonly ZmqTransportConfiguration _zmqTransportConfiguration;
@@ -20,6 +20,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             _context = context;
             _zmqTransportConfiguration = zmqTransportConfiguration;
         }
+
 
         public void Initialize()
         {

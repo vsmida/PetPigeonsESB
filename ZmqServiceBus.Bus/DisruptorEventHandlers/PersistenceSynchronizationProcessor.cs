@@ -64,6 +64,7 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
                 messageEntry.DeserializedMessage = deserializedMessage;
                 messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
                 messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+                messageEntry.TransportType = data.InitialTransportMessage.TransportType;
                 if (_isInitialized || options == null || options.ReliabilityLevel == ReliabilityLevel.FireAndForget)
                     _standardMessagesBuffer.Publish(sequenceStandard);
                 else
@@ -84,6 +85,7 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
             messageEntry.ServiceInitialized = _isInitialized;
             messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
             messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+            messageEntry.TransportType = data.InitialTransportMessage.TransportType;
             _infrastructureBuffer.Publish(sequenceInfra);
         }
     }

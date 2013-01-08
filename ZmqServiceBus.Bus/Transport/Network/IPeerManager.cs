@@ -16,6 +16,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         IEnumerable<string> PeersThatShadowMe();
         Dictionary<string, List<MessageSubscription>> GetAllSubscriptions();
         Dictionary<string, HashSet<string>> GetAllShadows();
+        string Self { get; }
     }
 
 
@@ -24,7 +25,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public event Action<ServicePeer> PeerConnected = delegate { };
         private readonly ConcurrentDictionary<string, ServicePeer> _peers = new ConcurrentDictionary<string, ServicePeer>();
         private readonly ConcurrentDictionary<string, List<MessageSubscription>> _messagesToEndpoints = new ConcurrentDictionary<string, List<MessageSubscription>>();
-        private readonly ConcurrentDictionary<string, HashSet<string>> _peersToShadows = new ConcurrentDictionary<string, HashSet<string>>();        
+        private readonly ConcurrentDictionary<string, HashSet<string>> _peersToShadows = new ConcurrentDictionary<string, HashSet<string>>();
         private readonly IPeerConfiguration _peerConfig;
 
         public PeerManager(IPeerConfiguration peerConfig)
@@ -36,11 +37,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public void RegisterPeerConnection(ServicePeer peer)
         {
             UpdatePeerList(peer);
-           
+
             UpdateSubscriptions(peer);
 
             UpdateShadows(peer);
-
 
             PeerConnected(peer);
         }
@@ -55,16 +55,16 @@ namespace ZmqServiceBus.Bus.Transport.Network
             foreach (var messageToEndpoint in peer.HandledMessages)
             {
                 _messagesToEndpoints.AddOrUpdate(messageToEndpoint.MessageType.FullName,
-                                                 key => new List<MessageSubscription> {messageToEndpoint},
+                                                 key => new List<MessageSubscription> { messageToEndpoint },
                                                  (key, oldValue) =>
-                                                     {
-                                                         var list =
-                                                             new List<MessageSubscription>(
-                                                                 oldValue.Where(x => x.Peer != peer.PeerName));
-                                                             //dont keep previous message subscription from peer
-                                                         list.Add(messageToEndpoint);
-                                                         return list;
-                                                     });
+                                                 {
+                                                     var list =
+                                                         new List<MessageSubscription>(
+                                                             oldValue.Where(x => x.Peer != peer.PeerName));
+                                                     //dont keep previous message subscription from peer
+                                                     list.Add(messageToEndpoint);
+                                                     return list;
+                                                 });
             }
 
             foreach (var pair in _messagesToEndpoints) //remove messages that are no longer handled
@@ -79,12 +79,12 @@ namespace ZmqServiceBus.Bus.Transport.Network
             foreach (var shadowedPeer in peer.ShadowedPeers ?? Enumerable.Empty<string>())
             {
                 _peersToShadows.AddOrUpdate(shadowedPeer,
-                                            new HashSet<string> {peer.PeerName},
+                                            new HashSet<string> { peer.PeerName },
                                             (key, oldValue) =>
-                                                {
-                                                    oldValue.Add(peer.PeerName);
-                                                    return oldValue;
-                                                });
+                                            {
+                                                oldValue.Add(peer.PeerName);
+                                                return oldValue;
+                                            });
             }
 
             foreach (var pair in _peersToShadows)
@@ -110,6 +110,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public Dictionary<string, HashSet<string>> GetAllShadows()
         {
             return _peersToShadows.ToDictionary(x => x.Key, x => x.Value);
+        }
+
+        public string Self
+        {
+            get { return _peerConfig.PeerName; }
         }
 
         public IEnumerable<MessageSubscription> GetSubscriptionsForMessageType(string messageType)

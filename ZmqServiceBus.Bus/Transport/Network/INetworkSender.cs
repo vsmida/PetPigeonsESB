@@ -12,18 +12,18 @@ using System.Linq;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
-    public interface IDataSender : IDisposable
+    public interface INetworkSender : IDisposable
     {
         void Initialize();
     }
 
-    public class DataSender : IDataSender, IEventHandler<OutboundMessageProcessingEntry>
+    public class NetworkSender : INetworkSender, IEventHandler<OutboundDisruptorEntry>
     {
-        private Dictionary<WireSendingTransportType, IWireSendingTransport> _wireSendingTransports;
+        private Dictionary<WireTransportType, IWireSendingTransport> _wireSendingTransports;
         private readonly IHeartbeatManager _heartbeatManager;
 
 
-        public DataSender(IWireSendingTransport[] wireSendingTransports, IHeartbeatManager heartbeatManager)
+        public NetworkSender(IWireSendingTransport[] wireSendingTransports, IHeartbeatManager heartbeatManager)
         {
             _heartbeatManager = heartbeatManager;
             _wireSendingTransports = wireSendingTransports.ToDictionary(x => x.TransportType, x => x);
@@ -63,9 +63,9 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         }
 
-        public void OnNext(OutboundMessageProcessingEntry data, long sequence, bool endOfBatch)
+        public void OnNext(OutboundDisruptorEntry data, long sequence, bool endOfBatch)
         {
-            foreach (var wireSendingMessage in data.WireMessages)
+            foreach (var wireSendingMessage in data.NetworkSenderData.WireMessages)
             {
                 SendMessageInternal(wireSendingMessage);
             }
