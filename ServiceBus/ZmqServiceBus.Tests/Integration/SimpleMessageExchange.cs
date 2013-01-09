@@ -90,7 +90,7 @@ namespace ZmqServiceBus.Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
 
-        [Test, Timeout(8000), Repeat(2)]
+        [Test, Timeout(80000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -114,14 +114,20 @@ namespace ZmqServiceBus.Tests.Integration
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
-            for (int i = 0; i < 1000; i++)
+            List<IBlockableUntilCompletion> resetEvents = new List<IBlockableUntilCompletion>();
+            for (int i = 0; i < 10000; i++)
             {
-                bus1.Send(new FakeCommand(5)).WaitForCompletion();
+                resetEvents.Add(bus1.Send(new FakeCommand(5)));
            //     _waitForCommandToBeHandled.WaitOne();
             }
 
+            for (int i = 0; i < 10000; i++)
+            {
+                resetEvents[i].WaitForCompletion();
+            }
+
             watch.Stop();
-            Console.WriteLine(" 1000 resend took " + watch.ElapsedMilliseconds + " ms");
+            Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
             bus1.Dispose();
             bus2.Dispose();
 
@@ -142,11 +148,19 @@ namespace ZmqServiceBus.Tests.Integration
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
+            var randomPortBroker = NetworkUtils.GetRandomUnusedPort();
             var heartbeatConfig = new DummyHeartbeatingConfig();
             var busName1 = "Service1";
             var busName2 = "Service2";
+            var brokerName = "Service1Shadow";
             var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner:new FakeAssemblyScanner());
             var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var brokerForBus2 = CreateFakeBus(randomPortBroker,
+                                              brokerName,
+                                              randomPort2,
+                                              busName2,
+                                              new FakeAssemblyScanner(),
+                                              new DummyPeerConfig(brokerName, new List<string> {busName2}));
 
             bus1.Initialize();
             bus2.Initialize();
@@ -184,7 +198,7 @@ namespace ZmqServiceBus.Tests.Integration
         }
 
 
-        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null)
+        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null)
         {
             return BusFactory.CreateBus(containerConfigurationExpression: ctx =>
                                                                               {
@@ -208,7 +222,7 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                                       });
 
                                                                                   ctx.For<IPeerConfiguration>().Use(
-                                                                                      new DummyPeerConfig(busName, null));
+                                                                                     peerconfig?? new DummyPeerConfig(busName, null));
 
                                                                                   ctx.For<IAssemblyScanner>().Use(
                                                                                       assemblyScanner?? new AssemblyScanner());

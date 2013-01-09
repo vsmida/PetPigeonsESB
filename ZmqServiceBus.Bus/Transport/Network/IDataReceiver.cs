@@ -16,11 +16,13 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public interface IDataReceiver : IDisposable
     {
         void Initialize(RingBuffer<InboundMessageProcessingEntry> disruptor);
+        void InjectMessage(ReceivedTransportMessage message);
     }
     
     public class DataReceiver : IDataReceiver
     {
         private readonly IWireReceiverTransport[] _transports;
+        private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
 
 
         public DataReceiver(IWireReceiverTransport[] transports)
@@ -30,10 +32,19 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void Initialize(RingBuffer<InboundMessageProcessingEntry> ringBuffer)
         {
+            _ringBuffer = ringBuffer;
             foreach (IWireReceiverTransport wireReceiverTransport in _transports)
             {
                 wireReceiverTransport.Initialize(ringBuffer);
             }
+        }
+
+        public void InjectMessage(ReceivedTransportMessage message)
+        {
+            var sequence = _ringBuffer.Next();
+            var entry = _ringBuffer[sequence];
+            entry.InitialTransportMessage = message;
+            _ringBuffer.Publish(sequence);
         }
 
         public void Dispose()

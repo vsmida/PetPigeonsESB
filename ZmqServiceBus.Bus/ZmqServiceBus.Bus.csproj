@@ -82,9 +82,11 @@
     <Compile Include="InfrastructureMessages\InitializeTopologyAndMessageSettings.cs" />
     <Compile Include="InfrastructureMessages\InitializeTopologyRequest.cs" />
     <Compile Include="InfrastructureMessages\MessageOptions.cs" />
+    <Compile Include="InfrastructureMessages\MessageSettingsUpdated.cs" />
     <Compile Include="InfrastructureMessages\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\EndOfPersistedMessages.cs" />
     <Compile Include="InfrastructureMessages\PeerEndpointDisconnected.cs" />
+    <Compile Include="InfrastructureMessages\PublishUnacknowledgedMessagesToPeer.cs" />
     <Compile Include="InfrastructureMessages\ShadowMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\RegisterPeerCommand.cs" />
@@ -148,10 +150,6 @@
     <ProjectReference Include="..\Shared\Shared.csproj">
       <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>
       <Name>Shared</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ZmqServiceBus.Contracts\ZmqServiceBus.Contracts.csproj">
-      <Project>{11f4aed7-e55d-4d98-930b-80dd019535ec}</Project>
-      <Name>ZmqServiceBus.Contracts</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

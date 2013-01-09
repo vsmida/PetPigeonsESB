@@ -13,6 +13,16 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
     {
         private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
 
+        public void SendHeartbeat(string peer, IEndpoint endpoint)
+        {
+            var sequence = _ringBuffer.Next();
+            var data = _ringBuffer[sequence];
+
+            data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(new MessageWireData(typeof(HeartbeatRequest).FullName,Guid.NewGuid(),), ));
+
+            _ringBuffer.Publish(sequence);
+        }
+
         public void Initialize(RingBuffer<OutboundDisruptorEntry> buffer)
         {
             _ringBuffer = buffer;

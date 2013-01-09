@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport.Network;
@@ -10,7 +11,8 @@ namespace ZmqServiceBus.Bus.Handlers
     public interface ISavedMessagesStore
     {
         void SaveMessage(ShadowMessageCommand shadowMessage);
-        void RemoveMessage(string peer,WireTransportType transportType, Guid messageId);
+        void RemoveMessage(string peer, WireTransportType transportType, Guid messageId);
+        IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, WireTransportType transportType, int maxCount);
     }
 
     public class SavedMessagesStore : ISavedMessagesStore
@@ -30,7 +32,7 @@ namespace ZmqServiceBus.Bus.Handlers
                 get
                 {
                     Queue<ShadowMessageCommand> queue;
-                    if(!_messagesByEndpoint.TryGetValue(key, out queue))
+                    if (!_messagesByEndpoint.TryGetValue(key, out queue))
                     {
                         queue = new Queue<ShadowMessageCommand>();
                         _messagesByEndpoint[key] = queue;
@@ -57,22 +59,36 @@ namespace ZmqServiceBus.Bus.Handlers
             queue[MessageContext.OriginatingTransportType.Value].Enqueue(shadowMessage);
         }
 
-        public void RemoveMessage(string peer,WireTransportType transportType, Guid messageId)
+        public void RemoveMessage(string peer, WireTransportType transportType, Guid messageId)
         {
             PeerMessageQueue peerQueue;
-             if (!_savedMessages.TryGetValue(peer, out peerQueue) || peerQueue[transportType].Count == 0)
-             {
-                 //argh nothing, restart?
-                 Debugger.Break();
-             }
+            if (!_savedMessages.TryGetValue(peer, out peerQueue) || peerQueue[transportType].Count == 0)
+            {
+                //argh nothing, restart?
+                Debugger.Break();
+                return;
+            }
             var item = peerQueue[transportType].Dequeue();
-            if(item.Message.MessageIdentity != messageId)
+            if (item.Message.MessageIdentity != messageId)
             {
                 //argh, missing messages?
                 Debugger.Break();
             }
 
 
+        }
+
+        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, WireTransportType transportType, int maxCount)
+        {
+            PeerMessageQueue queue;
+            if (!_savedMessages.TryGetValue(peer, out queue))
+                yield break;
+            int numberOfReturnedMessages = 0;
+            while (queue[transportType].Count != 0 && numberOfReturnedMessages < maxCount)
+            {
+                yield return queue[transportType].Dequeue();
+                numberOfReturnedMessages++;
+            }
         }
     }
 }

@@ -12,14 +12,17 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         public string MessageType { get; private set; }
         [ProtoMember(2, IsRequired = true)]
         public Guid MessageIdentity { get; private set; }
+        [ProtoMember(2, IsRequired = true)]
+        public string SendingPeer { get; private set; }
         [ProtoMember(3, IsRequired = true)]
         public byte[] Data { get; private set; }
 
-        public MessageWireData(string messageType, Guid messageIdentity, byte[] data)
+        public MessageWireData(string messageType, Guid messageIdentity, string sendingPeer, byte[] data)
         {
             MessageType = messageType;
             MessageIdentity = messageIdentity;
             Data = data;
+            SendingPeer = sendingPeer;
         }
     }
 

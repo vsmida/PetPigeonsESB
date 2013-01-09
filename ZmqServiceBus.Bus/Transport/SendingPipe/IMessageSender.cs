@@ -12,6 +12,8 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         void Publish(IEvent message);
         ICompletionCallback Route(IMessage message, string peerName);
         void Acknowledge(Guid messageId, bool processSuccessful, string originatingPeer, WireTransportType transportType);
+        void SendHeartbeat(string peer, IEndpoint endpoint);
         void Initialize(RingBuffer<OutboundDisruptorEntry> buffer );
+        
     }
 }

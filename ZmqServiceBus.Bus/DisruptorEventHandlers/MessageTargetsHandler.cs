@@ -38,6 +38,9 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
 
         public void OnNext(OutboundDisruptorEntry data, long sequence, bool endOfBatch)
         {
+            if (data.MessageTargetHandlerData.Message == null)
+                return;
+
             var messageType = data.MessageTargetHandlerData.Message.GetType().FullName;
             var subscriptions = _messageTypesToSubscriptions[messageType]
                                 .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
@@ -70,12 +73,12 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
 
         }
 
-        private static MessageWireData CreateMessageWireData(IMessage message)
+        private MessageWireData CreateMessageWireData(IMessage message)
         {
             var serializedMessage = BusSerializer.Serialize(message);
             var messageId = Guid.NewGuid();
             var messageType = message.GetType().FullName;
-            var messageData = new MessageWireData(messageType, messageId, serializedMessage);
+            var messageData = new MessageWireData(messageType, messageId,_peerConfiguration.PeerName ,serializedMessage);
             return messageData;
         }
 
