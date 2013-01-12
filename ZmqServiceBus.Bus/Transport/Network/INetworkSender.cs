@@ -31,7 +31,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
         }
         public void Dispose()
         {
-            _heartbeatManager.Dispose();
             foreach (var wireSendingTransport in _wireSendingTransports.Values)
             {
                 wireSendingTransport.Dispose();

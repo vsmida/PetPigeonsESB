@@ -6,7 +6,7 @@ using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 
 namespace ZmqServiceBus.Bus.Transport.SendingPipe
 {
-    public interface IMessageSender
+    public interface IMessageSender : IDisposable
     {
         ICompletionCallback Send(ICommand command, ICompletionCallback callback = null);
         void Publish(IEvent message);
@@ -14,6 +14,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
         void Acknowledge(Guid messageId,string messageType, bool processSuccessful, string originatingPeer, WireTransportType transportType);
         void SendHeartbeat(IEndpoint endpoint);
         void Initialize(RingBuffer<OutboundDisruptorEntry> buffer );
-        
+
     }
 }

@@ -33,8 +33,9 @@ namespace ZmqServiceBus.Bus
         private readonly Disruptor<InboundInfrastructureEntry> _infrastructureInputDisruptor;
         private readonly Disruptor<InboundBusinessMessageEntry> _normalMessagesInputDisruptor;
         private readonly Disruptor<OutboundDisruptorEntry> _outputDisruptor;
+        private readonly IHeartbeatManager _heartbeatManager;
 
-        public InternalBus(IMessageSender messageSender, IBusBootstrapper busBootstrapper, IDataReceiver dataReceiver, HandlingProcessorStandard handlingProcessorStandard, HandlingProcessorInfrastructure handlingProcessorInfrastructure, PersistenceSynchronizationProcessor networkProcessor, MessageTargetsHandler messageTargetsHandler, NetworkSender networkSender)
+        public InternalBus(IMessageSender messageSender, IBusBootstrapper busBootstrapper, IDataReceiver dataReceiver, HandlingProcessorStandard handlingProcessorStandard, HandlingProcessorInfrastructure handlingProcessorInfrastructure, PersistenceSynchronizationProcessor networkProcessor, MessageTargetsHandler messageTargetsHandler, NetworkSender networkSender, IHeartbeatManager heartbeatManager)
         {
             _messageSender = messageSender;
             _busBootstrapper = busBootstrapper;
@@ -44,6 +45,7 @@ namespace ZmqServiceBus.Bus
             _networkProcessor = networkProcessor;
             _messageTargetsHandler = messageTargetsHandler;
             _networkSender = networkSender;
+            _heartbeatManager = heartbeatManager;
             _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(32768),new BlockingWaitStrategy(), TaskScheduler.Default);
             _infrastructureInputDisruptor = new Disruptor<InboundInfrastructureEntry>(() => new InboundInfrastructureEntry(), new SingleThreadedClaimStrategy(512), new BlockingWaitStrategy(), TaskScheduler.Default);
             _normalMessagesInputDisruptor = new Disruptor<InboundBusinessMessageEntry>(() => new InboundBusinessMessageEntry(), new SingleThreadedClaimStrategy(32768), new BlockingWaitStrategy(), TaskScheduler.Default);
@@ -89,13 +91,16 @@ namespace ZmqServiceBus.Bus
 
         public void Dispose()
         {
+            _heartbeatManager.Dispose();
             _dataReceiver.Dispose();
             
+            Thread.Sleep(200); // re-entrant command problem, should wait for infra/strandard ringbuffers to have full capacity once then shutdown networkDisruptor?
             _networkInputDisruptor.Shutdown();
             _normalMessagesInputDisruptor.Shutdown();
             _infrastructureInputDisruptor.Shutdown();
-
+            _messageSender.Dispose();
             _outputDisruptor.Shutdown();
+            Thread.Sleep(100); //what the fuck? everybody should ahve shut down? is shutdown not synchronous?
             _networkSender.Dispose();
         }
     }

@@ -1,4 +1,5 @@
-﻿using ZmqServiceBus.Bus.InfrastructureMessages;
+﻿using System.Diagnostics;
+using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
@@ -18,6 +19,8 @@ namespace ZmqServiceBus.Bus.Handlers
 
         public void Handle(ShadowMessageCommand item)
         {
+            if (item == null)
+                Debugger.Break();
             _messagesStore.SaveMessage(item);
         }
 

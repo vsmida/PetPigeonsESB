@@ -7,7 +7,6 @@ using ZmqServiceBus.Bus.Transport.Network;
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
-    [InfrastructureMessage]
     public class ShadowCompletionMessage : ICommand
     {
         [ProtoMember(1, IsRequired = true)]

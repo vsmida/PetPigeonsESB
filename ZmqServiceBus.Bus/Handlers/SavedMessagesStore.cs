@@ -59,7 +59,7 @@ namespace ZmqServiceBus.Bus.Handlers
         public void RemoveMessage(string peer, WireTransportType transportType, Guid messageId)
         {
             PeerMessageQueue peerQueue;
-            if (!_savedMessages.TryGetValue(peer, out peerQueue) || peerQueue[transportType].Count == 0)
+            if (!_savedMessages.TryGetValue(peer, out peerQueue) || peerQueue[transportType].Count == 0 || peerQueue.GlobalQueue.Count == 0)
             {
                 //argh nothing, restart?
                 Debugger.Break();

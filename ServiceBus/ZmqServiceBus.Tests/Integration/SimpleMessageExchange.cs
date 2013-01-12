@@ -88,6 +88,7 @@ namespace ZmqServiceBus.Tests.Integration
     public class SimpleMessageExchange
     {
         private AutoResetEvent _waitForCommandToBeHandled;
+        private int _persitentMessageNumber;
 
         [Test, Timeout(80000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
@@ -142,13 +143,12 @@ namespace ZmqServiceBus.Tests.Integration
             }
         }
 
-        [Test, Timeout(500000), Repeat(1)]
+        [Test, Timeout(500000), Repeat(2)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             var randomPortBroker = NetworkUtils.GetRandomUnusedPort();
-            var heartbeatConfig = new DummyHeartbeatingConfig();
             var busName1 = "Service1";
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
@@ -164,15 +164,9 @@ namespace ZmqServiceBus.Tests.Integration
 
 
             _waitForCommandToBeHandled = new AutoResetEvent(false);
-            int receivedNumber = 0;
-            FakePersistingCommandHandler.OnCommandReceived += s =>
-                                                        {
-                                                            Console.WriteLine(string.Format("processing now command no {0}", s));
-                                                            Assert.AreEqual(receivedNumber + 1, s); //throw if command is not in sequence
-                                                            receivedNumber++;
-                                                            _waitForCommandToBeHandled.Set();
-                                                        };
-
+            _persitentMessageNumber = 0;
+            FakePersistingCommandHandler.OnCommandReceived -= OnPersistingCommandReceived;
+            FakePersistingCommandHandler.OnCommandReceived += OnPersistingCommandReceived;
 
             bus1.Send(new FakePersistingCommand(1)); //check normal send when everybody up
             _waitForCommandToBeHandled.WaitOne();
@@ -193,11 +187,36 @@ namespace ZmqServiceBus.Tests.Integration
             if (_waitForCommandToBeHandled.WaitOne(1000))
                 Assert.Fail();// if there is a fourth unwelcome message;
 
+
+            //small micro-benchmark
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+
+            IBlockableUntilCompletion resetEvent = null;
+            for (int i = 0; i < 10000; i++)
+            {
+                resetEvent = bus1.Send(new FakePersistingCommand(i+4));
+            }
+
+            resetEvent.WaitForCompletion();
+            
+            watch.Stop();
+            Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
+
+
             bus1.Dispose();
             bus2.Dispose();
             brokerForBus2.Dispose();
+             Console.WriteLine("end of test");
 
+        }
 
+        private void OnPersistingCommandReceived(int number)
+        {
+            //Console.WriteLine(string.Format("processing now command no {0}", s));
+            Assert.AreEqual(_persitentMessageNumber + 1, number); //throw if command is not in sequence
+            _persitentMessageNumber++;
+            _waitForCommandToBeHandled.Set();
         }
 
 

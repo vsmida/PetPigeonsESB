@@ -12,13 +12,11 @@ namespace ZmqServiceBus.Bus.Transport.Network
         public WireTransportType TransportType { get { return WireTransportType.ZmqPushPullTransport; } }
         private readonly Dictionary<ZmqEndpoint, ZmqSocket> _endpointsToSockets = new Dictionary<ZmqEndpoint, ZmqSocket>();
         private readonly ZmqContext _context;
-        private readonly ZmqTransportConfiguration _zmqTransportConfiguration;
 
 
-        public ZmqPushWireSendingTransport(ZmqContext context, ZmqTransportConfiguration zmqTransportConfiguration)
+        public ZmqPushWireSendingTransport(ZmqContext context)
         {
             _context = context;
-            _zmqTransportConfiguration = zmqTransportConfiguration;
         }
 
 
