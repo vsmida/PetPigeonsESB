@@ -23,7 +23,7 @@ namespace ZmqServiceBus.Tests.InfrastructureHandlers
         {
             _peerManagerMock = new Mock<IPeerManager>();
             _optionsRepoMock = new Mock<IMessageOptionsRepository>();
-        //    _handler = new DirectoryServiceMessagesHandler(_peerManagerMock.Object, _optionsRepoMock.Object);
+         //   _handler = new DirectoryServiceMessagesHandler(_peerManagerMock.Object, _optionsRepoMock.Object);
         }
 
         [Test]

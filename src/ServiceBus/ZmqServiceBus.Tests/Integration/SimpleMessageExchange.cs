@@ -1,23 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
 using ProtoBuf;
-using ProtoBuf.Meta;
 using Shared;
 using Shared.Attributes;
-using StructureMap;
 using ZmqServiceBus.Bus;
 using ZmqServiceBus.Bus.Dispatch;
-using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Startup;
 using ZmqServiceBus.Bus.Transport;
-using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Tests.Integration
 {
@@ -90,7 +84,7 @@ namespace ZmqServiceBus.Tests.Integration
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
 
-        [Test, Timeout(80000), Repeat(2)]
+        [Test, Timeout(800000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -143,7 +137,7 @@ namespace ZmqServiceBus.Tests.Integration
             }
         }
 
-        [Test, Timeout(500000), Repeat(2)]
+        [Test, Timeout(2000000), Repeat(2)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -203,6 +197,7 @@ namespace ZmqServiceBus.Tests.Integration
             watch.Stop();
             Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
 
+            Thread.Sleep(1000);
 
             bus1.Dispose();
             bus2.Dispose();

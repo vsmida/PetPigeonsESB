@@ -120,8 +120,6 @@
     <Compile Include="SubscriptionManagerTests.cs" />
     <Compile Include="TestTools\ExtendMock.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />
-    <Compile Include="Transport\MessageSenderTests.cs" />
-    <Compile Include="Transport\PeerManagerTests.cs" />
     <Compile Include="Transport\TestData.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>

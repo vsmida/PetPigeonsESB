@@ -26,7 +26,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
     {
         private readonly IWireReceiverTransport[] _transports;
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
-        private volatile bool _isDisposed = false;
 
         public DataReceiver(IWireReceiverTransport[] transports)
         {
@@ -44,21 +43,20 @@ namespace ZmqServiceBus.Bus.Transport.Network
 
         public void InjectMessage(ReceivedTransportMessage message, bool forceMessage = false)
         {
-            if(_isDisposed)
-                throw new ObjectDisposedException("Cannot inject after dispose");
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = message;
             entry.ForceMessageThrough = forceMessage;
+            entry.Command = null;
             _ringBuffer.Publish(sequence);
         }
 
         public void InjectCommand(IBusEventProcessorCommand busEventProcessorCommand)
         {
-            if (_isDisposed)
-                throw new ObjectDisposedException("Cannot inject after dispose");
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
+            entry.InitialTransportMessage = null;
+            entry.ForceMessageThrough = false;
             entry.Command = busEventProcessorCommand;
             _ringBuffer.Publish(sequence);
         }
@@ -69,7 +67,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
             {
                 wireReceiverTransport.Dispose();
             }
-            _isDisposed = true;
         }
     }
 }

@@ -18,6 +18,7 @@ namespace ZmqServiceBus.Bus.Startup
          {
              For<IAssemblyScanner>().Use<AssemblyScanner>();
              ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
+             ForSingletonOf<IQueueConfiguration>().Use<DefaultQueueConfiguration>();
              ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IWireReceiverTransport>().Use<ZmqWireDataReceiver>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IDataReceiver>().Use<DataReceiver>();

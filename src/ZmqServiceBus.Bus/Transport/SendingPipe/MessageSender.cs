@@ -13,7 +13,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
     {
         private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
         private readonly IPeerConfiguration _peerConfiguration;
-        private volatile bool _disposed;
 
         public MessageSender(IPeerConfiguration peerConfiguration)
         {
@@ -22,14 +21,13 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 
         public void SendHeartbeat(IEndpoint endpoint)
         {
-            if(_disposed)
-                throw new ObjectDisposedException("message sender");
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
-
+            data.MessageTargetHandlerData = new MessageTargetHandlerData();
             var heartbeatRequest = new HeartbeatRequest(DateTime.UtcNow, endpoint);
             var serializedMessage = BusSerializer.Serialize(heartbeatRequest);
             var messageWireData = new MessageWireData(typeof (HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
+            data.NetworkSenderData.WireMessages.Clear();
             data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData,endpoint));
 
             _ringBuffer.Publish(sequence);
@@ -42,8 +40,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 
         public ICompletionCallback Send(ICommand message, ICompletionCallback callback = null)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("message sender");
             var nonNullCallback = callback ?? new DefaultCompletionCallback();
             SendInternal(message, nonNullCallback);
             return nonNullCallback;
@@ -55,20 +51,20 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             var data = _ringBuffer[sequence];
             data.MessageTargetHandlerData.Message = message;
             data.MessageTargetHandlerData.Callback = callback;
+            data.MessageTargetHandlerData.TargetPeer = null;
+            data.MessageTargetHandlerData.IsAcknowledgement = false;
+            data.NetworkSenderData = new NetworkSenderData();
+            
             _ringBuffer.Publish(sequence);
         }
 
         public void Publish(IEvent message)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("message sender");
             SendInternal(message, null);
         }
 
         public ICompletionCallback Route(IMessage message, string peerName)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("message sender");
             var callback = new DefaultCompletionCallback();
 
             var sequence = _ringBuffer.Next();
@@ -77,6 +73,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.Message = message;
             data.MessageTargetHandlerData.Callback = callback;
             data.MessageTargetHandlerData.TargetPeer = peerName;
+            data.MessageTargetHandlerData.IsAcknowledgement = false;
+            data.NetworkSenderData = new NetworkSenderData();
+
             
             _ringBuffer.Publish(sequence);
             
@@ -85,8 +84,6 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
 
         public void Acknowledge(Guid messageId,string messageType, bool processSuccessful, string originatingPeer, WireTransportType transportType)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("message sender");
             var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId,messageType, processSuccessful, transportType);
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
@@ -94,13 +91,15 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.Message = acknowledgementMessage;
             data.MessageTargetHandlerData.TargetPeer = originatingPeer;
             data.MessageTargetHandlerData.IsAcknowledgement = true;
+            data.MessageTargetHandlerData.Callback = null;
+            data.NetworkSenderData = new NetworkSenderData();
+
             
             _ringBuffer.Publish(sequence);
         }
 
         public void Dispose()
         {
-            _disposed = true;
         }
     }
 }

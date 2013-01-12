@@ -89,6 +89,7 @@
     <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeer.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyAndMessageSettings.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyRequest.cs" />
+    <Compile Include="IQueueConfiguration.cs" />
     <Compile Include="MessageInterfaces\IBusEventProcessorCommand.cs" />
     <Compile Include="MessageOptions.cs" />
     <Compile Include="InfrastructureMessages\Topology\MessageSettingsUpdated.cs" />

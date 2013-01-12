@@ -3,7 +3,7 @@ using ZmqServiceBus.Bus.Transport.Network;
 
 namespace ZmqServiceBus.Bus.Transport.ReceptionPipe
 {
-    public struct ReceivedTransportMessage
+    public class ReceivedTransportMessage
     {
         public readonly string PeerName;
         public readonly string MessageType;
