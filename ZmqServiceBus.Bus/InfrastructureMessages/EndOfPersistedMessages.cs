@@ -4,7 +4,7 @@ using ZmqServiceBus.Bus.MessageInterfaces;
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
-    public class EndOfPersistedMessages : IMessage
+    public class EndOfPersistedMessages : ICommand
     {
     }
 }

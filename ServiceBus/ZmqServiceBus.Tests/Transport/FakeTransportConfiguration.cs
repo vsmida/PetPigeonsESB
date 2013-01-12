@@ -21,10 +21,5 @@ namespace ZmqServiceBus.Tests.Transport
 
    
         public override string Protocol { get { return "tcp"; } }
-
-        public override string PeerName
-        {
-            get { return "FakePeerName"; }
-        }
     }
 }

@@ -22,9 +22,6 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
             Endpoint = endpoint;
         }
 
-        public ReliabilityLevel DesiredReliability
-        {
-            get { return ReliabilityLevel.FireAndForget; }
-        }
+
     }
 }

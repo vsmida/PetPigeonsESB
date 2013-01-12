@@ -37,7 +37,6 @@ namespace ZmqServiceBus.Tests.Integration
         {
 
         }
-        public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
     }
 
@@ -110,7 +109,7 @@ namespace ZmqServiceBus.Tests.Integration
 
             _waitForCommandToBeHandled.WaitOne();
 
-            //small benchmark
+            //small micro-benchmark
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
@@ -118,7 +117,7 @@ namespace ZmqServiceBus.Tests.Integration
             for (int i = 0; i < 10000; i++)
             {
                 resetEvents.Add(bus1.Send(new FakeCommand(5)));
-           //     _waitForCommandToBeHandled.WaitOne();
+                //     _waitForCommandToBeHandled.WaitOne();
             }
 
             for (int i = 0; i < 10000; i++)
@@ -152,47 +151,51 @@ namespace ZmqServiceBus.Tests.Integration
             var heartbeatConfig = new DummyHeartbeatingConfig();
             var busName1 = "Service1";
             var busName2 = "Service2";
-            var brokerName = "Service1Shadow";
-            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner:new FakeAssemblyScanner());
+            var brokerName = "Service2Shadow";
+            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
             var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
-            var brokerForBus2 = CreateFakeBus(randomPortBroker,
-                                              brokerName,
-                                              randomPort2,
-                                              busName2,
+            var brokerForBus2 = CreateFakeBus(randomPortBroker, brokerName, randomPort2, busName2,
                                               new FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<string> {busName2}));
+                                              new DummyPeerConfig(brokerName, new List<string> { busName2 }));
 
             bus1.Initialize();
             bus2.Initialize();
+            brokerForBus2.Initialize();
+
 
             _waitForCommandToBeHandled = new AutoResetEvent(false);
             int receivedNumber = 0;
             FakePersistingCommandHandler.OnCommandReceived += s =>
                                                         {
-                                                            Assert.AreEqual(receivedNumber + 1, s);
+                                                            Console.WriteLine(string.Format("processing now command no {0}", s));
+                                                            Assert.AreEqual(receivedNumber + 1, s); //throw if command is not in sequence
                                                             receivedNumber++;
                                                             _waitForCommandToBeHandled.Set();
                                                         };
 
-            bus1.Send(new FakePersistingCommand(1));
 
+            bus1.Send(new FakePersistingCommand(1)); //check normal send when everybody up
             _waitForCommandToBeHandled.WaitOne();
 
-            bus2.Dispose(); //dead
+            bus2.Dispose(); //bus 2 i dead
 
-            bus1.Send(new FakePersistingCommand(2));
-            Thread.Sleep(heartbeatConfig.HeartbeatInterval); //  should raise disconnect
+            bus1.Send(new FakePersistingCommand(2)); //message sent while bus2 out
 
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
             bus2 = CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             bus2.Initialize(); //alive again
-            bus1.Send(new FakePersistingCommand(3));
+            
+            bus1.Send(new FakePersistingCommand(3)); // send it as soon as possible so without proper ordering it should be processed before message 2
 
             _waitForCommandToBeHandled.WaitOne();
             _waitForCommandToBeHandled.WaitOne();
 
-            if (_waitForCommandToBeHandled.WaitOne(2000))
+            if (_waitForCommandToBeHandled.WaitOne(1000))
                 Assert.Fail();// if there is a fourth unwelcome message;
+
+            bus1.Dispose();
+            bus2.Dispose();
+            brokerForBus2.Dispose();
 
 
         }
@@ -206,7 +209,7 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                       <ZmqTransportConfiguration>()
                                                                                       .Use(
                                                                                           new DummyTransportConfig(
-                                                                                              busReceptionPort, busName));
+                                                                                              busReceptionPort));
                                                                                   ctx.For
                                                                                       <IBusBootstrapperConfiguration
                                                                                           >().Use(new DummyBootstrapperConfig
@@ -222,10 +225,10 @@ namespace ZmqServiceBus.Tests.Integration
                                                                                                       });
 
                                                                                   ctx.For<IPeerConfiguration>().Use(
-                                                                                     peerconfig?? new DummyPeerConfig(busName, null));
+                                                                                     peerconfig ?? new DummyPeerConfig(busName, null));
 
                                                                                   ctx.For<IAssemblyScanner>().Use(
-                                                                                      assemblyScanner?? new AssemblyScanner());
+                                                                                      assemblyScanner ?? new AssemblyScanner());
                                                                               });
         }
 

@@ -7,7 +7,6 @@ namespace ZmqServiceBus.Bus.Transport
     {
         int Port { get; }
         string Protocol { get; }
-        string PeerName { get; }
 
 
     }
@@ -30,11 +29,6 @@ namespace ZmqServiceBus.Bus.Transport
         {
             get { return "tcp"; }
         }
-
-        public override string PeerName
-        {
-            get { return ConfigurationManager.AppSettings["ServiceName"]; }
-        }
     }
 
     public abstract class ZmqTransportConfiguration : IZmqTransportConfiguration
@@ -51,7 +45,6 @@ namespace ZmqServiceBus.Bus.Transport
 
         public abstract int Port { get; }
         public abstract string Protocol { get; }
-        public abstract string PeerName { get; }
 
     }
 }

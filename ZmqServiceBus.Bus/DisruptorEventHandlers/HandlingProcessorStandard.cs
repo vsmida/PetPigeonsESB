@@ -2,6 +2,8 @@ using System;
 using Disruptor;
 using ZmqServiceBus.Bus.Dispatch;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.MessageInterfaces;
+using ZmqServiceBus.Bus.Transport.Network;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 
@@ -20,21 +22,29 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
 
         public void OnNext(InboundBusinessMessageEntry data, long sequence, bool endOfBatch)
         {
-            using (var context = MessageContext.SetContext(data.SendingPeer, data.TransportType))
+            HandleMessage(data.DeserializedMessage, data.SendingPeer, data.TransportType, data.MessageIdentity);
+        }
+
+        private void HandleMessage(IMessage deserializedMessage, string sendingPeer, WireTransportType transportType, Guid messageId)
+        {
+            using (MessageContext.SetContext(sendingPeer, transportType))
             {
                 try
                 {
-
-                    _dispatcher.Dispatch(data.DeserializedMessage);
-                    if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer,data.TransportType);
-
-
+                    _dispatcher.Dispatch(deserializedMessage);
+                    if (!(deserializedMessage is CompletionAcknowledgementMessage))
+                    {
+                        var messageType = deserializedMessage.GetType().FullName;
+                        _messageSender.Acknowledge(messageId, messageType, true,sendingPeer, transportType);
+                    }
                 }
                 catch (Exception)
                 {
-                    if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer, data.TransportType);
+                    if (!(deserializedMessage is CompletionAcknowledgementMessage))
+                    {
+                        var messageType = deserializedMessage.GetType().FullName;
+                        _messageSender.Acknowledge(messageId, messageType, false, sendingPeer, transportType);
+                    }
                 }
             }
         }
@@ -60,12 +70,19 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
                 {
                     _dispatcher.Dispatch(data.DeserializedMessage);
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, true, data.SendingPeer, data.TransportType);
+                    {
+                        var messageType = data.DeserializedMessage.GetType().FullName;
+                        _messageSender.Acknowledge(data.MessageIdentity, messageType, true, data.SendingPeer, data.TransportType);
+                    }
                 }
                 catch (Exception)
                 {
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
-                        _messageSender.Acknowledge(data.MessageIdentity, false, data.SendingPeer, data.TransportType);
+                    {
+                        var messageType = data.DeserializedMessage.GetType().FullName;
+                        _messageSender.Acknowledge(data.MessageIdentity, messageType, false, data.SendingPeer, data.TransportType);
+
+                    }
                 }
             }
         }

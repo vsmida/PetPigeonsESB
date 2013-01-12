@@ -13,7 +13,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
         event Action<MessageOptions> OptionsUpdated;
         void RegisterOptions(MessageOptions options);
         MessageOptions GetOptionsFor(string messageType);
-        List<MessageOptions> GetAllOptions();
+        Dictionary<string, MessageOptions> GetAllOptions();
         void InitializeOptions();
     }
 
@@ -41,9 +41,9 @@ namespace ZmqServiceBus.Bus.Transport.Network
             return option ?? new MessageOptions(messageType, ReliabilityLevel.FireAndForget);
         }
 
-        public List<MessageOptions> GetAllOptions()
+        public Dictionary<string,MessageOptions> GetAllOptions()
         {
-            return _options.Values.ToList();
+            return _options.ToDictionary(x => x.Key, x => x.Value);
         }
 
         public void InitializeOptions()

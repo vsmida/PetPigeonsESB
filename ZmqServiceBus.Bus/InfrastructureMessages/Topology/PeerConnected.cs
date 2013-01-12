@@ -17,9 +17,5 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
             Peer = peer;
         }
 
-        public ReliabilityLevel DesiredReliability
-        {
-            get { return ReliabilityLevel.FireAndForget; }
-        }
     }
 }

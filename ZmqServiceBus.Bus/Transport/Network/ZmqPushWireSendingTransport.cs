@@ -38,7 +38,7 @@ namespace ZmqServiceBus.Bus.Transport.Network
             }
 
             socket.SendMore(message.MessageData.MessageType, Encoding.ASCII);
-            socket.SendMore(_zmqTransportConfiguration.PeerName, Encoding.ASCII);
+            socket.SendMore(message.MessageData.SendingPeer, Encoding.ASCII);
             socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
             var sendStatus = socket.Send(message.MessageData.Data, TimeSpan.FromMilliseconds(200));
             if (sendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?

@@ -7,7 +7,9 @@ using Disruptor.Dsl;
 using Shared;
 using StructureMap;
 using ZeroMQ.Monitoring;
+using ZmqServiceBus.Bus.BusEventProcessorCommands;
 using ZmqServiceBus.Bus.Dispatch;
+using ZmqServiceBus.Bus.MessageInterfaces;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using IMessageSender = ZmqServiceBus.Bus.Transport.SendingPipe.IMessageSender;
 
@@ -16,7 +18,8 @@ namespace ZmqServiceBus.Bus.Transport.Network
     public interface IDataReceiver : IDisposable
     {
         void Initialize(RingBuffer<InboundMessageProcessingEntry> disruptor);
-        void InjectMessage(ReceivedTransportMessage message);
+        void InjectMessage(ReceivedTransportMessage message, bool forceMessageThrough = false);
+        void InjectCommand(IBusEventProcessorCommand busEventProcessorCommand);
     }
     
     public class DataReceiver : IDataReceiver
@@ -39,11 +42,20 @@ namespace ZmqServiceBus.Bus.Transport.Network
             }
         }
 
-        public void InjectMessage(ReceivedTransportMessage message)
+        public void InjectMessage(ReceivedTransportMessage message, bool forceMessage = false)
         {
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = message;
+            entry.ForceMessageThrough = forceMessage;
+            _ringBuffer.Publish(sequence);
+        }
+
+        public void InjectCommand(IBusEventProcessorCommand busEventProcessorCommand)
+        {
+            var sequence = _ringBuffer.Next();
+            var entry = _ringBuffer[sequence];
+            entry.Command = busEventProcessorCommand;
             _ringBuffer.Publish(sequence);
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Shared;
 using ZmqServiceBus.Bus.InfrastructureMessages;
+using ZmqServiceBus.Bus.Transport.ReceptionPipe;
 using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Transport.Network
@@ -14,7 +15,6 @@ namespace ZmqServiceBus.Bus.Transport.Network
         void StartMonitoring(IEndpoint endpoint);
         void RegisterHeartbeat(HeartbeatMessage heartbeat);
         void Initialize();
-        event Action<IEndpoint> CheckPeerHeartbeat;
     }
 
     public class HeartbeatManager : IHeartbeatManager
@@ -28,11 +28,14 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private readonly ConcurrentDictionary<IEndpoint, HeartbeatInformation> _heartbeatsByEndpoint = new ConcurrentDictionary<IEndpoint, HeartbeatInformation>();
         private readonly IHeartbeatingConfiguration _heartbeatingConfiguration;
         private Timer _timer;
-        public event Action<IEndpoint> CheckPeerHeartbeat = delegate { };
+        private IMessageSender _messageSender;
+        private IDataReceiver _dataReceiver;
 
-        public HeartbeatManager(IHeartbeatingConfiguration heartbeatingConfiguration)
+         public HeartbeatManager(IHeartbeatingConfiguration heartbeatingConfiguration, IMessageSender messageSender, IDataReceiver dataReceiver)
         {
             _heartbeatingConfiguration = heartbeatingConfiguration;
+            _messageSender = messageSender;
+            _dataReceiver = dataReceiver;
         }
 
         public event Action<IEndpoint> Disconnected = delegate { };
@@ -54,8 +57,10 @@ namespace ZmqServiceBus.Bus.Transport.Network
                 info = new HeartbeatInformation();
                 _heartbeatsByEndpoint.TryAdd(heartbeat.Endpoint, info);
             }
-            if (info.IsConnected != true)
+            if (info.IsConnected == false)
+            {
                 Reconnected(heartbeat.Endpoint);
+            }
             info.LastHeartbeat = heartbeat.TimestampUtc;
             info.IsConnected = true;
         }
@@ -66,13 +71,14 @@ namespace ZmqServiceBus.Bus.Transport.Network
                                    {
                                        foreach (var endpointToInfo in _heartbeatsByEndpoint.ToArray())
                                        {
-                                           if (endpointToInfo.Value.LastHeartbeat != null)
+                                           if (endpointToInfo.Value.LastHeartbeat != null && endpointToInfo.Value.IsConnected == true)
                                                if ((DateTime.UtcNow - endpointToInfo.Value.LastHeartbeat) > _heartbeatingConfiguration.HeartbeatInterval)
                                                {
                                                    Disconnected(endpointToInfo.Key);
                                                    endpointToInfo.Value.IsConnected = false;
                                                }
-                                           CheckPeerHeartbeat(endpointToInfo.Key);
+
+                                           _messageSender.SendHeartbeat(endpointToInfo.Key);
                                        }
                                    }, null, 0, (int)_heartbeatingConfiguration.HeartbeatInterval.TotalMilliseconds / 2);
         }

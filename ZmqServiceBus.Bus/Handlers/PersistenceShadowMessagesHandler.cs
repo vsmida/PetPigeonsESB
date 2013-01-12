@@ -5,7 +5,8 @@ using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Handlers
 {
-    public class PersistenceShadowMessagesHandler : ICommandHandler<ShadowMessageCommand>, ICommandHandler<ShadowCompletionMessage>, ICommandHandler<PublishUnacknowledgedMessagesToPeer>
+    public class PersistenceShadowMessagesHandler : ICommandHandler<ShadowMessageCommand>, ICommandHandler<ShadowCompletionMessage>,
+        ICommandHandler<PublishUnacknowledgedMessagesToPeerForTransport>, ICommandHandler<PublishUnacknowledgedMessagesToPeer>
     {
         private readonly ISavedMessagesStore _messagesStore;
         private readonly IMessageSender _messageSender;
@@ -22,10 +23,10 @@ namespace ZmqServiceBus.Bus.Handlers
 
         public void Handle(ShadowCompletionMessage item)
         {
-            _messagesStore.RemoveMessage(item.FromPeer, item.TransportType, item.MessageId);
+            _messagesStore.RemoveMessage(item.ToPeer, item.TransportType, item.MessageId);
         }
 
-        public void Handle(PublishUnacknowledgedMessagesToPeer item)
+        public void Handle(PublishUnacknowledgedMessagesToPeerForTransport item)
         {
             foreach (var wireTransportType in item.TransportType)
             {
@@ -39,5 +40,20 @@ namespace ZmqServiceBus.Bus.Handlers
 
             }
         }
+
+        public void Handle(PublishUnacknowledgedMessagesToPeer item)
+        {
+            var messages = _messagesStore.GetFirstMessages(item.Peer, 1000);
+            foreach (var shadowMessageCommand in messages)
+            {
+                var receivedTransportMessage = new ReceivedTransportMessage(shadowMessageCommand.Message.MessageType, shadowMessageCommand.Message.SendingPeer,
+                                                                            shadowMessageCommand.Message.MessageIdentity, shadowMessageCommand.TargetEndpoint.WireTransportType,
+                                                                            shadowMessageCommand.Message.Data);
+                _messageSender.Route(new ProcessMessageCommand(receivedTransportMessage), item.Peer);
+            }
+
+            _messageSender.Route(new EndOfPersistedMessages(), item.Peer);
+        }
+
     }
 }

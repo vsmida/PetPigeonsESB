@@ -4,15 +4,14 @@ using ZmqServiceBus.Bus.MessageInterfaces;
 namespace ZmqServiceBus.Bus.InfrastructureMessages
 {
     [ProtoContract]
-    public class SynchronizeMessageCommand : ICommand
+    public class PublishUnacknowledgedMessagesToPeer : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly string MessageType;
+        public readonly string Peer;
 
-        public SynchronizeMessageCommand(string messageType)
+        public PublishUnacknowledgedMessagesToPeer(string peer)
         {
-            MessageType = messageType;
+            Peer = peer;
         }
-
     }
 }

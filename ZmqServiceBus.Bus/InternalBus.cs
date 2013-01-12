@@ -19,7 +19,7 @@ using Disruptor.Dsl;
 
 namespace ZmqServiceBus.Bus
 {
-    public class InternalBus : IBus, IReplier
+    class InternalBus : IBus, IReplier
     {
         private readonly HandlingProcessorStandard _handlingProcessorStandard;
         private readonly HandlingProcessorInfrastructure _handlingProcessorInfrastructure;

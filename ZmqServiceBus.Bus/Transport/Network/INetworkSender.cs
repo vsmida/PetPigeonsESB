@@ -27,15 +27,8 @@ namespace ZmqServiceBus.Bus.Transport.Network
         {
             _heartbeatManager = heartbeatManager;
             _wireSendingTransports = wireSendingTransports.ToDictionary(x => x.TransportType, x => x);
-            _heartbeatManager.CheckPeerHeartbeat += OnHeatbeatRequested;
 
         }
-
-        private void OnHeatbeatRequested(IEndpoint endpoint)
-        {
-            //    SendMessage(new WireSendingMessage(typeof(HeartbeatRequest).FullName, Guid.NewGuid(), BusSerializer.Serialize(new HeartbeatRequest(DateTime.UtcNow, endpoint)),new[]{endpoint}));
-        }
-
         public void Dispose()
         {
             _heartbeatManager.Dispose();

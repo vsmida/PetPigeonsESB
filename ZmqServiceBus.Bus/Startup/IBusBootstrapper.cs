@@ -48,11 +48,10 @@ namespace ZmqServiceBus.Bus.Startup
             var messageSubscriptions =
                 _assemblyScanner.GetHandledCommands().Concat(_assemblyScanner.GetHandledEvents()).Select(
                     x =>
-                    new MessageSubscription(x, _zmqTransportConfiguration.PeerName,
+                    new MessageSubscription(x, _peerConfiguration.PeerName,
                                             new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), null));
 
-            var peer = new ServicePeer(_zmqTransportConfiguration.PeerName, messageSubscriptions.ToList(), _peerConfiguration.ShadowedPeers);
-            _peerManager.RegisterPeerConnection(peer); //register yourself.
+            var peer = new ServicePeer(_peerConfiguration.PeerName, messageSubscriptions.ToList(), _peerConfiguration.ShadowedPeers);
             var commandRequest = new InitializeTopologyRequest(peer);
 
             var directoryServiceRegisterPeerSubscription = new MessageSubscription(typeof(InitializeTopologyRequest),
@@ -84,6 +83,7 @@ namespace ZmqServiceBus.Bus.Startup
                                                                 new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription, directoryServiceRegisterPeerSubscription2 }, null);
           
             _peerManager.RegisterPeerConnection(directoryServiceBarebonesPeer);
+            _peerManager.RegisterPeerConnection(peer); //register yourself after dir service in case dirService=Service;
 
             var completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
             completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?

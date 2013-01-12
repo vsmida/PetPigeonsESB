@@ -22,7 +22,6 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<IWireReceiverTransport>().Use<ZmqWireDataReceiver>().Ctor<ZmqContext>().Is(ZmqContext.Create());
              ForSingletonOf<IDataReceiver>().Use<DataReceiver>();
              ForSingletonOf<ISavedMessagesStore>().Use<SavedMessagesStore>();
-             ForSingletonOf<IHeartbeatManager>().Use<HeartbeatManager>();
              ForSingletonOf<IHeartbeatingConfiguration>().Use<DummyHeartbeatingConfig>();
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
              ForSingletonOf<INetworkSender>().Use<NetworkSender>();
@@ -33,6 +32,7 @@ namespace ZmqServiceBus.Bus.Startup
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
              ForSingletonOf<ICallbackRepository>().Use<CallbackRepository>();
+             ForSingletonOf<IHeartbeatManager>().Use<HeartbeatManager>();
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
              ForSingletonOf<IBusBootstrapperConfiguration>().Use<BusBootstrapperConfiguration>();
              ForSingletonOf<IBus>().Use<InternalBus>();

@@ -12,13 +12,22 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
     public class MessageSender : IMessageSender
     {
         private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
+        private readonly IPeerConfiguration _peerConfiguration;
 
-        public void SendHeartbeat(string peer, IEndpoint endpoint)
+        public MessageSender(IPeerConfiguration peerConfiguration)
+        {
+            _peerConfiguration = peerConfiguration;
+        }
+
+        public void SendHeartbeat(IEndpoint endpoint)
         {
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
 
-            data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(new MessageWireData(typeof(HeartbeatRequest).FullName,Guid.NewGuid(),), ));
+            var heartbeatRequest = new HeartbeatRequest(DateTime.UtcNow, endpoint);
+            var serializedMessage = BusSerializer.Serialize(heartbeatRequest);
+            var messageWireData = new MessageWireData(typeof (HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
+            data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData,endpoint));
 
             _ringBuffer.Publish(sequence);
         }
@@ -65,9 +74,9 @@ namespace ZmqServiceBus.Bus.Transport.SendingPipe
             return callback;
         }
 
-        public void Acknowledge(Guid messageId, bool processSuccessful, string originatingPeer, WireTransportType transportType)
+        public void Acknowledge(Guid messageId,string messageType, bool processSuccessful, string originatingPeer, WireTransportType transportType)
         {
-            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, processSuccessful, transportType);
+            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId,messageType, processSuccessful, transportType);
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
 

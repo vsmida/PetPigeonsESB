@@ -11,10 +11,10 @@ namespace ZmqServiceBus.Bus.InfrastructureMessages
         [ProtoMember(2, IsRequired = true)]
         public readonly ReliabilityLevel ReliabilityLevel;
 
-        public MessageOptions(string messageType, ReliabilityLevel ReliabilityLevel)
+        public MessageOptions(string messageType, ReliabilityLevel reliabilityLevel)
         {
             MessageType = messageType;
-            ReliabilityLevel = ReliabilityLevel;
+            ReliabilityLevel = reliabilityLevel;
         }
 
         private MessageOptions(){}

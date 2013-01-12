@@ -12,12 +12,10 @@ namespace ZmqServiceBus.Tests.Integration
     public class DummyTransportConfig : ZmqTransportConfiguration
     {
         private readonly int _port;
-        private readonly string _peerName;
 
-        public DummyTransportConfig(int port, string peerName)
+        public DummyTransportConfig(int port)
         {
             _port = port;
-            _peerName = peerName;
         }
 
         public override int Port
@@ -27,11 +25,6 @@ namespace ZmqServiceBus.Tests.Integration
         public override string Protocol
         {
             get { return "tcp"; }
-        }
-
-        public override string PeerName
-        {
-            get { return _peerName; }
         }
     }
 }
