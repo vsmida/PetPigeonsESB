@@ -63,65 +63,9 @@ namespace ZmqServiceBus.Tests
             _completionCallbackMock = new Mock<ICompletionCallback>();
             _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(
                 _completionCallbackMock.Object);
-         //   _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object, _subscriptionManagerMock.Object);
-        }
-
-
-        [Test]
-        public void should_register_directory_service_infrastructure_messages()
-        {
-            _bootstrapper.BootStrapTopology();
-
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(InitializeTopologyAndMessageSettings).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(RegisterPeerCommand).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
-        }
-
-        [Test]
-        public void should_register_completion_acks_reliability()
-        {
-            _bootstrapper.BootStrapTopology();
-
-            _repoMock.Verify(x => x.RegisterOptions(It.Is<MessageOptions>(y => y.MessageType == typeof(CompletionAcknowledgementMessage).FullName && y.ReliabilityLevel == ReliabilityLevel.FireAndForget)));
-        }
-
-
-        [Test]
-        public void should_register_events_with_subscription_manager()
-        {
-            _assemblyScannerMock.Setup(x => x.GetHandledEvents()).Returns(new List<Type> { typeof(FakeEvent) });
-
-            _bootstrapper.BootStrapTopology();
-            
-            _subscriptionManagerMock.Verify(x => x.StartListeningTo(typeof(FakeEvent)));
-            
-        }
-
-        //[Test]
-        //public void should_register_with_directory_service_and_wait_for_completion()
-        //{
-        //    RegisterPeerCommand command = null;
-
-        //    _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(_completionCallbackMock.Object).Callback<ICommand, ICompletionCallback>((y, z) => command = (RegisterPeerCommand)y);
-        //    _assemblyScannerMock.Setup(x => x.GetHandledCommands()).Returns(new List<Type> { typeof(FakeCommand) });
-
-        //    _bootstrapper.BootStrapTopology();
-
-        //    Assert.AreEqual(_peerConfiguration.PeerName, command.Peer.PeerName);
-        //    Assert.AreEqual(typeof(FakeCommand), command.Peer.HandledMessages.Single());
-
-        //    _completionCallbackMock.Verify(x => x.WaitForCompletion());
-        //}
-
-        [Test]
-        public void should_register_directory_service_as_peer()
-        {
-            ServicePeer dirServicePeer = null;
-            _peerManagerMock.Setup(x => x.RegisterPeerConnection(It.IsAny<ServicePeer>())).Callback<ServicePeer>(x => dirServicePeer = x);
-            
-            _bootstrapper.BootStrapTopology();
-
-            Assert.AreEqual(_config.DirectoryServiceName, dirServicePeer.PeerName);
-            Assert.AreEqual(typeof(RegisterPeerCommand), dirServicePeer.HandledMessages.Single());
+            _peerConfigurationMock = new Mock<IPeerConfiguration>();
+            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object,
+                _subscriptionManagerMock.Object, _peerConfigurationMock.Object);
         }
     }
 }

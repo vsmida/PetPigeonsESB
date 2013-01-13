@@ -15,13 +15,16 @@ namespace ZmqServiceBus.Bus.Handlers
             public readonly string PeerName;
             private readonly Dictionary<WireTransportType, Queue<ShadowMessageCommand>> _messagesByEndpoint = new Dictionary<WireTransportType, Queue<ShadowMessageCommand>>();
             private Queue<ShadowMessageCommand> _messagesGlobal = new Queue<ShadowMessageCommand>();
+            private Dictionary<Guid, ShadowCompletionMessage> _acksReceivedBeforeMessages = new Dictionary<Guid, ShadowCompletionMessage>();
 
             public PeerMessageQueue(string peerName)
             {
                 PeerName = peerName;
             }
 
+
             public Queue<ShadowMessageCommand> GlobalQueue { get { return _messagesGlobal; } set { _messagesGlobal = value; } }
+            public Dictionary<Guid, ShadowCompletionMessage> OutOfOrderAcks { get { return _acksReceivedBeforeMessages; } set { _acksReceivedBeforeMessages = value; } }
 
             public Queue<ShadowMessageCommand> this[WireTransportType key]
             {
@@ -52,31 +55,42 @@ namespace ZmqServiceBus.Bus.Handlers
                 _savedMessages[shadowMessage.PrimaryRecipient] = queue;
             }
 
+            if (queue.OutOfOrderAcks.Count > 0 && queue.OutOfOrderAcks.ContainsKey(shadowMessage.Message.MessageIdentity))
+            {
+                Console.WriteLine("removing out of order ack");
+                queue.OutOfOrderAcks.Remove(shadowMessage.Message.MessageIdentity);
+                return;
+            }
             queue[MessageContext.OriginatingTransportType.Value].Enqueue(shadowMessage);
             queue.GlobalQueue.Enqueue(shadowMessage);
         }
 
-        public void RemoveMessage(string peer, WireTransportType transportType, Guid messageId)
+        public void RemoveMessage(ShadowCompletionMessage message)
         {
             PeerMessageQueue peerQueue;
-            if (!_savedMessages.TryGetValue(peer, out peerQueue) || peerQueue[transportType].Count == 0 || peerQueue.GlobalQueue.Count == 0)
+            if (!_savedMessages.TryGetValue(message.ToPeer, out peerQueue))
             {
-                //argh nothing, restart?
-                Debugger.Break();
+                peerQueue = new PeerMessageQueue(message.ToPeer);
+                _savedMessages.Add(message.ToPeer, peerQueue);
+
+            }
+            if (peerQueue[message.TransportType].Count == 0 || peerQueue.GlobalQueue.Count == 0)
+            {
+
+                peerQueue.OutOfOrderAcks.Add(message.MessageId, message);
+                Console.WriteLine("out of order ack");
                 return;
             }
-            RemoveFromTransportQueue(transportType, messageId, peerQueue);
-            RemoveFromGlobalQueue(messageId, peerQueue);
-        }
 
-        private static void RemoveFromGlobalQueue(Guid messageId, PeerMessageQueue peerQueue)
-        {
             var item = peerQueue.GlobalQueue.Dequeue();
-            if (item.Message.MessageIdentity != messageId)
+            if (item.Message.MessageIdentity != message.MessageId)
             {
-                //argh, missing messages?
-                Debugger.Break();
+                Console.WriteLine("out of order ack");
+                peerQueue.OutOfOrderAcks.Add(message.MessageId, message);
+                return;
             }
+
+            RemoveFromTransportQueue(message.TransportType, message.MessageId, peerQueue);
         }
 
         private static void RemoveFromTransportQueue(WireTransportType transportType, Guid messageId, PeerMessageQueue peerQueue)
@@ -86,6 +100,7 @@ namespace ZmqServiceBus.Bus.Handlers
             {
                 //argh, missing messages?
                 Debugger.Break();
+                Console.WriteLine("error when removing from queue");
             }
         }
 

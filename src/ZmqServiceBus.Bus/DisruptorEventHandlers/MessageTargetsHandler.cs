@@ -92,6 +92,8 @@ namespace ZmqServiceBus.Bus.DisruptorEventHandlers
                     SendShadowMessages(concernedSubscriptions, messageData, disruptorData);
             }
 
+
+
         }
 
         private MessageWireData CreateMessageWireData(IMessage message)

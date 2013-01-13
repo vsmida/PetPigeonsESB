@@ -8,7 +8,7 @@ namespace ZmqServiceBus.Bus.Handlers
     public interface ISavedMessagesStore
     {
         void SaveMessage(ShadowMessageCommand shadowMessage);
-        void RemoveMessage(string peer, WireTransportType transportType, Guid messageId);
+        void RemoveMessage(ShadowCompletionMessage completionMessage);
         IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, WireTransportType transportType, int maxCount);
         IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int maxCount);
     }

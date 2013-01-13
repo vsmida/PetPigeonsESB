@@ -96,7 +96,6 @@ namespace ZmqServiceBus.Bus
             _heartbeatManager.Dispose();
             _dataReceiver.Dispose();
             
-            //Thread.Sleep(200); // re-entrant command problem, should wait for infra/strandard ringbuffers to have full capacity once then shutdown networkDisruptor?
             while(!_networkInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.NetworkQueueSize) 
                 || !_normalMessagesInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.StandardDispatchQueueSize)
                 || !_infrastructureInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.InfrastructureQueueSize)
@@ -110,7 +109,6 @@ namespace ZmqServiceBus.Bus
             _infrastructureInputDisruptor.Shutdown();
             _messageSender.Dispose();
             _outputDisruptor.Shutdown();
-       //     Thread.Sleep(100); //what the fuck? everybody should ahve shut down? is shutdown not synchronous?
             _networkSender.Dispose();
         }
     }

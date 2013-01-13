@@ -26,7 +26,7 @@ namespace ZmqServiceBus.Bus.Handlers
 
         public void Handle(ShadowCompletionMessage item)
         {
-            _messagesStore.RemoveMessage(item.ToPeer, item.TransportType, item.MessageId);
+            _messagesStore.RemoveMessage(item);
         }
 
         public void Handle(PublishUnacknowledgedMessagesToPeerForTransport item)

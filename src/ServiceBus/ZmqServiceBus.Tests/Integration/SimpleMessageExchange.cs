@@ -137,7 +137,7 @@ namespace ZmqServiceBus.Tests.Integration
             }
         }
 
-        [Test, Timeout(2000000), Repeat(2)]
+        [Test, Timeout(2000000), Repeat(20)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -196,8 +196,6 @@ namespace ZmqServiceBus.Tests.Integration
             
             watch.Stop();
             Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
-
-            Thread.Sleep(1000);
 
             bus1.Dispose();
             bus2.Dispose();

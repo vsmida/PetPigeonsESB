@@ -19,8 +19,10 @@ namespace ZmqServiceBus.Bus.Startup
              For<IAssemblyScanner>().Use<AssemblyScanner>();
              ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
              ForSingletonOf<IQueueConfiguration>().Use<DefaultQueueConfiguration>();
-             ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(ZmqContext.Create());
-             ForSingletonOf<IWireReceiverTransport>().Use<ZmqWireDataReceiver>().Ctor<ZmqContext>().Is(ZmqContext.Create());
+             var zmqContext = ZmqContext.Create();
+             ForSingletonOf<IWireSendingTransport>().Add<ZmqPushWireSendingTransport>().Ctor<ZmqContext>().Is(zmqContext);
+             var context = ZmqContext.Create();
+             ForSingletonOf<IWireReceiverTransport>().Use<ZmqWireDataReceiver>().Ctor<ZmqContext>().Is(context);
              ForSingletonOf<IDataReceiver>().Use<DataReceiver>();
              ForSingletonOf<ISavedMessagesStore>().Use<SavedMessagesStore>();
              ForSingletonOf<IHeartbeatingConfiguration>().Use<DummyHeartbeatingConfig>();

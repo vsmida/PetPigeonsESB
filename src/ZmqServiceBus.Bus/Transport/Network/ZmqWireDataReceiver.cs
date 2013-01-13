@@ -7,6 +7,7 @@ using Shared;
 using ZeroMQ;
 using ZmqServiceBus.Bus.InfrastructureMessages;
 using ZmqServiceBus.Bus.Transport.ReceptionPipe;
+using ZmqServiceBus.Bus.Transport.SendingPipe;
 
 namespace ZmqServiceBus.Bus.Transport.Network
 {
@@ -60,14 +61,17 @@ namespace ZmqServiceBus.Bus.Transport.Network
         private void ReceiveFromSocket(SocketEventArgs socketEventArgs)
         {
             var zmqSocket = socketEventArgs.Socket;
-            var type = zmqSocket.Receive(Encoding.ASCII);
-            var peerName = zmqSocket.Receive(Encoding.ASCII);
+          //  var type = zmqSocket.Receive(Encoding.ASCII);
+         //   var peerName = zmqSocket.Receive(Encoding.ASCII);
 
-            var serializedId = zmqSocket.Receive();
-            var messageId = new Guid(serializedId);
-            var serializedItem = zmqSocket.Receive();
+        //    var serializedId = zmqSocket.Receive();
+       //     var messageId = new Guid(serializedId);
+        //    var serializedItem = zmqSocket.Receive();
 
-            var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
+            var messagedata = BusSerializer.Deserialize<MessageWireData>(zmqSocket.Receive());
+
+          //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
+            var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType, messagedata.SendingPeer, messagedata.MessageIdentity, TransportType, messagedata.Data);
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = receivedTransportMessage;
