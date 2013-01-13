@@ -3,6 +3,8 @@ syntax: regexp
 _ReSharper.*
 .*/obj/.*
 .*/bin/.*
+.git/.*
 syntax: glob
 .*/Release/.*
 .*_ReSharper.*
+.*git/.*
