@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C33450C1-7E6E-4E0A-9FFA-058B27743719}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Bus</RootNamespace>
+    <AssemblyName>Bus</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Atomic">
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Atomic.dll</HintPath>
+    </Reference>
+    <Reference Include="clrzmq, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\ClrZMQ\clrzmq.dll</HintPath>
+    </Reference>
+    <Reference Include="Disruptor">
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.dll</HintPath>
+    </Reference>
+    <Reference Include="Disruptor.Scheduler">
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.Scheduler.dll</HintPath>
+    </Reference>
+    <Reference Include="protobuf-net">
+      <HintPath>..\packages\protobuf-net.2.0.0.619\lib\net40\protobuf-net.dll</HintPath>
+    </Reference>
+    <Reference Include="StructureMap, Version=2.6.4.0, Culture=neutral, PublicKeyToken=e60ad81abae3c223, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\structuremap.2.6.4.1\lib\net40\StructureMap.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BusEventProcessorCommands\ReleaseCachedMessages.cs" />
+    <Compile Include="CallbackRepository.cs" />
+    <Compile Include="DefaultCompletionCallback.cs" />
+    <Compile Include="Dispatch\AssemblyScanner.cs" />
+    <Compile Include="DisruptorEventHandlers\MessageTargetsHandler.cs" />
+    <Compile Include="ExtendIMessage.cs" />
+    <Compile Include="Dispatch\IAssemblyScanner.cs" />
+    <Compile Include="FailedMessageProcessingException.cs" />
+    <Compile Include="Handlers\CompletionMessagesHandler.cs" />
+    <Compile Include="Handlers\DirectoryServiceMessagesHandler.cs" />
+    <Compile Include="Handlers\HeartbeatMessageHandler.cs" />
+    <Compile Include="Handlers\ISavedMessagesStore.cs" />
+    <Compile Include="Handlers\PersistenceShadowMessagesHandler.cs" />
+    <Compile Include="Handlers\ProcessMessageCommandHandler.cs" />
+    <Compile Include="Handlers\SavedMessagesStore.cs" />
+    <Compile Include="IBlockableUntilCompletion.cs" />
+    <Compile Include="ICallbackRepository.cs" />
+    <Compile Include="ICompletionCallback.cs" />
+    <Compile Include="IBusEventHandler.cs" />
+    <Compile Include="DisruptorEventHandlers\HandlingProcessorStandard.cs" />
+    <Compile Include="DisruptorEventHandlers\PersistenceSynchronizationProcessor.cs" />
+    <Compile Include="InfrastructureMessages\CompletionAcknowledgementMessage.cs" />
+    <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatMessage.cs" />
+    <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatRequest.cs" />
+    <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeer.cs" />
+    <Compile Include="InfrastructureMessages\Topology\InitializeTopologyAndMessageSettings.cs" />
+    <Compile Include="InfrastructureMessages\Topology\InitializeTopologyRequest.cs" />
+    <Compile Include="IQueueConfiguration.cs" />
+    <Compile Include="MessageInterfaces\IBusEventProcessorCommand.cs" />
+    <Compile Include="MessageOptions.cs" />
+    <Compile Include="InfrastructureMessages\Topology\MessageSettingsUpdated.cs" />
+    <Compile Include="InfrastructureMessages\Topology\PeerConnected.cs" />
+    <Compile Include="InfrastructureMessages\EndOfPersistedMessages.cs" />
+    <Compile Include="InfrastructureMessages\Heartbeating\PeerEndpointDisconnected.cs" />
+    <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeerForTransport.cs" />
+    <Compile Include="InfrastructureMessages\Shadowing\ShadowCompletionMessage.cs" />
+    <Compile Include="InfrastructureMessages\Shadowing\ShadowMessageCommand.cs" />
+    <Compile Include="InfrastructureMessages\ProcessMessageCommand.cs" />
+    <Compile Include="InfrastructureMessages\Topology\RegisterPeerCommand.cs" />
+    <Compile Include="InternalBus.cs" />
+    <Compile Include="IBus.cs" />
+    <Compile Include="Dispatch\IMessageDispatcher.cs" />
+    <Compile Include="BusFactory.cs" />
+    <Compile Include="IPeerConfiguration.cs" />
+    <Compile Include="Dispatch\MessageContext.cs" />
+    <Compile Include="Dispatch\MessageDispatcher.cs" />
+    <Compile Include="MessageInterfaces\ICommand.cs" />
+    <Compile Include="MessageInterfaces\ICommandHandler.cs" />
+    <Compile Include="MessageInterfaces\IEvent.cs" />
+    <Compile Include="MessageInterfaces\IMessage.cs" />
+    <Compile Include="MessageInterfaces\IMessageHandler.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="BusSerializer.cs" />
+    <Compile Include="Startup\BusBootstrapperConfiguration.cs" />
+    <Compile Include="Startup\IBusBootstrapper.cs" />
+    <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
+    <Compile Include="Startup\BusRegistry.cs" />
+    <Compile Include="Subscriptions\DummySubscriptionFilter.cs" />
+    <Compile Include="Transport\IMessageSubscription.cs" />
+    <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
+    <Compile Include="Transport\Network\HeartbeatManager.cs" />
+    <Compile Include="Transport\Network\IEndpoint.cs" />
+    <Compile Include="Transport\Network\IDataReceiver.cs" />
+    <Compile Include="Transport\Network\INetworkSender.cs" />
+    <Compile Include="Transport\Network\IWireReceiverTransport.cs" />
+    <Compile Include="Transport\Network\IWireSendingTransport.cs" />
+    <Compile Include="Transport\Network\ZmqWireDataReceiver.cs" />
+    <Compile Include="Transport\Network\ZmqEndpoint.cs" />
+    <Compile Include="Transport\Network\ZmqPushWireSendingTransport.cs" />
+    <Compile Include="Transport\ReceptionPipe\InboundBusinessMessageEntry.cs" />
+    <Compile Include="Transport\ReceptionPipe\InboundInfrastructureEntry.cs" />
+    <Compile Include="Transport\ReceptionPipe\InboundMessageProcessingEntry.cs" />
+    <Compile Include="Transport\SendingPipe\MessageWireData.cs" />
+    <Compile Include="Transport\SendingPipe\OutboundDisruptorEntry.cs" />
+    <Compile Include="Subscriptions\SubscriptionManager.cs" />
+    <Compile Include="Transport\SendingPipe\MessageSender.cs" />
+    <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
+    <Compile Include="Transport\Network\IMessageOptionsRepository.cs" />
+    <Compile Include="Transport\SendingPipe\IMessageSender.cs" />
+    <Compile Include="Transport\Network\IPeerManager.cs" />
+    <Compile Include="Transport\IReliabilityStrategyFactory.cs" />
+    <Compile Include="Transport\SendingPipe\SendingStrategies\ISendingReliabilityStrategy.cs" />
+    <Compile Include="Subscriptions\ISubscriptionManager.cs" />
+    <Compile Include="Transport\IZmqTransportConfiguration.cs" />
+    <Compile Include="Transport\ReceptionPipe\ReceivedTransportMessage.cs" />
+    <Compile Include="Transport\ReliabilityStrategyFactory.cs" />
+    <Compile Include="Transport\SendingPipe\SendingBusMessage.cs" />
+    <Compile Include="Transport\SendingPipe\WireSendingMessage.cs" />
+    <Compile Include="Transport\ServicePeer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj">
+      <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>
+      <Name>Shared</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Conventions\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
