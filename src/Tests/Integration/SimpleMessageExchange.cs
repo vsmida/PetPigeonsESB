@@ -84,7 +84,7 @@ namespace Tests.Integration
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
 
-        [Test, Timeout(8000), Repeat(2)]
+        [Test, Timeout(80000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();

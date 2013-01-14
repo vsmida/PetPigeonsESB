@@ -1,10 +1,12 @@
 ﻿using Bus.Dispatch;
+using Bus.DisruptorEventHandlers;
 using Bus.Handlers;
 using Bus.Subscriptions;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
 using StructureMap.Configuration.DSL;
+using StructureMap.Pipeline;
 using ZeroMQ;
 
 namespace Bus.Startup
@@ -13,7 +15,7 @@ namespace Bus.Startup
     {
          public BusRegistry()
          {
-             For<IAssemblyScanner>().Use<AssemblyScanner>();
+             For<IAssemblyScanner>().LifecycleIs(new UniquePerRequestLifecycle()).Use<AssemblyScanner>();
              ForSingletonOf<ZmqTransportConfiguration>().Use<ZmqTransportConfigurationRandomPort>();
              ForSingletonOf<IQueueConfiguration>().Use<DefaultQueueConfiguration>();
              var zmqContext = ZmqContext.Create();
@@ -26,7 +28,7 @@ namespace Bus.Startup
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
              ForSingletonOf<INetworkSender>().Use<NetworkSender>();
              ForSingletonOf<IMessageSender>().Use<MessageSender>();
-             For<IMessageDispatcher>().Use<MessageDispatcher>();
+             For<IMessageDispatcher>().LifecycleIs(new UniquePerRequestLifecycle()).Use<MessageDispatcher>();
              For<IPeerConfiguration>().Use<PeerConfiguration>();
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
