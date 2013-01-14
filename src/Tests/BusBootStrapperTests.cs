@@ -17,13 +17,11 @@ namespace Tests
     {
         private class FakeCommand : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
             
         }
 
         private class FakeEvent : IEvent
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
             
         }
 

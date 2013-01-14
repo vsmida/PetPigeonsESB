@@ -66,6 +66,7 @@
     <Compile Include="CallbackRepository.cs" />
     <Compile Include="DefaultCompletionCallback.cs" />
     <Compile Include="Dispatch\AssemblyScanner.cs" />
+    <Compile Include="DisruptorEventHandlers\HandlingProcessorInfrastructure.cs" />
     <Compile Include="DisruptorEventHandlers\MessageTargetsHandler.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
@@ -138,17 +139,12 @@
     <Compile Include="Transport\SendingPipe\OutboundDisruptorEntry.cs" />
     <Compile Include="Subscriptions\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
-    <Compile Include="Transport\SendingPipe\SendingStrategies\FireAndForget.cs" />
     <Compile Include="Transport\Network\IMessageOptionsRepository.cs" />
     <Compile Include="Transport\SendingPipe\IMessageSender.cs" />
     <Compile Include="Transport\Network\IPeerManager.cs" />
-    <Compile Include="Transport\IReliabilityStrategyFactory.cs" />
-    <Compile Include="Transport\SendingPipe\SendingStrategies\ISendingReliabilityStrategy.cs" />
     <Compile Include="Subscriptions\ISubscriptionManager.cs" />
     <Compile Include="Transport\IZmqTransportConfiguration.cs" />
     <Compile Include="Transport\ReceptionPipe\ReceivedTransportMessage.cs" />
-    <Compile Include="Transport\ReliabilityStrategyFactory.cs" />
-    <Compile Include="Transport\SendingPipe\SendingBusMessage.cs" />
     <Compile Include="Transport\SendingPipe\WireSendingMessage.cs" />
     <Compile Include="Transport\ServicePeer.cs" />
   </ItemGroup>

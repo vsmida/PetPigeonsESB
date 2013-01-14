@@ -7,8 +7,6 @@ using System.Threading;
 namespace Shared
 {
 
-
-
     public class SingleProducerSingleConsumerConcurrentQueue<T> : IProducerConsumerCollection<T>
     {
 

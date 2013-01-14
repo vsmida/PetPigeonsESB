@@ -25,7 +25,6 @@ namespace Bus.Startup
              ForSingletonOf<IHeartbeatingConfiguration>().Use<DummyHeartbeatingConfig>();
              ForSingletonOf<IPeerManager>().Use<PeerManager>();
              ForSingletonOf<INetworkSender>().Use<NetworkSender>();
-             ForSingletonOf<IReliabilityStrategyFactory>().Use<ReliabilityStrategyFactory>();
              ForSingletonOf<IMessageSender>().Use<MessageSender>();
              For<IMessageDispatcher>().Use<MessageDispatcher>();
              For<IPeerConfiguration>().Use<PeerConfiguration>();

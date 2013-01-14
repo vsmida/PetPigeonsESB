@@ -68,11 +68,7 @@ namespace Bus.DisruptorEventHandlers
             if (callback != null)
                 _callbackRepository.RegisterCallback(messageData.MessageIdentity, callback);
 
-            foreach (var concernedSubscription in concernedSubscriptions)
-            {
-                var wireMessage = new WireSendingMessage(messageData, concernedSubscription.Endpoint);
-                disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
-            }
+            SendToConcernedPeers(concernedSubscriptions, disruptorData, messageData);
 
             if (disruptorData.MessageTargetHandlerData.IsAcknowledgement)
             {
@@ -94,6 +90,16 @@ namespace Bus.DisruptorEventHandlers
 
 
 
+        }
+
+        private static void SendToConcernedPeers(
+            MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
+        {
+            foreach (var concernedSubscription in concernedSubscriptions)
+            {
+                var wireMessage = new WireSendingMessage(messageData, concernedSubscription.Endpoint);
+                disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
+            }
         }
 
         private MessageWireData CreateMessageWireData(IMessage message)

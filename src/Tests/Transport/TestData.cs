@@ -13,8 +13,6 @@ namespace Tests.Transport
     {
         public class FakeCommand : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
-
         }
 
         public class FakeEvent
@@ -32,8 +30,6 @@ namespace Tests.Transport
 
         public class CommandThatThrows : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
-
         }
 
         public class CommandThatThrowsHandler : ICommandHandler<CommandThatThrows>
@@ -58,16 +54,6 @@ namespace Tests.Transport
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
         {
             return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), WireTransportType.ZmqPushPullTransport, BusSerializer.Serialize(item));
-        }
-
-        public static SendingBusMessage GenerateDummySendingMessage<T>()
-        {
-            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), new byte[0], null);
-        }
-
-        public static SendingBusMessage GenerateDummySendingMessage<T>(T item)
-        {
-            return new SendingBusMessage(typeof(T).FullName, Guid.NewGuid(), BusSerializer.Serialize(item), null);
         }
 
         public static ServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

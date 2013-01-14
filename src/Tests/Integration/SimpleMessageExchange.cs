@@ -84,7 +84,7 @@ namespace Tests.Integration
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
 
-        [Test, Timeout(800000), Repeat(2)]
+        [Test, Timeout(8000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -137,7 +137,7 @@ namespace Tests.Integration
             }
         }
 
-        [Test, Timeout(2000000), Repeat(20)]
+        [Test, Timeout(200000000), Repeat(100)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -165,12 +165,15 @@ namespace Tests.Integration
             bus1.Send(new FakePersistingCommand(1)); //check normal send when everybody up
             _waitForCommandToBeHandled.WaitOne();
 
+            Console.WriteLine("Disposing bus2");
             bus2.Dispose(); //bus 2 i dead
+            Console.WriteLine("bus2 disposed");
 
             bus1.Send(new FakePersistingCommand(2)); //message sent while bus2 out
 
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
             bus2 = CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            Console.WriteLine("initializing bus2 again");
             bus2.Initialize(); //alive again
             
             bus1.Send(new FakePersistingCommand(3)); // send it as soon as possible so without proper ordering it should be processed before message 2

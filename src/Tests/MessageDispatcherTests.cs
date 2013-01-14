@@ -85,7 +85,6 @@ namespace Tests
         [ProtoContract]
         private class FakeEvent : IEvent
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
             [ProtoMember(1, IsRequired = true)]
             public int Number;
@@ -100,7 +99,6 @@ namespace Tests
         [ProtoContract]
         private class UnknownEvent : IEvent
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
             
             [ProtoMember(1, IsRequired = true)]
             public int Number;
@@ -114,7 +112,6 @@ namespace Tests
         [ProtoContract]
         private class FakeCommand : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
             [ProtoMember(1, IsRequired = true)]
             public int Number;
@@ -128,7 +125,6 @@ namespace Tests
         [ProtoContract]
         private class FakeCommand2 : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
             [ProtoMember(1, IsRequired = true)]
             public int Number;
@@ -142,7 +138,6 @@ namespace Tests
         [ProtoContract]
         private class UnknownCommand : ICommand
         {
-            public ReliabilityLevel DesiredReliability { get { return ReliabilityLevel.FireAndForget; } }
 
             [ProtoMember(1, IsRequired = true)]
             public int Number;
