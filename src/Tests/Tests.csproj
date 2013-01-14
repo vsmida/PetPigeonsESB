@@ -69,30 +69,29 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Atomic">
-      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Atomic.dll</HintPath>
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Atomic.dll</HintPath>
     </Reference>
     <Reference Include="clrzmq">
-      <HintPath>..\..\..\lib\ClrZMQ\clrzmq.dll</HintPath>
+      <HintPath>..\..\lib\ClrZMQ\clrzmq.dll</HintPath>
     </Reference>
     <Reference Include="Disruptor">
-      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Disruptor.dll</HintPath>
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.dll</HintPath>
     </Reference>
     <Reference Include="Disruptor.Scheduler">
-      <HintPath>..\..\packages\Disruptor.1.1.0\lib\net40\Disruptor.Scheduler.dll</HintPath>
+      <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.Scheduler.dll</HintPath>
     </Reference>
-    <Reference Include="Moq, Version=4.0.10827.0, Culture=neutral, PublicKeyToken=69f491c39445e920, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Moq.4.0.10827\lib\NET40\Moq.dll</HintPath>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.0.10827\lib\NET40\Moq.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework, Version=2.5.2.9222, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Libraries\Nunit\framework\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="protobuf-net">
-      <HintPath>..\..\packages\protobuf-net.2.0.0.619\lib\net40\protobuf-net.dll</HintPath>
+      <HintPath>..\packages\protobuf-net.2.0.0.619\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="StructureMap">
-      <HintPath>..\..\packages\structuremap.2.6.4.1\lib\net40\StructureMap.dll</HintPath>
+      <HintPath>..\packages\structuremap.2.6.4.1\lib\net40\StructureMap.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
