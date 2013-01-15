@@ -111,6 +111,9 @@
     <Compile Include="InfrastructureHandlers\CompletionMessageHandlerTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />
     <Compile Include="Integration\DummyPeerConfig.cs" />
+    <Compile Include="Integration\FakeBusFactory.cs" />
+    <Compile Include="Integration\Messages.cs" />
+    <Compile Include="Integration\Performance.cs" />
     <Compile Include="Integration\SimpleMessageExchange.cs" />
     <Compile Include="MessageDispatcherTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

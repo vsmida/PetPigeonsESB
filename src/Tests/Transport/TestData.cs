@@ -1,4 +1,5 @@
 ﻿using System;
+using ProtoBuf;
 using Shared;
 using Bus;
 using Bus.MessageInterfaces;
@@ -11,6 +12,7 @@ namespace Tests.Transport
 {
     public static class TestData
     {
+        [ProtoContract]
         public class FakeCommand : ICommand
         {
         }

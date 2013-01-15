@@ -15,68 +15,7 @@ using Bus.Transport;
 
 namespace Tests.Integration
 {
-    [ProtoContract]
-    [Serializable]
-    public class FakeCommand : ICommand
-    {
-        [ProtoMember(1, IsRequired = true)]
-        public readonly int Number;
-
-        public FakeCommand(int number)
-        {
-            Number = number;
-        }
-
-        private FakeCommand()
-        {
-
-        }
-
-    }
-
-
-    [ProtoContract]
-    [BusReliability(ReliabilityLevel.Persisted)]
-    [Serializable]
-    public class FakePersistingCommand : ICommand
-    {
-        [ProtoMember(1, IsRequired = true)]
-        public readonly int Number;
-
-        public FakePersistingCommand(int number)
-        {
-            Number = number;
-        }
-
-        private FakePersistingCommand()
-        {
-        }
-
-    }
-
-
-
-    public class FakePersistingCommandHandler : ICommandHandler<FakePersistingCommand>
-    {
-        public static event Action<int> OnCommandReceived = delegate { };
-
-        public void Handle(FakePersistingCommand item)
-        {
-            OnCommandReceived(item.Number);
-        }
-
-    }
-
-    public class FakeCommandHandler : ICommandHandler<FakeCommand>
-    {
-        public static event Action<int> OnCommandReceived = delegate { };
-
-        public void Handle(FakeCommand item)
-        {
-            OnCommandReceived(item.Number);
-        }
-
-    }
+ 
 
     [TestFixture]
     public class SimpleMessageExchange
@@ -91,8 +30,8 @@ namespace Tests.Integration
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             var busName1 = "Service1";
             var busName2 = "Service2";
-            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
-            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
 
             bus1.Initialize();
             bus2.Initialize();
@@ -100,7 +39,7 @@ namespace Tests.Integration
             _waitForCommandToBeHandled = new AutoResetEvent(false);
             FakeCommandHandler.OnCommandReceived += OnCommandReceived;
 
-            bus1.Send(new FakeCommand(5));
+            bus1.Send(new FakeNumberCommand(5));
 
             _waitForCommandToBeHandled.WaitOne();
 
@@ -111,7 +50,7 @@ namespace Tests.Integration
             List<IBlockableUntilCompletion> resetEvents = new List<IBlockableUntilCompletion>();
             for (int i = 0; i < 10000; i++)
             {
-                resetEvents.Add(bus1.Send(new FakeCommand(5)));
+                resetEvents.Add(bus1.Send(new FakeNumberCommand(5)));
                 //     _waitForCommandToBeHandled.WaitOne();
             }
 
@@ -127,13 +66,13 @@ namespace Tests.Integration
 
         }
 
-        private class FakeAssemblyScanner : AssemblyScanner
+        public class FakeAssemblyScanner : AssemblyScanner
         {
 
             public override List<Type> GetHandledCommands()
             {
                 var result = base.GetHandledCommands();
-                return result.Where(x => x != typeof(FakeCommand) && x != typeof(FakePersistingCommand)).ToList();
+                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand)).ToList();
             }
         }
 
@@ -146,9 +85,9 @@ namespace Tests.Integration
             var busName1 = "Service1";
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
-            var bus1 = CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
-            var bus2 = CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
-            var brokerForBus2 = CreateFakeBus(randomPortBroker, brokerName, randomPort2, busName2,
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort2, busName2,
                                               new FakeAssemblyScanner(),
                                               new DummyPeerConfig(brokerName, new List<string> { busName2 }));
 
@@ -172,7 +111,7 @@ namespace Tests.Integration
             bus1.Send(new FakePersistingCommand(2)); //message sent while bus2 out
 
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
-            bus2 = CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             Console.WriteLine("initializing bus2 again");
             bus2.Initialize(); //alive again
             
@@ -216,37 +155,7 @@ namespace Tests.Integration
         }
 
 
-        private static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null)
-        {
-            return BusFactory.CreateBus(containerConfigurationExpression: ctx =>
-                                                                              {
-                                                                                  ctx.For
-                                                                                      <ZmqTransportConfiguration>()
-                                                                                      .Use(
-                                                                                          new DummyTransportConfig(
-                                                                                              busReceptionPort));
-                                                                                  ctx.For
-                                                                                      <IBusBootstrapperConfiguration
-                                                                                          >().Use(new DummyBootstrapperConfig
-                                                                                                      {
-                                                                                                          DirectoryServiceEndpoint
-                                                                                                              =
-                                                                                                              "tcp://localhost:" +
-                                                                                                              directoryServicePort,
-                                                                                                          DirectoryServiceName
-                                                                                                              =
-                                                                                                              directoryServiceName
-
-                                                                                                      });
-
-                                                                                  ctx.For<IPeerConfiguration>().Use(
-                                                                                     peerconfig ?? new DummyPeerConfig(busName, null));
-
-                                                                                  ctx.For<IAssemblyScanner>().Use(
-                                                                                      assemblyScanner ?? new AssemblyScanner());
-                                                                              });
-        }
-
+      
 
 
 
