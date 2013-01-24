@@ -10,7 +10,7 @@ namespace Bus.Transport.ReceptionPipe
         public string SendingPeer;
         public Guid MessageIdentity;
         public bool ServiceInitialized;
-        public WireTransportType TransportType;
+        public IEndpoint Endpoint;
 
     }
 }

@@ -9,7 +9,7 @@ namespace Bus.Transport.SendingPipe
 
         public WireSendingMessage(MessageWireData messageData, IEndpoint endpoint)
         {
-            this.MessageData = messageData;
+            MessageData = messageData;
             Endpoint = endpoint;
         }
     }

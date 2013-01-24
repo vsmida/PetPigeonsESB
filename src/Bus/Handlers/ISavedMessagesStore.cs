@@ -8,7 +8,7 @@ namespace Bus.Handlers
     {
         void SaveMessage(ShadowMessageCommand shadowMessage);
         void RemoveMessage(ShadowCompletionMessage completionMessage);
-        IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, WireTransportType transportType, int maxCount);
-        IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int maxCount);
+        IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, IEndpoint transportType, int maxCount);
+        IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int? maxCount);
     }
 }

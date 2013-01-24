@@ -8,28 +8,39 @@ namespace Bus.Transport.Network
     public interface IPeerManager
     {
         event Action<ServicePeer> PeerConnected;
+        event Action<EndpointStatus> EndpointStatusUpdated;
         void RegisterPeerConnection(ServicePeer peer);
-        IEnumerable<MessageSubscription> GetSubscriptionsForMessageType(string messageType);
-        MessageSubscription GetPeerSubscriptionFor(string messageType, string destinationPeer);
         List<ServicePeer> GetAllPeers();
-        IEnumerable<string> PeersThatShadowMe();
+        IEnumerable<ServicePeer> PeersThatShadowMe();
         Dictionary<string, List<MessageSubscription>> GetAllSubscriptions();
-        Dictionary<string, HashSet<string>> GetAllShadows();
+        Dictionary<string, HashSet<ServicePeer>> GetAllShadows();
         string Self { get; }
+        Dictionary<IEndpoint, EndpointStatus> GetEndpointStatuses();
     }
 
 
     public class PeerManager : IPeerManager
     {
         public event Action<ServicePeer> PeerConnected = delegate { };
+        public event Action<EndpointStatus> EndpointStatusUpdated = delegate { };
         private readonly ConcurrentDictionary<string, ServicePeer> _peers = new ConcurrentDictionary<string, ServicePeer>();
         private readonly ConcurrentDictionary<string, List<MessageSubscription>> _messagesToEndpoints = new ConcurrentDictionary<string, List<MessageSubscription>>();
-        private readonly ConcurrentDictionary<string, HashSet<string>> _peersToShadows = new ConcurrentDictionary<string, HashSet<string>>();
+        private readonly ConcurrentDictionary<IEndpoint, EndpointStatus> _endpointToStatus = new ConcurrentDictionary<IEndpoint, EndpointStatus>();
+        private readonly ConcurrentDictionary<string, HashSet<ServicePeer>> _peersToShadows = new ConcurrentDictionary<string, HashSet<ServicePeer>>();
         private readonly IPeerConfiguration _peerConfig;
+        private readonly IHeartbeatManager _heartbeatManager;
 
-        public PeerManager(IPeerConfiguration peerConfig)
+        public PeerManager(IPeerConfiguration peerConfig, IHeartbeatManager heartbeatManager)
         {
             _peerConfig = peerConfig;
+            _heartbeatManager = heartbeatManager;
+            _heartbeatManager.Disconnected += OnHeartbeatManagerDisconnected;
+        }
+
+        private void OnHeartbeatManagerDisconnected(IEndpoint endpoint)
+        {
+            _endpointToStatus[endpoint].Connected = false;
+            EndpointStatusUpdated(_endpointToStatus[endpoint]);
         }
 
 
@@ -42,6 +53,11 @@ namespace Bus.Transport.Network
             UpdateShadows(peer);
 
             PeerConnected(peer);
+
+            foreach (var subscription in peer.HandledMessages)
+            {
+                _endpointToStatus[subscription.Endpoint] = new EndpointStatus(subscription.Endpoint, true);
+            }
         }
 
         private void UpdatePeerList(ServicePeer peer)
@@ -64,6 +80,7 @@ namespace Bus.Transport.Network
                                                      list.Add(messageToEndpoint);
                                                      return list;
                                                  });
+                
             }
 
             foreach (var pair in _messagesToEndpoints) //remove messages that are no longer handled
@@ -78,25 +95,25 @@ namespace Bus.Transport.Network
             foreach (var shadowedPeer in peer.ShadowedPeers ?? Enumerable.Empty<string>())
             {
                 _peersToShadows.AddOrUpdate(shadowedPeer,
-                                            new HashSet<string> { peer.PeerName },
+                                            new HashSet<ServicePeer> { peer },
                                             (key, oldValue) =>
                                             {
-                                                oldValue.Add(peer.PeerName);
+                                                oldValue.Add(peer);
                                                 return oldValue;
                                             });
             }
 
             foreach (var pair in _peersToShadows)
             {
-                if (pair.Value.Contains(peer.PeerName) && !peer.ShadowedPeers.Contains(pair.Key))
-                    pair.Value.Remove(peer.PeerName);
+                if (pair.Value.Contains(peer) && !peer.ShadowedPeers.Contains(pair.Key))
+                    pair.Value.Remove(peer);
             }
         }
 
 
-        public IEnumerable<string> PeersThatShadowMe()
+        public IEnumerable<ServicePeer> PeersThatShadowMe()
         {
-            HashSet<string> shadows;
+            HashSet<ServicePeer> shadows;
             _peersToShadows.TryGetValue(_peerConfig.PeerName, out shadows);
             return shadows;
         }
@@ -106,7 +123,7 @@ namespace Bus.Transport.Network
             return _messagesToEndpoints.ToDictionary(x => x.Key, x => x.Value);
         }
 
-        public Dictionary<string, HashSet<string>> GetAllShadows()
+        public Dictionary<string, HashSet<ServicePeer>> GetAllShadows()
         {
             return _peersToShadows.ToDictionary(x => x.Key, x => x.Value);
         }
@@ -116,21 +133,9 @@ namespace Bus.Transport.Network
             get { return _peerConfig.PeerName; }
         }
 
-        public IEnumerable<MessageSubscription> GetSubscriptionsForMessageType(string messageType)
+        public Dictionary<IEndpoint, EndpointStatus> GetEndpointStatuses()
         {
-            List<MessageSubscription> endpoints;
-            _messagesToEndpoints.TryGetValue(messageType, out endpoints);
-            return endpoints;
-        }
-
-        public MessageSubscription GetPeerSubscriptionFor(string messageType, string destinationPeer)
-        {
-            ServicePeer peer;
-            _peers.TryGetValue(destinationPeer, out peer);
-            if (peer == null)
-                return null;
-            var messageSubscription = peer.HandledMessages.SingleOrDefault(x => x.MessageType.FullName == messageType);
-            return messageSubscription;
+            return _endpointToStatus.ToDictionary(x => x.Key, x => x.Value);
         }
 
         public List<ServicePeer> GetAllPeers()

@@ -8,35 +8,35 @@ namespace Bus.Dispatch
         [ThreadStatic]
         private static string _peerName;
         [ThreadStatic]
-        private static WireTransportType? _originatingTransportType;
+        private static IEndpoint _originatingEndpoint;
 
         public static string PeerName
         {
             get { return _peerName; }
         }
 
-        public static WireTransportType? OriginatingTransportType
+        public static IEndpoint OriginatingEndpoint
         {
-            get { return _originatingTransportType; }
+            get { return _originatingEndpoint; }
         }
 
-        public static IDisposable SetContext(string peerName, WireTransportType transportType)
+        public static IDisposable SetContext(string peerName, IEndpoint transportType)
         {
             return new Scope(peerName, transportType);
         }
 
         private class Scope :IDisposable
         {
-            public Scope(string peerName, WireTransportType transportType)
+            public Scope(string peerName, IEndpoint endpoint)
             {
                 _peerName = peerName;
-                _originatingTransportType = transportType;
+                _originatingEndpoint = endpoint;
             }
 
             public void Dispose()
             {
                 _peerName = null;
-                _originatingTransportType = null;
+                _originatingEndpoint = null;
             }
         }
     }

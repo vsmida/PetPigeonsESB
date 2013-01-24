@@ -26,7 +26,7 @@ namespace Tests
 
             Assert.False(thread.Join(300));
 
-            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(),"test", true, WireTransportType.ZmqPushPullTransport));
+            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(),"test", true, null));
 
             Assert.IsTrue(thread.Join(300));
             
@@ -38,7 +38,7 @@ namespace Tests
             bool called = false;
 
             _defaultCompletionCallback.RegisterCallback((mess) => called = true);
-            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), "test", true, WireTransportType.ZmqPushPullTransport));
+            _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), "test", true, null));
 
             Assert.IsTrue(called);
         }
@@ -46,7 +46,7 @@ namespace Tests
         [Test]
         public void should_throw_when_message_processing_failed()
         {
-            Assert.Throws<FailedMessageProcessingException>(() => _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), "test", false, WireTransportType.ZmqPushPullTransport)));
+            Assert.Throws<FailedMessageProcessingException>(() => _defaultCompletionCallback.ExecuteCallback(new CompletionAcknowledgementMessage(Guid.NewGuid(), "test", false, null)));
             
         }
     }

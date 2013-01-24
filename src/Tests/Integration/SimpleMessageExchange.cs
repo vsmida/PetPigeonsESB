@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Bus.Transport.Network;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
@@ -12,6 +13,7 @@ using Bus.Dispatch;
 using Bus.MessageInterfaces;
 using Bus.Startup;
 using Bus.Transport;
+using StructureMap;
 
 namespace Tests.Integration
 {
@@ -43,27 +45,43 @@ namespace Tests.Integration
 
             _waitForCommandToBeHandled.WaitOne();
 
-            //small micro-benchmark
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-
-            List<IBlockableUntilCompletion> resetEvents = new List<IBlockableUntilCompletion>();
-            for (int i = 0; i < 10000; i++)
-            {
-                resetEvents.Add(bus1.Send(new FakeNumberCommand(5)));
-                //     _waitForCommandToBeHandled.WaitOne();
-            }
-
-            for (int i = 0; i < 10000; i++)
-            {
-                resetEvents[i].WaitForCompletion();
-            }
-
-            watch.Stop();
-            Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
             bus1.Dispose();
             bus2.Dispose();
 
+        }
+
+        [Test, Timeout(100000)]
+        public void should_not_try_sending_to_disconnected_endpoints()
+        {
+            var randomPort1 = NetworkUtils.GetRandomUnusedPort();
+            var randomPort2 = NetworkUtils.GetRandomUnusedPort();
+            var busName1 = "Service1";
+            var busName2 = "Service2";
+            var containerBus1 = new Container();
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner(), container:containerBus1);
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+
+            var heartbeatConfig = containerBus1.GetInstance<IHeartbeatingConfiguration>();
+            var sender = containerBus1.GetInstance<ZmqPushWireSendingTransport>();
+            int numberOfTimesDisconnectedRaisedByTransport = 0;
+            sender.EndpointDisconnected += s => numberOfTimesDisconnectedRaisedByTransport++;
+            bus1.Initialize();
+            bus2.Initialize();
+
+
+            bus1.Send(new FakeNumberCommand(5)).WaitForCompletion();
+            bus2.Dispose();
+            Thread.Sleep(heartbeatConfig.HeartbeatInterval.Add(TimeSpan.FromSeconds(1))); //should be disconnected;
+            for (int i = 0; i < 20000; i++)
+            {
+                bus1.Send(new FakeNumberCommand(1));
+                
+            }
+            
+            Assert.AreEqual(numberOfTimesDisconnectedRaisedByTransport, 0);  //would have been raised due to message pressure getting too high, test should be refactored
+            bus1.Send(new FakeNumberCommand(5)).WaitForCompletion();
+            
+            bus1.Dispose();
         }
 
         public class FakeAssemblyScanner : AssemblyScanner
@@ -76,7 +94,7 @@ namespace Tests.Integration
             }
         }
 
-        [Test, Timeout(200000000), Repeat(100)]
+        [Test, Timeout(200000000), Repeat(3)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -122,22 +140,6 @@ namespace Tests.Integration
 
             if (_waitForCommandToBeHandled.WaitOne(1000))
                 Assert.Fail();// if there is a fourth unwelcome message;
-
-
-            //small micro-benchmark
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-
-            IBlockableUntilCompletion resetEvent = null;
-            for (int i = 0; i < 10000; i++)
-            {
-                resetEvent = bus1.Send(new FakePersistingCommand(i+4));
-            }
-
-            resetEvent.WaitForCompletion();
-            
-            watch.Stop();
-            Console.WriteLine(" 10000 resend took " + watch.ElapsedMilliseconds + " ms");
 
             bus1.Dispose();
             bus2.Dispose();

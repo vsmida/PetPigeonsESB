@@ -24,5 +24,23 @@ namespace Bus.Transport
         private ServicePeer()
         {
         }
+
+        protected bool Equals(ServicePeer other)
+        {
+            return string.Equals(PeerName, other.PeerName);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((ServicePeer) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return (PeerName != null ? PeerName.GetHashCode() : 0);
+        }
     }
 }

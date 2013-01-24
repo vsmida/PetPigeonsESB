@@ -32,9 +32,9 @@ namespace Tests.Integration
 
             //small micro-benchmark
 
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < 1000; j++)
             {
-                SendMessages(bus1);
+                SendMessages(bus1, j);
             }
 
 
@@ -45,7 +45,7 @@ namespace Tests.Integration
 
         }
 
-        private static void SendMessages(IBus bus1)
+        private static void SendMessages(IBus bus1, int loopNumber)
         {
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -53,7 +53,7 @@ namespace Tests.Integration
             IBlockableUntilCompletion resetEvent = null;
             for (int i = 0; i < 10000; i++)
             {
-                resetEvent = bus1.Send(new FakePersistingCommand(i + 4));
+                resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
             }
 
             resetEvent.WaitForCompletion();

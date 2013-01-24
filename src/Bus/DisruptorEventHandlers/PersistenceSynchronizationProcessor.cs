@@ -1,29 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Bus.BusEventProcessorCommands;
+using Bus.InfrastructureMessages;
 using Bus.MessageInterfaces;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
+using Bus.Transport.SendingPipe;
 using Disruptor;
 using Shared;
 using Shared.Attributes;
+using log4net;
 
 namespace Bus.DisruptorEventHandlers
 {
+
+    class PeerTransportKey
+    {
+        public readonly string Peer;
+        public readonly IEndpoint Endpoint;
+
+        public PeerTransportKey(string peer, IEndpoint endpoint)
+        {
+            Peer = peer;
+            Endpoint = endpoint;
+        }
+
+        protected bool Equals(PeerTransportKey other)
+        {
+            return string.Equals(Peer, other.Peer) && Endpoint.Equals(other.Endpoint);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((PeerTransportKey) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (Peer != null ? Peer.GetHashCode() : 0);
+                hashCode = (hashCode*397) ^ Endpoint.GetHashCode();
+                return hashCode;
+            }
+        }
+    }
+
     class PersistenceSynchronizationProcessor : IEventHandler<InboundMessageProcessingEntry>
     {
         private RingBuffer<InboundInfrastructureEntry> _infrastructureBuffer;
         private RingBuffer<InboundBusinessMessageEntry> _standardMessagesBuffer;
-        private volatile bool _isInitialized = false;
+        private bool _isInitialized = false;
         private readonly IMessageOptionsRepository _optionsRepository;
         private readonly Dictionary<string, MessageOptions> _options = new Dictionary<string, MessageOptions>();
         private Queue<InboundMessageProcessingEntry> _waitingMessages = new Queue<InboundMessageProcessingEntry>();
+        private readonly Dictionary<string, bool> _infrastructureConditionCache = new Dictionary<string, bool>();
+        private readonly Dictionary<PeerTransportKey, int> _sequenceNumber = new Dictionary<PeerTransportKey, int>();
+        private readonly IPeerConfiguration _peerConfiguration;
+        private readonly ILog _logger = LogManager.GetLogger(typeof(PersistenceSynchronizationProcessor));
+        private readonly IMessageSender _messageSender;
 
-
-        public PersistenceSynchronizationProcessor(IMessageOptionsRepository optionsRepository)
+        public PersistenceSynchronizationProcessor(IMessageOptionsRepository optionsRepository, IPeerConfiguration peerConfiguration, IMessageSender messageSender)
         {
             _optionsRepository = optionsRepository;
+            _peerConfiguration = peerConfiguration;
+            _messageSender = messageSender;
             _optionsRepository.OptionsUpdated += OnOptionsUpdated;
         }
 
@@ -40,7 +86,7 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
         {
-            if(data.Command != null)
+            if (data.Command != null)
             {
                 HandleCommand(data.Command);
                 return;
@@ -49,6 +95,39 @@ namespace Bus.DisruptorEventHandlers
             var type = TypeUtils.Resolve(data.InitialTransportMessage.MessageType);
             MessageOptions options;
             _options.TryGetValue(type.FullName, out options);
+
+
+            var transportMessageSequenceNumber = data.InitialTransportMessage.SequenceNumber;
+            if (transportMessageSequenceNumber != null)
+            {
+                var peerKey = new PeerTransportKey(data.InitialTransportMessage.PeerName, data.InitialTransportMessage.Endpoint);
+
+
+                int currentSeqNum;
+                if (!_sequenceNumber.TryGetValue(peerKey, out currentSeqNum))
+                {
+                    _sequenceNumber.Add(peerKey, -1);
+                    currentSeqNum = -1;
+                }
+                var seqNum = transportMessageSequenceNumber;
+                if (_peerConfiguration.PeerName != peerKey.Peer)
+                {
+                    if (seqNum != (currentSeqNum + 1))
+                    {
+                        _logger.Info(string.Format("missed message from endpoint {3} from peer {0} from sequence number {1} to {2}", peerKey.Peer, currentSeqNum + 1, seqNum, peerKey.Endpoint));
+                        Debugger.Break();
+                        //we missed a message
+                        _isInitialized = false;
+                        _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
+                    }
+                    else
+                    {
+                        _sequenceNumber[peerKey] = seqNum.Value;
+                    }
+                }
+
+            }
+
             var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
 
             if (IsInfrastructureMessage(type))
@@ -77,6 +156,17 @@ namespace Bus.DisruptorEventHandlers
                     PublishMessageToStandardDispatch(item, deserializedSavedMessage);
                 }
             }
+
+            if (command is ResetSequenceNumbersForPeer)
+            {
+                var typedCommand = command as ResetSequenceNumbersForPeer;
+                var keysToRemove = _sequenceNumber.Keys.Where(x => x.Peer == typedCommand.PeerName).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    _sequenceNumber.Remove(key);
+                }
+
+            }
         }
 
         private void PublishMessageToStandardDispatch(InboundMessageProcessingEntry data, IMessage deserializedMessage)
@@ -86,13 +176,19 @@ namespace Bus.DisruptorEventHandlers
             messageEntry.DeserializedMessage = deserializedMessage;
             messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
             messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
-            messageEntry.TransportType = data.InitialTransportMessage.TransportType;
+            messageEntry.Endpoint = data.InitialTransportMessage.Endpoint;
             _standardMessagesBuffer.Publish(sequenceStandard);
         }
 
-        private static bool IsInfrastructureMessage(Type type)
+        private bool IsInfrastructureMessage(Type type)
         {
-            return type.GetCustomAttributes(typeof(InfrastructureMessageAttribute), true).Any();
+            bool result;
+            if (!_infrastructureConditionCache.TryGetValue(type.FullName, out result))
+            {
+                result = type.GetCustomAttributes(typeof(InfrastructureMessageAttribute), true).Any();
+                _infrastructureConditionCache.Add(type.FullName, result);
+            }
+            return result;
         }
 
         private void PushIntoInfrastructureQueue(InboundMessageProcessingEntry data, IMessage deserializedMessage)
@@ -103,7 +199,7 @@ namespace Bus.DisruptorEventHandlers
             messageEntry.ServiceInitialized = _isInitialized;
             messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
             messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
-            messageEntry.TransportType = data.InitialTransportMessage.TransportType;
+            messageEntry.Endpoint = data.InitialTransportMessage.Endpoint;
             _infrastructureBuffer.Publish(sequenceInfra);
         }
     }

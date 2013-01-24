@@ -64,6 +64,9 @@
     <Reference Include="Disruptor.Scheduler">
       <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.Scheduler.dll</HintPath>
     </Reference>
+    <Reference Include="log4net">
+      <HintPath>..\packages\log4net.2.0.0\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="protobuf-net">
       <HintPath>..\packages\protobuf-net.2.0.0.619\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
@@ -82,11 +85,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BusEventProcessorCommands\ReleaseCachedMessages.cs" />
+    <Compile Include="BusEventProcessorCommands\ResetSequenceNumbersForPeer.cs" />
     <Compile Include="CallbackRepository.cs" />
     <Compile Include="DefaultCompletionCallback.cs" />
     <Compile Include="Dispatch\AssemblyScanner.cs" />
     <Compile Include="DisruptorEventHandlers\HandlingProcessorInfrastructure.cs" />
+    <Compile Include="DisruptorEventHandlers\IReliabilityCoordinator.cs" />
     <Compile Include="DisruptorEventHandlers\MessageTargetsHandler.cs" />
+    <Compile Include="DisruptorEventHandlers\ReliabilityCoordinator.cs" />
     <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
     <Compile Include="FailedMessageProcessingException.cs" />
@@ -107,6 +113,7 @@
     <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatMessage.cs" />
     <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatRequest.cs" />
     <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeer.cs" />
+    <Compile Include="InfrastructureMessages\SynchronizeWithBrokerCommand.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyAndMessageSettings.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyRequest.cs" />
     <Compile Include="IQueueConfiguration.cs" />
@@ -116,7 +123,6 @@
     <Compile Include="InfrastructureMessages\Topology\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\EndOfPersistedMessages.cs" />
     <Compile Include="InfrastructureMessages\Heartbeating\PeerEndpointDisconnected.cs" />
-    <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeerForTransport.cs" />
     <Compile Include="InfrastructureMessages\Shadowing\ShadowCompletionMessage.cs" />
     <Compile Include="InfrastructureMessages\Shadowing\ShadowMessageCommand.cs" />
     <Compile Include="InfrastructureMessages\ProcessMessageCommand.cs" />
@@ -142,13 +148,14 @@
     <Compile Include="Subscriptions\DummySubscriptionFilter.cs" />
     <Compile Include="Transport\IMessageSubscription.cs" />
     <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
+    <Compile Include="Transport\Network\EndpointStatus.cs" />
     <Compile Include="Transport\Network\HeartbeatManager.cs" />
     <Compile Include="Transport\Network\IEndpoint.cs" />
     <Compile Include="Transport\Network\IDataReceiver.cs" />
     <Compile Include="Transport\Network\INetworkSender.cs" />
     <Compile Include="Transport\Network\IWireReceiverTransport.cs" />
     <Compile Include="Transport\Network\IWireSendingTransport.cs" />
-    <Compile Include="Transport\Network\ZmqWireDataReceiver.cs" />
+    <Compile Include="Transport\Network\ZmqPullWireDataReceiver.cs" />
     <Compile Include="Transport\Network\ZmqEndpoint.cs" />
     <Compile Include="Transport\Network\ZmqPushWireSendingTransport.cs" />
     <Compile Include="Transport\ReceptionPipe\InboundBusinessMessageEntry.cs" />
@@ -174,6 +181,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

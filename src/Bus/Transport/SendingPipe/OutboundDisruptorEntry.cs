@@ -7,6 +7,7 @@ namespace Bus.Transport.SendingPipe
     {
         public MessageTargetHandlerData MessageTargetHandlerData = new MessageTargetHandlerData();
         public NetworkSenderData NetworkSenderData = new NetworkSenderData();
+
     }
 
     public class MessageTargetHandlerData
@@ -19,6 +20,7 @@ namespace Bus.Transport.SendingPipe
 
     public class NetworkSenderData
     {
-        public readonly List<WireSendingMessage> WireMessages = new List<WireSendingMessage>(2);        
+        public readonly List<WireSendingMessage> WireMessages = new List<WireSendingMessage>(2);
+        public IBusEventProcessorCommand Command;
     }
 }

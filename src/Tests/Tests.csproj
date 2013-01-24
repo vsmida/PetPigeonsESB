@@ -109,6 +109,7 @@
     <Compile Include="DefaultCompletionCallbackTests.cs" />
     <Compile Include="Disruptor\PlayTest.cs" />
     <Compile Include="InfrastructureHandlers\CompletionMessageHandlerTests.cs" />
+    <Compile Include="Integration\BrokerSyncTests.cs" />
     <Compile Include="Integration\DummyConfigs.cs" />
     <Compile Include="Integration\DummyPeerConfig.cs" />
     <Compile Include="Integration\FakeBusFactory.cs" />

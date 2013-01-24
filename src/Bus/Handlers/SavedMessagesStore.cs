@@ -12,7 +12,7 @@ namespace Bus.Handlers
         private class PeerMessageQueue
         {
             public readonly string PeerName;
-            private readonly Dictionary<WireTransportType, Queue<ShadowMessageCommand>> _messagesByEndpoint = new Dictionary<WireTransportType, Queue<ShadowMessageCommand>>();
+            private readonly Dictionary<IEndpoint, Queue<ShadowMessageCommand>> _messagesByEndpoint = new Dictionary<IEndpoint, Queue<ShadowMessageCommand>>();
             private Queue<ShadowMessageCommand> _messagesGlobal = new Queue<ShadowMessageCommand>();
             private Dictionary<Guid, ShadowCompletionMessage> _acksReceivedBeforeMessages = new Dictionary<Guid, ShadowCompletionMessage>();
 
@@ -25,7 +25,7 @@ namespace Bus.Handlers
             public Queue<ShadowMessageCommand> GlobalQueue { get { return _messagesGlobal; } set { _messagesGlobal = value; } }
             public Dictionary<Guid, ShadowCompletionMessage> OutOfOrderAcks { get { return _acksReceivedBeforeMessages; } set { _acksReceivedBeforeMessages = value; } }
 
-            public Queue<ShadowMessageCommand> this[WireTransportType key]
+            public Queue<ShadowMessageCommand> this[IEndpoint key]
             {
                 get
                 {
@@ -44,7 +44,6 @@ namespace Bus.Handlers
 
         private readonly Dictionary<string, PeerMessageQueue> _savedMessages = new Dictionary<string, PeerMessageQueue>();
 
-
         public void SaveMessage(ShadowMessageCommand shadowMessage)
         {
             PeerMessageQueue queue;
@@ -56,11 +55,11 @@ namespace Bus.Handlers
 
             if (queue.OutOfOrderAcks.Count > 0 && queue.OutOfOrderAcks.ContainsKey(shadowMessage.Message.MessageIdentity))
             {
-                Console.WriteLine("removing out of order ack");
+                Console.WriteLine(string.Format("removing out of order ack {0}", shadowMessage.Message.MessageIdentity));
                 queue.OutOfOrderAcks.Remove(shadowMessage.Message.MessageIdentity);
                 return;
             }
-            queue[MessageContext.OriginatingTransportType.Value].Enqueue(shadowMessage);
+            queue[MessageContext.OriginatingEndpoint].Enqueue(shadowMessage);
             queue.GlobalQueue.Enqueue(shadowMessage);
         }
 
@@ -73,28 +72,28 @@ namespace Bus.Handlers
                 _savedMessages.Add(message.ToPeer, peerQueue);
 
             }
-            if (peerQueue[message.TransportType].Count == 0 || peerQueue.GlobalQueue.Count == 0)
+            if (peerQueue[message.Endpoint].Count == 0 || peerQueue.GlobalQueue.Count == 0)
             {
-
                 peerQueue.OutOfOrderAcks.Add(message.MessageId, message);
-                Console.WriteLine("out of order ack");
                 return;
             }
 
-            var item = peerQueue.GlobalQueue.Dequeue();
+            var item = peerQueue.GlobalQueue.Peek();
             if (item.Message.MessageIdentity != message.MessageId)
             {
-                Console.WriteLine("out of order ack");
                 peerQueue.OutOfOrderAcks.Add(message.MessageId, message);
-                return;
+            }
+            else
+            {
+                peerQueue.GlobalQueue.Dequeue();
             }
 
-            RemoveFromTransportQueue(message.TransportType, message.MessageId, peerQueue);
+            RemoveFromTransportQueue(message.Endpoint, message.MessageId, peerQueue);
         }
 
-        private static void RemoveFromTransportQueue(WireTransportType transportType, Guid messageId, PeerMessageQueue peerQueue)
+        private static void RemoveFromTransportQueue(IEndpoint endpoint, Guid messageId, PeerMessageQueue peerQueue)
         {
-            var item = peerQueue[transportType].Dequeue();
+            var item = peerQueue[endpoint].Dequeue();
             if (item.Message.MessageIdentity != messageId)
             {
                 //argh, missing messages?
@@ -103,14 +102,14 @@ namespace Bus.Handlers
             }
         }
 
-        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int maxCount)
+        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int? maxCount)
         {
             Queue<ShadowMessageCommand> newQueue = new Queue<ShadowMessageCommand>();
             PeerMessageQueue queue;
             if (!_savedMessages.TryGetValue(peer, out queue))
                 yield break;
             int numberOfReturnedMessages = 0;
-            while (queue.GlobalQueue.Count != 0 && numberOfReturnedMessages < maxCount)
+            while (queue.GlobalQueue.Count != 0 && (maxCount == null || numberOfReturnedMessages < maxCount))
             {
                 var shadowMessageCommand = queue.GlobalQueue.Dequeue();
                 newQueue.Enqueue(shadowMessageCommand);
@@ -125,15 +124,15 @@ namespace Bus.Handlers
             queue.GlobalQueue = newQueue;
         }
 
-        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, WireTransportType transportType, int maxCount)
+        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, IEndpoint endpoint, int maxCount)
         {
             PeerMessageQueue queue;
             if (!_savedMessages.TryGetValue(peer, out queue))
                 yield break;
             int numberOfReturnedMessages = 0;
-            while (queue[transportType].Count != 0 && numberOfReturnedMessages < maxCount)
+            while (queue[endpoint].Count != 0 && numberOfReturnedMessages < maxCount)
             {
-                yield return queue[transportType].Dequeue();
+                yield return queue[endpoint].Dequeue();
                 numberOfReturnedMessages++;
             }
         }

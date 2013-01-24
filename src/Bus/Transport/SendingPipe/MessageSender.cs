@@ -24,9 +24,9 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData = new MessageTargetHandlerData();
             var heartbeatRequest = new HeartbeatRequest(DateTime.UtcNow, endpoint);
             var serializedMessage = BusSerializer.Serialize(heartbeatRequest);
-            var messageWireData = new MessageWireData(typeof (HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
+            var messageWireData = new MessageWireData(typeof(HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
             data.NetworkSenderData.WireMessages.Clear();
-            data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData,endpoint));
+            data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData, endpoint));
 
             _ringBuffer.Publish(sequence);
         }
@@ -34,6 +34,19 @@ namespace Bus.Transport.SendingPipe
         public void Initialize(RingBuffer<OutboundDisruptorEntry> buffer)
         {
             _ringBuffer = buffer;
+        }
+
+        public void InjectNetworkSenderCommand(IBusEventProcessorCommand command)
+        {
+            var sequence = _ringBuffer.Next();
+            var data = _ringBuffer[sequence];
+            data.MessageTargetHandlerData.Message = null;
+            data.MessageTargetHandlerData.Callback = null;
+            data.MessageTargetHandlerData.TargetPeer = null;
+            data.MessageTargetHandlerData.IsAcknowledgement = false;
+            data.NetworkSenderData = new NetworkSenderData { Command = command };
+
+            _ringBuffer.Publish(sequence);
         }
 
         public ICompletionCallback Send(ICommand message, ICompletionCallback callback = null)
@@ -52,7 +65,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.TargetPeer = null;
             data.MessageTargetHandlerData.IsAcknowledgement = false;
             data.NetworkSenderData = new NetworkSenderData();
-            
+
             _ringBuffer.Publish(sequence);
         }
 
@@ -74,15 +87,15 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.IsAcknowledgement = false;
             data.NetworkSenderData = new NetworkSenderData();
 
-            
+
             _ringBuffer.Publish(sequence);
-            
+
             return callback;
         }
 
-        public void Acknowledge(Guid messageId,string messageType, bool processSuccessful, string originatingPeer, WireTransportType transportType)
+        public void Acknowledge(Guid messageId, string messageType, bool processSuccessful, string originatingPeer, IEndpoint endpoint)
         {
-            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId,messageType, processSuccessful, transportType);
+            var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, messageType, processSuccessful, endpoint);
             var sequence = _ringBuffer.Next();
             var data = _ringBuffer[sequence];
 
@@ -92,7 +105,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.Callback = null;
             data.NetworkSenderData = new NetworkSenderData();
 
-            
+
             _ringBuffer.Publish(sequence);
         }
 

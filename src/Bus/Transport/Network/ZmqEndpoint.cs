@@ -50,7 +50,10 @@ namespace Bus.Transport.Network
                 return _wireSendingTransportType;
             }
         }
-
+        public override string ToString()
+        {
+            return Endpoint;
+        }
 
     }
 }

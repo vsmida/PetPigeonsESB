@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Bus.InfrastructureMessages;
-using Bus.InfrastructureMessages.Shadowing;
 using Bus.MessageInterfaces;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
 using Disruptor;
-using Shared;
 
 namespace Bus.DisruptorEventHandlers
 {
@@ -18,33 +15,44 @@ namespace Bus.DisruptorEventHandlers
         private readonly IPeerManager _peerManager;
         private readonly IPeerConfiguration _peerConfiguration;
 
-        private Dictionary<string, HashSet<string>> _peersToShadows;
         private Dictionary<string, List<MessageSubscription>> _messageTypesToSubscriptions;
-        private IEnumerable<string> _selfShadows;
-        private readonly IMessageOptionsRepository _optionsRepository;
-        private Dictionary<string, MessageOptions> _messageOptions;
+        private readonly IReliabilityCoordinator _reliabilityCoordinator;
 
-        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IMessageOptionsRepository optionsRepository)
+
+        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator)
         {
             _callbackRepository = callbackRepository;
             _peerManager = peerManager;
             _peerConfiguration = peerConfiguration;
-            _optionsRepository = optionsRepository;
+            _reliabilityCoordinator = reliabilityCoordinator;
             _peerManager.PeerConnected += OnPeerChange;
-            _optionsRepository.OptionsUpdated += OnOptionsUpdated;
+            _peerManager.EndpointStatusUpdated += OnEndpointStatusUpdated;
+
         }
 
-        private void OnOptionsUpdated(MessageOptions obj)
+        private void OnEndpointStatusUpdated(EndpointStatus obj)
         {
-            _messageOptions = _optionsRepository.GetAllOptions();
+            UpdateSubscriptions();
         }
 
         private void OnPeerChange(ServicePeer obj)
         {
             //reference assignement is atomic;
-            _peersToShadows = _peerManager.GetAllShadows();
-            _messageTypesToSubscriptions = _peerManager.GetAllSubscriptions();
-            _selfShadows = _peerManager.PeersThatShadowMe();
+            UpdateSubscriptions();
+        }
+
+        private void UpdateSubscriptions()
+        {
+            var messageTypesToSubscriptions = _peerManager.GetAllSubscriptions();
+            var endpointStatuses = _peerManager.GetEndpointStatuses();
+            var disconnectedEndpoints = new HashSet<IEndpoint>(endpointStatuses.Where(x => x.Value.Connected == false).Select(x => x.Key));
+            foreach (var pair in messageTypesToSubscriptions)
+            {
+                //remove subscriptions to disconnected endpoints;
+                pair.Value.RemoveAll(x => disconnectedEndpoints.Contains(x.Endpoint));
+            }
+
+            _messageTypesToSubscriptions = messageTypesToSubscriptions;
         }
 
         public void OnNext(OutboundDisruptorEntry data, long sequence, bool endOfBatch)
@@ -70,37 +78,18 @@ namespace Bus.DisruptorEventHandlers
 
             SendToConcernedPeers(concernedSubscriptions, disruptorData, messageData);
 
-            if (disruptorData.MessageTargetHandlerData.IsAcknowledgement)
-            {
-                var completionAcknowledgementMessage = (CompletionAcknowledgementMessage)message;
-                if (_messageOptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)
-                {
-                    SendToSelfShadows(completionAcknowledgementMessage.MessageId, completionAcknowledgementMessage.ProcessingSuccessful,
-                        disruptorData.MessageTargetHandlerData.TargetPeer, completionAcknowledgementMessage.TransportType, completionAcknowledgementMessage.MessageType, disruptorData);
-
-                    SendShadowMessages(concernedSubscriptions, messageData, disruptorData);
-
-                }
-            }
-            else
-            {
-                if (_messageOptions[message.GetType().FullName].ReliabilityLevel == ReliabilityLevel.Persisted)
-                    SendShadowMessages(concernedSubscriptions, messageData, disruptorData);
-            }
-
-
+            _reliabilityCoordinator.EnsureReliability(disruptorData, message, concernedSubscriptions, messageData);
 
         }
 
-        private static void SendToConcernedPeers(
-            MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
+        private static void SendToConcernedPeers(MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
             foreach (var concernedSubscription in concernedSubscriptions)
             {
                 var wireMessage = new WireSendingMessage(messageData, concernedSubscription.Endpoint);
                 disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
             }
-        }
+      }
 
         private MessageWireData CreateMessageWireData(IMessage message)
         {
@@ -109,45 +98,6 @@ namespace Bus.DisruptorEventHandlers
             var messageType = message.GetType().FullName;
             var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerName, serializedMessage);
             return messageData;
-        }
-
-        private void SendShadowMessages(IEnumerable<MessageSubscription> concernedSubscriptions, MessageWireData messageData, OutboundDisruptorEntry disruptorData)
-        {
-            foreach (var peer in concernedSubscriptions.Select(x => x.Peer).Distinct())
-            {
-                HashSet<string> targetShadows;
-                if (_peersToShadows.TryGetValue(peer, out targetShadows))
-                {
-                    var shadowSubscriptions = _messageTypesToSubscriptions[typeof(ShadowMessageCommand).FullName];
-
-
-                    foreach (var peerShadow in targetShadows)
-                    {
-                        var endpoint = shadowSubscriptions.Single(x => x.Peer == peerShadow).Endpoint;
-                        var shadowMessage = new ShadowMessageCommand(messageData, peer, true, endpoint);
-                        var shadowMessageData = CreateMessageWireData(shadowMessage);
-                        var wireMessage = new WireSendingMessage(shadowMessageData, endpoint);
-                        disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
-                    }
-                }
-            }
-        }
-
-        private void SendToSelfShadows(Guid messageId, bool processSuccessful, string originatingPeer, WireTransportType transportType, string originalMessageType, OutboundDisruptorEntry data)
-        {
-            var message = new ShadowCompletionMessage(messageId,
-                                                      originatingPeer,
-                                                      _peerConfiguration.PeerName,
-                                                      processSuccessful, transportType, originalMessageType);
-            foreach (var selfShadow in _selfShadows ?? Enumerable.Empty<string>())
-            {
-                var messageType = data.MessageTargetHandlerData.Message.GetType().FullName;
-                var subscription = _messageTypesToSubscriptions[messageType].Single(x => x.Peer == selfShadow);
-                var messageData = CreateMessageWireData(message);
-
-                var wireMessage = new WireSendingMessage(messageData, subscription.Endpoint);
-                data.NetworkSenderData.WireMessages.Add(wireMessage);
-            }
         }
     }
 }

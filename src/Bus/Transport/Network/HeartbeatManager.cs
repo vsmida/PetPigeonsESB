@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Bus.BusEventProcessorCommands;
 using Bus.InfrastructureMessages.Heartbeating;
 using Bus.Transport.SendingPipe;
 
@@ -21,6 +22,7 @@ namespace Bus.Transport.Network
         {
             public DateTime? LastHeartbeat;
             public bool? IsConnected;
+            public DateTime? LastSentHeartbeat;
         }
 
         private readonly ConcurrentDictionary<IEndpoint, HeartbeatInformation> _heartbeatsByEndpoint = new ConcurrentDictionary<IEndpoint, HeartbeatInformation>();
@@ -29,7 +31,7 @@ namespace Bus.Transport.Network
         private IMessageSender _messageSender;
         private IDataReceiver _dataReceiver;
 
-         public HeartbeatManager(IHeartbeatingConfiguration heartbeatingConfiguration, IMessageSender messageSender, IDataReceiver dataReceiver)
+        public HeartbeatManager(IHeartbeatingConfiguration heartbeatingConfiguration, IMessageSender messageSender, IDataReceiver dataReceiver)
         {
             _heartbeatingConfiguration = heartbeatingConfiguration;
             _messageSender = messageSender;
@@ -69,14 +71,16 @@ namespace Bus.Transport.Network
                                    {
                                        foreach (var endpointToInfo in _heartbeatsByEndpoint.ToArray())
                                        {
-                                           if (endpointToInfo.Value.LastHeartbeat != null && endpointToInfo.Value.IsConnected == true)
+                                           if (endpointToInfo.Value.LastSentHeartbeat != null && endpointToInfo.Value.IsConnected == true)
                                                if ((DateTime.UtcNow - endpointToInfo.Value.LastHeartbeat) > _heartbeatingConfiguration.HeartbeatInterval)
                                                {
                                                    Disconnected(endpointToInfo.Key);
                                                    endpointToInfo.Value.IsConnected = false;
+                                                   _messageSender.InjectNetworkSenderCommand(new DisconnectEndpoint(endpointToInfo.Key));
                                                }
 
                                            _messageSender.SendHeartbeat(endpointToInfo.Key);
+                                           endpointToInfo.Value.LastSentHeartbeat = DateTime.UtcNow;
                                        }
                                    }, null, 0, (int)_heartbeatingConfiguration.HeartbeatInterval.TotalMilliseconds / 2);
         }
@@ -96,6 +100,7 @@ namespace Bus.Transport.Network
 
     class DummyHeartbeatingConfig : IHeartbeatingConfiguration
     {
-        public TimeSpan HeartbeatInterval { get { return TimeSpan.FromSeconds(2); }}
+        private TimeSpan _timeout = TimeSpan.FromSeconds(2);
+        public TimeSpan HeartbeatInterval { get { return _timeout; } set { _timeout = value; } }
     }
 }

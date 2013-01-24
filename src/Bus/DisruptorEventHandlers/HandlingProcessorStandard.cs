@@ -22,12 +22,12 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundBusinessMessageEntry data, long sequence, bool endOfBatch)
         {
-            HandleMessage(data.DeserializedMessage, data.SendingPeer, data.TransportType, data.MessageIdentity);
+            HandleMessage(data.DeserializedMessage, data.SendingPeer, data.Endpoint, data.MessageIdentity);
         }
 
-        private void HandleMessage(IMessage deserializedMessage, string sendingPeer, WireTransportType transportType, Guid messageId)
+        private void HandleMessage(IMessage deserializedMessage, string sendingPeer, IEndpoint endpoint, Guid messageId)
         {
-            using (MessageContext.SetContext(sendingPeer, transportType))
+            using (MessageContext.SetContext(sendingPeer, endpoint))
             {
                 try
                 {
@@ -35,7 +35,7 @@ namespace Bus.DisruptorEventHandlers
                     if (!(deserializedMessage is CompletionAcknowledgementMessage))
                     {
                         var messageType = deserializedMessage.GetType().FullName;
-                        _messageSender.Acknowledge(messageId, messageType, true,sendingPeer, transportType);
+                        _messageSender.Acknowledge(messageId, messageType, true, sendingPeer, endpoint);
                     }
                 }
                 catch (Exception)
@@ -43,7 +43,7 @@ namespace Bus.DisruptorEventHandlers
                     if (!(deserializedMessage is CompletionAcknowledgementMessage))
                     {
                         var messageType = deserializedMessage.GetType().FullName;
-                        _messageSender.Acknowledge(messageId, messageType, false, sendingPeer, transportType);
+                        _messageSender.Acknowledge(messageId, messageType, false, sendingPeer, endpoint);
                     }
                 }
             }

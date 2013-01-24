@@ -50,12 +50,12 @@ namespace Tests.Transport
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), WireTransportType.ZmqPushPullTransport, new byte[0]);
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), null, new byte[0], 0);
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), WireTransportType.ZmqPushPullTransport, BusSerializer.Serialize(item));
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), null, BusSerializer.Serialize(item), 0);
         }
 
         public static ServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

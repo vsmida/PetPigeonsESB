@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Bus.Transport.SendingPipe;
 using ZeroMQ;
+using log4net;
 
 namespace Bus.Transport.Network
 {
@@ -12,6 +13,7 @@ namespace Bus.Transport.Network
         public WireTransportType TransportType { get { return WireTransportType.ZmqPushPullTransport; } }
         private readonly Dictionary<ZmqEndpoint, ZmqSocket> _endpointsToSockets = new Dictionary<ZmqEndpoint, ZmqSocket>();
         private readonly ZmqContext _context;
+        private readonly ILog _logger = LogManager.GetLogger(typeof(ZmqPushWireSendingTransport));
 
 
         public ZmqPushWireSendingTransport(ZmqContext context)
@@ -34,21 +36,24 @@ namespace Bus.Transport.Network
                 socket = CreatePushSocket(zmqEndpoint);
                 _endpointsToSockets.Add(zmqEndpoint, socket);
             }
-          //  socket.SendMore(message.MessageData.MessageType, Encoding.ASCII);
-         //   socket.SendMore(message.MessageData.SendingPeer, Encoding.ASCII);
-        //    socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
-        //    socket.Send(message.MessageData.Data);
+            //  socket.SendMore(message.MessageData.MessageType, Encoding.ASCII);
+            //   socket.SendMore(message.MessageData.SendingPeer, Encoding.ASCII);
+            //    socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
+            //    socket.Send(message.MessageData.Data);
             Stopwatch watch = new Stopwatch();
             SendStatus status = SendStatus.TryAgain;
             watch.Start();
-            while(status == SendStatus.TryAgain && watch.ElapsedMilliseconds <500)
+
+            while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 200)
             {
                 status = socket.Send(BusSerializer.Serialize(message.MessageData), TimeSpan.FromMilliseconds(200));
-                
+
             }
+
             watch.Stop();
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
+                _logger.Debug(string.Format("disconnect of endpoint {0}", zmqEndpoint.Endpoint));
                 EndpointDisconnected(endpoint);
                 //dispose socket and allow for re-creation of socket with same endpoint; everything will get slow as hell if we continue trying? or only if high water mark
                 socket.Dispose();
@@ -56,21 +61,24 @@ namespace Bus.Transport.Network
             }
         }
 
+        public void DisconnectEndpoint(IEndpoint endpoint)
+        {
+            _logger.Debug(string.Format("Disconnecting zmq endpoint {0}", endpoint));
+            ZmqSocket socket;
+            if (_endpointsToSockets.TryGetValue((ZmqEndpoint)endpoint, out socket))
+            {
+                socket.Dispose();
+            }
+        }
+
         private ZmqSocket CreatePushSocket(ZmqEndpoint zmqEndpoint)
         {
+            _logger.Debug(string.Format("Creating zmq push socket to endpoint {0}", zmqEndpoint));
             var socket = _context.CreateSocket(SocketType.PUSH);
             socket.SendHighWatermark = 20000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
             socket.Connect(zmqEndpoint.Endpoint);
             return socket;
-        }
-
-        public void SendMessage(WireSendingMessage message, IEnumerable<IEndpoint> endpoints)
-        {
-            foreach (var endpoint in endpoints)
-            {
-                SendMessage(message, endpoint);
-            }
         }
 
         public void Dispose()

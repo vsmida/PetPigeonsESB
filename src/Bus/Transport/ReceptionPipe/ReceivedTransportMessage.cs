@@ -8,16 +8,18 @@ namespace Bus.Transport.ReceptionPipe
         public readonly string PeerName;
         public readonly string MessageType;
         public readonly Guid MessageIdentity;
-        public readonly WireTransportType TransportType;
+        public readonly IEndpoint Endpoint;
         public readonly byte[] Data;
+        public readonly int? SequenceNumber;
 
-        public ReceivedTransportMessage(string messageType, string peerName, Guid messageIdentity, WireTransportType transportType, byte[] data)
+        public ReceivedTransportMessage(string messageType, string peerName, Guid messageIdentity, IEndpoint endpoint, byte[] data, int? sequenceNumber)
         {
             PeerName = peerName;
             MessageIdentity = messageIdentity;
             MessageType = messageType;
             Data = data;
-            TransportType = transportType;
+            SequenceNumber = sequenceNumber;
+            Endpoint = endpoint;
         }
     }
 }

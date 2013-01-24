@@ -17,13 +17,13 @@ namespace Bus.InfrastructureMessages
         [ProtoMember(3, IsRequired = true)]
         public readonly bool ProcessingSuccessful;
         [ProtoMember(4, IsRequired = true)]
-        public readonly WireTransportType TransportType;
+        public readonly IEndpoint Endpoint;
 
-        public CompletionAcknowledgementMessage(Guid messageId,string messageType, bool processingSuccessful, WireTransportType transportType)
+        public CompletionAcknowledgementMessage(Guid messageId, string messageType, bool processingSuccessful, IEndpoint endpoint)
         {
             MessageId = messageId;
             ProcessingSuccessful = processingSuccessful;
-            TransportType = transportType;
+            Endpoint = endpoint;
             MessageType = messageType;
         }
     }

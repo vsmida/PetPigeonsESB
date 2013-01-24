@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Bus.BusEventProcessorCommands;
 using Bus.InfrastructureMessages.Shadowing;
 using Bus.InfrastructureMessages.Topology;
 using Bus.MessageInterfaces;
@@ -14,8 +15,8 @@ namespace Bus.Handlers
         private readonly IPeerManager _peerManager;
         private readonly IReplier _replier;
         private readonly IMessageOptionsRepository _optionsRepository;
-        private IDataReceiver _dataReceiver;
-        private IPeerConfiguration _peerConfiguration;
+        private readonly IDataReceiver _dataReceiver;
+        private readonly IPeerConfiguration _peerConfiguration;
 
         public DirectoryServiceMessagesHandler(IPeerManager peerManager, IMessageOptionsRepository optionsRepository, IReplier replier, IDataReceiver dataReceiver, IPeerConfiguration peerConfiguration)
         {
@@ -29,7 +30,14 @@ namespace Bus.Handlers
         public void Handle(PeerConnected message)
         {
             _peerManager.RegisterPeerConnection(message.Peer);
+            ResetInboundPeerSequenceNumbers(message);
             PublishSavedMessages(message.Peer.PeerName);
+           
+        }
+
+        private void ResetInboundPeerSequenceNumbers(PeerConnected message)
+        {
+            _dataReceiver.InjectCommand(new ResetSequenceNumbersForPeer(message.Peer.PeerName));
         }
 
         private void PublishSavedMessages(string peerName)
@@ -40,8 +48,8 @@ namespace Bus.Handlers
                 _dataReceiver.InjectMessage(new ReceivedTransportMessage(typeof(PublishUnacknowledgedMessagesToPeer).FullName,
                                                                          _peerConfiguration.PeerName,
                                                                          Guid.NewGuid(),
-                                                                         WireTransportType.ZmqPushPullTransport,
-                                                                         serializedData));
+                                                                         null,
+                                                                         serializedData, -1));
             }
         }
 

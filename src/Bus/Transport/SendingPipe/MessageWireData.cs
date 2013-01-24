@@ -14,6 +14,8 @@ namespace Bus.Transport.SendingPipe
         public string SendingPeer { get; private set; }
         [ProtoMember(4, IsRequired = true)]
         public byte[] Data { get; private set; }
+        [ProtoMember(5, IsRequired = true)]
+        public int? SequenceNumber { get; set; }
 
         public MessageWireData(string messageType, Guid messageIdentity, string sendingPeer, byte[] data)
         {
@@ -25,7 +27,6 @@ namespace Bus.Transport.SendingPipe
 
         private MessageWireData()
         {
-            
         }
     }
 }

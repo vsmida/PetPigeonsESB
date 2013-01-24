@@ -20,7 +20,7 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundInfrastructureEntry data, long sequence, bool endOfBatch)
         {
-            using (var context = MessageContext.SetContext(data.SendingPeer, data.TransportType))
+            using (var context = MessageContext.SetContext(data.SendingPeer, data.Endpoint))
             {
                 try
                 {
@@ -28,7 +28,7 @@ namespace Bus.DisruptorEventHandlers
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
                     {
                         var messageType = data.DeserializedMessage.GetType().FullName;
-                        _messageSender.Acknowledge(data.MessageIdentity, messageType, true, data.SendingPeer, data.TransportType);
+                        _messageSender.Acknowledge(data.MessageIdentity, messageType, true, data.SendingPeer, data.Endpoint);
                     }
                 }
                 catch (Exception)
@@ -36,7 +36,7 @@ namespace Bus.DisruptorEventHandlers
                     if (!(data.DeserializedMessage is CompletionAcknowledgementMessage))
                     {
                         var messageType = data.DeserializedMessage.GetType().FullName;
-                        _messageSender.Acknowledge(data.MessageIdentity, messageType, false, data.SendingPeer, data.TransportType);
+                        _messageSender.Acknowledge(data.MessageIdentity, messageType, false, data.SendingPeer, data.Endpoint);
 
                     }
                 }

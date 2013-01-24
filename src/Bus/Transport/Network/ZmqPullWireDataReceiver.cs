@@ -5,10 +5,11 @@ using Bus.Transport.SendingPipe;
 using Disruptor;
 using Shared;
 using ZeroMQ;
+using log4net;
 
 namespace Bus.Transport.Network
 {
-    public class ZmqWireDataReceiver : IWireReceiverTransport
+    public class ZmqPullWireDataReceiver : IWireReceiverTransport
     {
         private readonly ZmqContext _context;
         private ZmqSocket _receptionSocket;
@@ -17,8 +18,10 @@ namespace Bus.Transport.Network
         private Thread _pollingReceptionThread;
         private readonly ZmqTransportConfiguration _configuration;
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
+        private ILog _logger = LogManager.GetLogger(typeof (ZmqPullWireDataReceiver));
+        private ZmqEndpoint _endpoint;
 
-        public ZmqWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
+        public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
@@ -42,6 +45,7 @@ namespace Bus.Transport.Network
 
             _pollingReceptionThread.Start();
             socketsCreated.WaitOne();
+            _endpoint = new ZmqEndpoint(_configuration.GetBindEndpoint());
         }
 
         public void CreateCommandReceiverSocket(string endpoint)
@@ -51,31 +55,37 @@ namespace Bus.Transport.Network
             _receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             _receptionSocket.Bind(endpoint);
             _receptionPoller.AddSocket(_receptionSocket);
-            Console.WriteLine("Command processor socket bound to {0}", endpoint);
+            _logger.DebugFormat("Command processor socket bound to {0}", endpoint);
         }
 
 
         private void ReceiveFromSocket(SocketEventArgs socketEventArgs)
         {
             var zmqSocket = socketEventArgs.Socket;
-          //  var type = zmqSocket.Receive(Encoding.ASCII);
-         //   var peerName = zmqSocket.Receive(Encoding.ASCII);
+            //  var type = zmqSocket.Receive(Encoding.ASCII);
+            //   var peerName = zmqSocket.Receive(Encoding.ASCII);
 
-        //    var serializedId = zmqSocket.Receive();
-       //     var messageId = new Guid(serializedId);
-        //    var serializedItem = zmqSocket.Receive();
+            //    var serializedId = zmqSocket.Receive();
+            //     var messageId = new Guid(serializedId);
+            //    var serializedItem = zmqSocket.Receive();
+            try
+            {
+                var messagedata = BusSerializer.Deserialize<MessageWireData>(zmqSocket.Receive());
 
-            var messagedata = BusSerializer.Deserialize<MessageWireData>(zmqSocket.Receive());
-
-          //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
-            var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType, messagedata.SendingPeer, messagedata.MessageIdentity, TransportType, messagedata.Data);
-            var sequence = _ringBuffer.Next();
-            var entry = _ringBuffer[sequence];
-            entry.InitialTransportMessage = receivedTransportMessage;
-            entry.ForceMessageThrough = false;
-            entry.Command = null;
-            _ringBuffer.Publish(sequence);
-
+                //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
+                var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType, messagedata.SendingPeer, messagedata.MessageIdentity, _endpoint, messagedata.Data, messagedata.SequenceNumber);
+                var sequence = _ringBuffer.Next();
+                var entry = _ringBuffer[sequence];
+                entry.InitialTransportMessage = receivedTransportMessage;
+                entry.ForceMessageThrough = false;
+                entry.Command = null;
+                _ringBuffer.Publish(sequence);
+            }
+            catch(Exception e)
+            {
+                _logger.Error("Truncated zmq data received {0}", e);
+            }
+            
         }
 
         public void Dispose()

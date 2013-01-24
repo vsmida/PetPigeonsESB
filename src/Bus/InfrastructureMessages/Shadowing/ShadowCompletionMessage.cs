@@ -17,17 +17,17 @@ namespace Bus.InfrastructureMessages.Shadowing
         [ProtoMember(4, IsRequired = true)]
         public readonly bool ProcessingSuccessful;
         [ProtoMember(5, IsRequired = true)]
-        public readonly WireTransportType TransportType;
+        public readonly IEndpoint Endpoint;
         [ProtoMember(6, IsRequired = true)]
         public readonly string MessageType;
 
-        public ShadowCompletionMessage(Guid messageId, string fromPeer, string toPeer, bool processingSuccessful, WireTransportType transportType, string messageType)
+        public ShadowCompletionMessage(Guid messageId, string fromPeer, string toPeer, bool processingSuccessful, IEndpoint endpoint, string messageType)
         {
             MessageId = messageId;
             FromPeer = fromPeer;
             ToPeer = toPeer;
             ProcessingSuccessful = processingSuccessful;
-            TransportType = transportType;
+            Endpoint = endpoint;
             MessageType = messageType;
         }
     }

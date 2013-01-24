@@ -2,14 +2,16 @@
 using Bus.Dispatch;
 using Bus.Startup;
 using Bus.Transport;
+using StructureMap;
 
 namespace Tests.Integration
 {
     public class FakeBusFactory
     {
-        public static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null)
+        public static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null, IContainer container = null)
         {
-            return BusFactory.CreateBus(containerConfigurationExpression: ctx =>
+            container = container ?? new Container();
+            return BusFactory.CreateBus(container, containerConfigurationExpression: ctx =>
             {
                 ctx.For
                     <ZmqTransportConfiguration>()

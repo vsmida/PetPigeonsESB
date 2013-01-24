@@ -9,6 +9,6 @@ namespace Bus.Transport.ReceptionPipe
         public IMessage DeserializedMessage;
         public string SendingPeer;
         public Guid MessageIdentity;
-        public WireTransportType TransportType;
+        public IEndpoint Endpoint;
     }
 }
