@@ -9,6 +9,7 @@ using NUnit.Framework;
 using Shared;
 using StructureMap;
 using System.Linq;
+using log4net;
 
 namespace Tests.Integration
 {
@@ -17,6 +18,9 @@ namespace Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
+        private ILog _logger = LogManager.GetLogger(typeof(BrokerSyncTests));
+        private bool _shouldTakeAYearProcessing;
+
 
         [Test, Timeout(15000), Repeat(3)]
         public void should_send_back_all_messages()
@@ -87,23 +91,30 @@ namespace Tests.Integration
             var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner(), container: bus1Container);
             var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             var brokerContainer = new Container();
-            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort2, busName2,
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
                                               new SimpleMessageExchange.FakeAssemblyScanner(),
                                               new DummyPeerConfig(brokerName, new List<string> { busName2 }), container: brokerContainer);
 
             bus1.Initialize();
-            bus2.Initialize();
             brokerForBus2.Initialize();
-
+            bus2.Initialize();
+            _waitForCommandToBeHandled = new AutoResetEvent(false);
             bool disconnectOccured = false;
             var bus1ZmqSender = bus1Container.GetInstance<ZmqPushWireSendingTransport>();
             bus1ZmqSender.EndpointDisconnected += x =>disconnectOccured = true;
-                
+            bus1.Send(new FakePersistingCommand(1)).WaitForCompletion(); //init message
+
+            _persitentMessageNumber = -1;
+            FakePersistingCommandHandler.OnCommandReceived -= OnPersistingCommandReceived;
+            FakePersistingCommandHandler.OnCommandReceived += OnPersistingCommandReceived;
+            _shouldTakeAYearProcessing = true;
             for (int i = 0; i < 20000; i++)
             {
-                bus1.Send(new FakePersistingCommand(i)); 
+                bus1.Send(new FakePersistingCommand(i));
+                Thread.Sleep(1);
             }
             var completionCallback = bus1.Send(new FakePersistingCommand(20001));
+            _shouldTakeAYearProcessing = false;
             completionCallback.WaitForCompletion();
 
 
@@ -121,8 +132,10 @@ namespace Tests.Integration
 
         private void OnPersistingCommandReceived(int number)
         {
-            //Console.WriteLine(string.Format("processing now command no {0}", s));
+            _logger.InfoFormat("Processing command no {0}", number);
             Assert.AreEqual(_persitentMessageNumber + 1, number); //throw if command is not in sequence
+            if(_shouldTakeAYearProcessing)
+            Thread.Sleep(10000);
             _persitentMessageNumber++;
             _waitForCommandToBeHandled.Set();
         }

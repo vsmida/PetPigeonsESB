@@ -31,7 +31,7 @@ namespace Bus.Handlers
         {
             _peerManager.RegisterPeerConnection(message.Peer);
             ResetInboundPeerSequenceNumbers(message);
-            PublishSavedMessages(message.Peer.PeerName);
+           // PublishSavedMessages(message.Peer.PeerName);
            
         }
 
@@ -58,7 +58,7 @@ namespace Bus.Handlers
             foreach (var servicePeer in message.KnownPeers)
             {
                 _peerManager.RegisterPeerConnection(servicePeer);
-                PublishSavedMessages(servicePeer.PeerName);
+          //      PublishSavedMessages(servicePeer.PeerName);
             }
             foreach (var messageOption in message.MessageOptions)
             {

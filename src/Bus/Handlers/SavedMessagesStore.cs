@@ -59,7 +59,7 @@ namespace Bus.Handlers
                 queue.OutOfOrderAcks.Remove(shadowMessage.Message.MessageIdentity);
                 return;
             }
-            queue[MessageContext.OriginatingEndpoint].Enqueue(shadowMessage);
+            queue[shadowMessage.TargetEndpoint].Enqueue(shadowMessage);
             queue.GlobalQueue.Enqueue(shadowMessage);
         }
 

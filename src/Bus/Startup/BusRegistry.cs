@@ -33,6 +33,7 @@ namespace Bus.Startup
              For<IPeerConfiguration>().Use<PeerConfiguration>();
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
+             For<IReliabilityCoordinator>().Use<ReliabilityCoordinator>();
              ForSingletonOf<ICallbackRepository>().Use<CallbackRepository>();
              ForSingletonOf<IHeartbeatManager>().Use<HeartbeatManager>();
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();

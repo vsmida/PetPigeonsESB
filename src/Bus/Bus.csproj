@@ -113,6 +113,7 @@
     <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatMessage.cs" />
     <Compile Include="InfrastructureMessages\Heartbeating\HeartbeatRequest.cs" />
     <Compile Include="InfrastructureMessages\Shadowing\PublishUnacknowledgedMessagesToPeer.cs" />
+    <Compile Include="InfrastructureMessages\StopSynchWithBrokerCommand.cs" />
     <Compile Include="InfrastructureMessages\SynchronizeWithBrokerCommand.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyAndMessageSettings.cs" />
     <Compile Include="InfrastructureMessages\Topology\InitializeTopologyRequest.cs" />

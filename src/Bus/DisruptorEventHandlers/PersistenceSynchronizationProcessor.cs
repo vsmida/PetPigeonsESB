@@ -29,7 +29,7 @@ namespace Bus.DisruptorEventHandlers
 
         protected bool Equals(PeerTransportKey other)
         {
-            return string.Equals(Peer, other.Peer) && Endpoint.Equals(other.Endpoint);
+            return string.Equals(Peer, other.Peer) && Equals(Endpoint, other.Endpoint);
         }
 
         public override bool Equals(object obj)
@@ -44,9 +44,7 @@ namespace Bus.DisruptorEventHandlers
         {
             unchecked
             {
-                int hashCode = (Peer != null ? Peer.GetHashCode() : 0);
-                hashCode = (hashCode*397) ^ Endpoint.GetHashCode();
-                return hashCode;
+                return ((Peer != null ? Peer.GetHashCode() : 0)*397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
             }
         }
     }
@@ -96,37 +94,13 @@ namespace Bus.DisruptorEventHandlers
             MessageOptions options;
             _options.TryGetValue(type.FullName, out options);
 
-
+            
             var transportMessageSequenceNumber = data.InitialTransportMessage.SequenceNumber;
             if (transportMessageSequenceNumber != null)
             {
-                var peerKey = new PeerTransportKey(data.InitialTransportMessage.PeerName, data.InitialTransportMessage.Endpoint);
-
-
-                int currentSeqNum;
-                if (!_sequenceNumber.TryGetValue(peerKey, out currentSeqNum))
-                {
-                    _sequenceNumber.Add(peerKey, -1);
-                    currentSeqNum = -1;
-                }
-                var seqNum = transportMessageSequenceNumber;
-                if (_peerConfiguration.PeerName != peerKey.Peer)
-                {
-                    if (seqNum != (currentSeqNum + 1))
-                    {
-                        _logger.Info(string.Format("missed message from endpoint {3} from peer {0} from sequence number {1} to {2}", peerKey.Peer, currentSeqNum + 1, seqNum, peerKey.Endpoint));
-                        Debugger.Break();
-                        //we missed a message
-                        _isInitialized = false;
-                        _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
-                    }
-                    else
-                    {
-                        _sequenceNumber[peerKey] = seqNum.Value;
-                    }
-                }
-
+                VerifySequenceNumber(data, transportMessageSequenceNumber);
             }
+            
 
             var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
 
@@ -135,6 +109,18 @@ namespace Bus.DisruptorEventHandlers
 
             else
             {
+                if(data.ForceMessageThrough)
+                {
+                    _logger.DebugFormat("Forcing message type {0} from {1} with seqNum = {2}", data.InitialTransportMessage.MessageType, data.InitialTransportMessage.PeerName, data.InitialTransportMessage.SequenceNumber);                    
+                    if(_waitingMessages.Count != 0)
+                    {
+                        var message = _waitingMessages.Peek();
+                        if (message.InitialTransportMessage.MessageIdentity == data.InitialTransportMessage.MessageIdentity)
+                            _messageSender.Send(new StopSynchWithBrokerCommand(_peerConfiguration.PeerName));
+                        _waitingMessages.Dequeue();
+                    }
+                }
+
                 if (_isInitialized || options == null || options.ReliabilityLevel == ReliabilityLevel.FireAndForget || data.ForceMessageThrough)
                     PublishMessageToStandardDispatch(data, deserializedMessage);
 
@@ -143,14 +129,56 @@ namespace Bus.DisruptorEventHandlers
             }
         }
 
+        private void VerifySequenceNumber(InboundMessageProcessingEntry data, int? transportMessageSequenceNumber)
+        {
+            var peerKey = new PeerTransportKey(data.InitialTransportMessage.PeerName, data.InitialTransportMessage.Endpoint);
+            int currentSeqNum;
+            if (!_sequenceNumber.TryGetValue(peerKey, out currentSeqNum))
+            {
+                _sequenceNumber.Add(peerKey, -1);
+                currentSeqNum = -1;
+            }
+            if (_isInitialized)
+            {
+                if (_peerConfiguration.PeerName != peerKey.Peer)
+                {
+                    if (transportMessageSequenceNumber != (currentSeqNum + 1))
+                    {
+                        _logger.Info(string.Format("missed message from endpoint {3} from peer {0} from sequence number {1} to {2}",
+                                          peerKey.Peer,
+                                          currentSeqNum + 1,
+                                          transportMessageSequenceNumber,
+                                          peerKey.Endpoint));
+                        Debugger.Break();
+                        //we missed a message
+                        _isInitialized = false;
+                        _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
+                    }
+                    else
+                    {
+                        _sequenceNumber[peerKey] = transportMessageSequenceNumber.Value;
+                    }
+                }
+            }
+            else
+            {
+                _sequenceNumber[peerKey] = transportMessageSequenceNumber.Value;
+            }
+        }
+
         private void HandleCommand(IBusEventProcessorCommand command)
         {
             if (command is ReleaseCachedMessages) // set initialized and publish buffered messages
             {
+                _logger.DebugFormat("Releasing cached messages, count = {0}", _waitingMessages.Count);
                 _isInitialized = true;
                 for (int i = 0; i < _waitingMessages.Count; i++)
                 {
-                    var item = _waitingMessages.Dequeue();
+                    InboundMessageProcessingEntry item = _waitingMessages.Dequeue();
+                    if (item.InitialTransportMessage.SequenceNumber != null)
+                    {
+                        VerifySequenceNumber(item, item.InitialTransportMessage.SequenceNumber);
+                    }
                     var itemType = TypeUtils.Resolve(item.InitialTransportMessage.MessageType);
                     var deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
                     PublishMessageToStandardDispatch(item, deserializedSavedMessage);
@@ -160,6 +188,7 @@ namespace Bus.DisruptorEventHandlers
             if (command is ResetSequenceNumbersForPeer)
             {
                 var typedCommand = command as ResetSequenceNumbersForPeer;
+                _logger.DebugFormat("Resetting sequence numbers for peer {0}", typedCommand.PeerName);
                 var keysToRemove = _sequenceNumber.Keys.Where(x => x.Peer == typedCommand.PeerName).ToList();
                 foreach (var key in keysToRemove)
                 {

@@ -100,6 +100,7 @@ namespace Bus.Transport.Network
             var endpoint = message.Endpoint;
             var key = new SequencingKey(endpoint, message.MessageData.MessageType);
             _heartbeatManager.StartMonitoring(endpoint);
+            _wireSendingTransports[endpoint.WireTransportType].SendMessage(message, endpoint);
             //if(message.Sequenced)
             //{
             //    int sequenceNumber;

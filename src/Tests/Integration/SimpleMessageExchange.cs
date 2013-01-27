@@ -14,6 +14,7 @@ using Bus.MessageInterfaces;
 using Bus.Startup;
 using Bus.Transport;
 using StructureMap;
+using log4net;
 
 namespace Tests.Integration
 {
@@ -24,8 +25,9 @@ namespace Tests.Integration
     {
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
+        private ILog _logger = LogManager.GetLogger(typeof (SimpleMessageExchange));
 
-        [Test, Timeout(80000), Repeat(2)]
+        [Test, Timeout(800000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -94,7 +96,7 @@ namespace Tests.Integration
             }
         }
 
-        [Test, Timeout(200000000), Repeat(3)]
+        [Test, Timeout(200000000), Repeat(10)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -105,13 +107,13 @@ namespace Tests.Integration
             var brokerName = "Service2Shadow";
             var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
             var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
-            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort2, busName2,
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
                                               new FakeAssemblyScanner(),
                                               new DummyPeerConfig(brokerName, new List<string> { busName2 }));
 
             bus1.Initialize();
-            bus2.Initialize();
             brokerForBus2.Initialize();
+            bus2.Initialize();
 
 
             _waitForCommandToBeHandled = new AutoResetEvent(false);
@@ -127,7 +129,6 @@ namespace Tests.Integration
             Console.WriteLine("bus2 disposed");
 
             bus1.Send(new FakePersistingCommand(2)); //message sent while bus2 out
-
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
             bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             Console.WriteLine("initializing bus2 again");
@@ -151,6 +152,7 @@ namespace Tests.Integration
         private void OnPersistingCommandReceived(int number)
         {
             //Console.WriteLine(string.Format("processing now command no {0}", s));
+            _logger.InfoFormat("Processing command no {0}", number);
             Assert.AreEqual(_persitentMessageNumber + 1, number); //throw if command is not in sequence
             _persitentMessageNumber++;
             _waitForCommandToBeHandled.Set();

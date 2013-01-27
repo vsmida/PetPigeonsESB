@@ -45,7 +45,7 @@ namespace Bus.Transport.Network
 
             _pollingReceptionThread.Start();
             socketsCreated.WaitOne();
-            _endpoint = new ZmqEndpoint(_configuration.GetBindEndpoint());
+            _endpoint = new ZmqEndpoint(_configuration.GetConnectEndpoint());
         }
 
         public void CreateCommandReceiverSocket(string endpoint)

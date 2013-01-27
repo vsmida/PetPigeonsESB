@@ -11,6 +11,7 @@ namespace Bus.DisruptorEventHandlers
 {
     public class MessageTargetsHandler : IEventHandler<OutboundDisruptorEntry>
     {
+
         private readonly ICallbackRepository _callbackRepository;
         private readonly IPeerManager _peerManager;
         private readonly IPeerConfiguration _peerConfiguration;
@@ -44,13 +45,13 @@ namespace Bus.DisruptorEventHandlers
         private void UpdateSubscriptions()
         {
             var messageTypesToSubscriptions = _peerManager.GetAllSubscriptions();
-            var endpointStatuses = _peerManager.GetEndpointStatuses();
-            var disconnectedEndpoints = new HashSet<IEndpoint>(endpointStatuses.Where(x => x.Value.Connected == false).Select(x => x.Key));
-            foreach (var pair in messageTypesToSubscriptions)
-            {
-                //remove subscriptions to disconnected endpoints;
-                pair.Value.RemoveAll(x => disconnectedEndpoints.Contains(x.Endpoint));
-            }
+           //var endpointStatuses = _peerManager.GetEndpointStatuses();
+            //var disconnectedEndpoints = new HashSet<IEndpoint>(endpointStatuses.Where(x => x.Value.Connected == false).Select(x => x.Key));
+            //foreach (var pair in messageTypesToSubscriptions)
+            //{
+            //    //remove subscriptions to disconnected endpoints;
+            //    pair.Value.RemoveAll(x => disconnectedEndpoints.Contains(x.Endpoint));
+            //}
 
             _messageTypesToSubscriptions = messageTypesToSubscriptions;
         }
