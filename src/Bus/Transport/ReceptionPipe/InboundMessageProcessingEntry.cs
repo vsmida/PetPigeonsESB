@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Bus.MessageInterfaces;
 
 namespace Bus.Transport.ReceptionPipe
@@ -8,7 +9,7 @@ namespace Bus.Transport.ReceptionPipe
         public bool ForceMessageThrough;
         public IBusEventProcessorCommand Command;
 
-        public InboundBusinessMessageEntry InboundEntry;
+        public List<InboundBusinessMessageEntry> InboundEntries;
         public InboundInfrastructureEntry InfrastructureEntry;
     }
 }

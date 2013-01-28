@@ -86,7 +86,6 @@ namespace Bus.DisruptorEventHandlers
                                           peerKey.Endpoint));
                         Debugger.Break();
                         //we missed a message
-                        _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
                         return false;
                     }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Bus.MessageInterfaces;
 using Bus.Transport.ReceptionPipe;
 using Disruptor;
@@ -37,7 +38,7 @@ namespace Bus.Transport.Network
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = message;
             entry.ForceMessageThrough = forceMessage;
-            entry.InboundEntry = null;
+            entry.InboundEntries = new List<InboundBusinessMessageEntry>();
             entry.InfrastructureEntry = null;
             entry.Command = null;
             _ringBuffer.Publish(sequence);
@@ -49,7 +50,7 @@ namespace Bus.Transport.Network
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = null;
             entry.ForceMessageThrough = false;
-            entry.InboundEntry = null;
+            entry.InboundEntries = null;
             entry.InfrastructureEntry = null;
             entry.Command = busEventProcessorCommand;
             _ringBuffer.Publish(sequence);

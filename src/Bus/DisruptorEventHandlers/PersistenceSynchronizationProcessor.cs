@@ -26,6 +26,7 @@ namespace Bus.DisruptorEventHandlers
         private readonly IMessageSender _messageSender;
         private readonly ISequenceNumberVerifier _sequenceNumberVerifier;
 
+
         public PersistenceSynchronizationProcessor(IMessageOptionsRepository optionsRepository, IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier)
         {
             _optionsRepository = optionsRepository;
@@ -44,7 +45,7 @@ namespace Bus.DisruptorEventHandlers
         {
             if (data.Command != null)
             {
-                HandleCommand(data.Command);
+                HandleCommand(data.Command, data);
                 return;
             }
 
@@ -52,8 +53,14 @@ namespace Bus.DisruptorEventHandlers
             MessageOptions options;
             _options.TryGetValue(type.FullName, out options);
 
+            if (data.ForceMessageThrough && _isInitialized)
+                return; //sync message should be discarded
+
             if (!_sequenceNumberVerifier.IsSequenceNumberValid(data, _isInitialized))
-                _isInitialized = false;
+            {
+                SetUninitializedAndSync();
+
+            }
 
             var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
 
@@ -65,38 +72,38 @@ namespace Bus.DisruptorEventHandlers
 
             if (data.ForceMessageThrough)
             {
+                if (_isInitialized)
+                    return;
                 _logger.DebugFormat("Forcing message type {0} from {1} with seqNum = {2}", data.InitialTransportMessage.MessageType, data.InitialTransportMessage.PeerName, data.InitialTransportMessage.SequenceNumber);
                 if (_waitingMessages.Count != 0)
                 {
                     var message = _waitingMessages.Peek();
                     if (message.InitialTransportMessage.MessageIdentity == data.InitialTransportMessage.MessageIdentity)
+                    {
                         _messageSender.Send(new StopSynchWithBrokerCommand(_peerConfiguration.PeerName));
-                    _waitingMessages.Dequeue();
+                        _waitingMessages.Dequeue();
+                        PublishMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data.InboundEntries);
+                        ReleaseCachedMessages(data);
+                        return;
+                    }
+
                 }
             }
 
             if (_isInitialized || options == null || options.ReliabilityLevel == ReliabilityLevel.FireAndForget || data.ForceMessageThrough)
-                PublishMessageToStandardDispatch(data, deserializedMessage);
+                PublishMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data.InboundEntries);
 
             else
                 _waitingMessages.Enqueue(data);
         }
 
-        private void HandleCommand(IBusEventProcessorCommand command)
+        private void HandleCommand(IBusEventProcessorCommand command, InboundMessageProcessingEntry data)
         {
             if (command is ReleaseCachedMessages) // set initialized and publish buffered messages
             {
-                _logger.DebugFormat("Releasing cached messages, count = {0}", _waitingMessages.Count);
-                _isInitialized = true;
-                for (int i = 0; i < _waitingMessages.Count; i++)
-                {
-                    InboundMessageProcessingEntry item = _waitingMessages.Dequeue();
-                    if (!_sequenceNumberVerifier.IsSequenceNumberValid(item, _isInitialized))
-                        _isInitialized = false;
-                    var itemType = TypeUtils.Resolve(item.InitialTransportMessage.MessageType);
-                    var deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
-                    PublishMessageToStandardDispatch(item, deserializedSavedMessage);
-                }
+                //     ReleaseCachedMessages(data);
             }
 
             if (command is ResetSequenceNumbersForPeer)
@@ -108,13 +115,41 @@ namespace Bus.DisruptorEventHandlers
             }
         }
 
-        private void PublishMessageToStandardDispatch(InboundMessageProcessingEntry data, IMessage deserializedMessage)
+        private void ReleaseCachedMessages(InboundMessageProcessingEntry data)
         {
-            data.InboundEntry = new InboundBusinessMessageEntry();
-            data.InboundEntry.DeserializedMessage = deserializedMessage;
-            data.InboundEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
-            data.InboundEntry.Endpoint = data.InitialTransportMessage.Endpoint;
-            data.InboundEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+            var count = _waitingMessages.Count;
+            _logger.DebugFormat("Releasing cached messages, count = {0}", count);
+            _isInitialized = true;
+            for (int i = 0; i < count; i++)
+            {
+                InboundMessageProcessingEntry item = _waitingMessages.Dequeue();
+                if (!_sequenceNumberVerifier.IsSequenceNumberValid(item, _isInitialized))
+                {
+                    SetUninitializedAndSync();
+                    return;
+                }
+                var itemType = TypeUtils.Resolve(item.InitialTransportMessage.MessageType);
+                var deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
+                PublishMessageToStandardDispatch(deserializedSavedMessage, item.InitialTransportMessage.MessageIdentity,
+                                                                           item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerName, data.InboundEntries);
+            }
+        }
+
+        private void SetUninitializedAndSync()
+        {
+            _logger.Info("Re-syncing");
+            _isInitialized = false;
+            _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
+        }
+
+        private void PublishMessageToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, List<InboundBusinessMessageEntry> entriesList)
+        {
+            var inboundEntry = new InboundBusinessMessageEntry();
+            inboundEntry.DeserializedMessage = deserializedMessage;
+            inboundEntry.MessageIdentity = messageId;
+            inboundEntry.Endpoint = endpoint;
+            inboundEntry.SendingPeer = peerName;
+            entriesList.Add(inboundEntry);
 
         }
 

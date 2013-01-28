@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
@@ -79,6 +80,8 @@ namespace Bus.Transport.Network
                 entry.InitialTransportMessage = receivedTransportMessage;
                 entry.ForceMessageThrough = false;
                 entry.Command = null;
+                entry.InboundEntries = new List<InboundBusinessMessageEntry>();
+                entry.InfrastructureEntry = null;
                 _ringBuffer.Publish(sequence);
             }
             catch (Exception e)

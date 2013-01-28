@@ -4,11 +4,14 @@ using System.Diagnostics;
 using Bus;
 using NUnit.Framework;
 using Shared;
+using log4net;
 
 namespace Tests.Integration
 {
-    public class Performance
+    [TestFixture]
+    public class PerformanceTests
     {
+        private ILog _logger = LogManager.GetLogger(typeof(PerformanceTests));
 
         [Test]
         public void should_send_messages()
@@ -26,13 +29,15 @@ namespace Tests.Integration
                                               new DummyPeerConfig(brokerName, new List<string> { busName2 }));
 
             bus1.Initialize();
-            bus2.Initialize();
             brokerForBus2.Initialize();
 
+            bus2.Initialize();
+            FakePersistingCommandHandler.OnCommandReceived -= OnPersistingCommandReceived;
+            FakePersistingCommandHandler.OnCommandReceived += OnPersistingCommandReceived;
 
             //small micro-benchmark
 
-            for (int j = 0; j < 1000; j++)
+            for (int j = 0; j < 10000; j++)
             {
                 SendMessages(bus1, j);
             }
@@ -45,15 +50,20 @@ namespace Tests.Integration
 
         }
 
+        private void OnPersistingCommandReceived(int obj)
+        {
+            _logger.Debug(string.Format("processing command no {0}", obj));
+        }
+
         private static void SendMessages(IBus bus1, int loopNumber)
         {
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
             IBlockableUntilCompletion resetEvent = null;
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000; i++)
             {
-                resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
+                resetEvent = bus1.Send(new FakeNumberCommand(i * (loopNumber + 1)));
             }
 
             resetEvent.WaitForCompletion();

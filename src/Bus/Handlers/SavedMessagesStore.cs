@@ -86,9 +86,9 @@ namespace Bus.Handlers
             else
             {
                 peerQueue.GlobalQueue.Dequeue();
+                RemoveFromTransportQueue(message.Endpoint, message.MessageId, peerQueue);
             }
 
-            RemoveFromTransportQueue(message.Endpoint, message.MessageId, peerQueue);
         }
 
         private static void RemoveFromTransportQueue(IEndpoint endpoint, Guid messageId, PeerMessageQueue peerQueue)

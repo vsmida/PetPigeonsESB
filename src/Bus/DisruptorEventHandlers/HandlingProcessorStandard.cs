@@ -6,6 +6,8 @@ using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
 using Disruptor;
+using System.Linq;
+using log4net;
 
 namespace Bus.DisruptorEventHandlers
 {
@@ -13,6 +15,8 @@ namespace Bus.DisruptorEventHandlers
     {
         private readonly IMessageDispatcher _dispatcher;
         private readonly IMessageSender _messageSender;
+        private readonly ILog _logger = LogManager.GetLogger(typeof(HandlingProcessorStandard));
+
 
         public HandlingProcessorStandard(IMessageDispatcher dispatcher, IMessageSender messageSender)
         {
@@ -22,10 +26,13 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundMessageProcessingEntry inboundMessageProcessingEntry, long sequence, bool endOfBatch)
         {
-            var data = inboundMessageProcessingEntry.InboundEntry;
-            if (data == null)
+            var data = inboundMessageProcessingEntry.InboundEntries;
+            if (data == null || !data.Any())
                 return;
-            HandleMessage(data.DeserializedMessage, data.SendingPeer, data.Endpoint, data.MessageIdentity);
+            foreach (var entry in data)
+            {
+                HandleMessage(entry.DeserializedMessage, entry.SendingPeer, entry.Endpoint, entry.MessageIdentity);                
+            }
         }
 
         private void HandleMessage(IMessage deserializedMessage, string sendingPeer, IEndpoint endpoint, Guid messageId)

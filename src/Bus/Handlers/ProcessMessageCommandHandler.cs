@@ -21,7 +21,7 @@ namespace Bus.Handlers
 
         public void Handle(EndOfPersistedMessages item)
         {
-            _dataReceiver.InjectCommand(new ReleaseCachedMessages());
+           // _dataReceiver.InjectCommand(new ReleaseCachedMessages());
         }
     }
 }
