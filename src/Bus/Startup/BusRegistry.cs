@@ -34,6 +34,7 @@ namespace Bus.Startup
              ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
              For<IReliabilityCoordinator>().Use<ReliabilityCoordinator>();
+             ForSingletonOf<ISequenceNumberVerifier>().Use<SequenceNumberVerifier>();
              ForSingletonOf<ICallbackRepository>().Use<CallbackRepository>();
              ForSingletonOf<IHeartbeatManager>().Use<HeartbeatManager>();
              ForSingletonOf<IBusBootstrapper>().Use<BusBootstrapper>();
