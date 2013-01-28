@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Bus
 {
-    public class CallbackRepository : ICallbackRepository
+    class CallbackRepository : ICallbackRepository
     {
         private readonly ConcurrentDictionary<Guid, ICompletionCallback> _completionCallbacksById = new ConcurrentDictionary<Guid, ICompletionCallback>();
 

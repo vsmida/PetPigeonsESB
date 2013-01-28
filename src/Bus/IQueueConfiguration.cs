@@ -2,25 +2,13 @@ namespace Bus
 {
     public interface IQueueConfiguration
     {
-        int InfrastructureQueueSize { get; }
-        int NetworkQueueSize { get; }
-        int StandardDispatchQueueSize { get; }
+        int InboundQueueSize { get; }
         int OutboundQueueSize { get; }
     }
 
     public class DefaultQueueConfiguration : IQueueConfiguration
     {
-        public int InfrastructureQueueSize
-        {
-            get { return 128; }
-        }
-
-        public int NetworkQueueSize
-        {
-            get { return 16384; }
-        }
-
-        public int StandardDispatchQueueSize
+        public int InboundQueueSize
         {
             get { return 16384; }
         }

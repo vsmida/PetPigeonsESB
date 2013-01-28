@@ -9,7 +9,7 @@ using Bus.Transport.ReceptionPipe;
 
 namespace Bus.Handlers
 {
-    public class DirectoryServiceMessagesHandler : IBusEventHandler<PeerConnected>, ICommandHandler<InitializeTopologyAndMessageSettings>,
+    class DirectoryServiceMessagesHandler : IBusEventHandler<PeerConnected>, ICommandHandler<InitializeTopologyAndMessageSettings>,
                                                    ICommandHandler<RegisterPeerCommand>, ICommandHandler<InitializeTopologyRequest>
     {
         private readonly IPeerManager _peerManager;

@@ -5,7 +5,7 @@ using Disruptor;
 
 namespace Bus.Transport.SendingPipe
 {
-    public interface IMessageSender : IDisposable
+    interface IMessageSender : IDisposable
     {
         ICompletionCallback Send(ICommand command, ICompletionCallback callback = null);
         void Publish(IEvent message);

@@ -4,7 +4,7 @@ using Bus.Transport.Network;
 
 namespace Bus.Handlers
 {
-    public interface ISavedMessagesStore
+    interface ISavedMessagesStore
     {
         void SaveMessage(ShadowMessageCommand shadowMessage);
         void RemoveMessage(ShadowCompletionMessage completionMessage);

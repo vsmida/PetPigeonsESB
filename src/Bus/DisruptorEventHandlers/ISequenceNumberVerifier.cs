@@ -9,54 +9,53 @@ using log4net;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public interface ISequenceNumberVerifier
+    interface ISequenceNumberVerifier
     {
         bool IsSequenceNumberValid(InboundMessageProcessingEntry data, bool syncProcessorInitialized);
         void ResetSequenceNumbersForPeer(string peer);
     }
 
-    class PeerTransportKey
-    {
-        public readonly string Peer;
-        public readonly IEndpoint Endpoint;
-
-        public PeerTransportKey(string peer, IEndpoint endpoint)
-        {
-            Peer = peer;
-            Endpoint = endpoint;
-        }
-
-        protected bool Equals(PeerTransportKey other)
-        {
-            return string.Equals(Peer, other.Peer) && Equals(Endpoint, other.Endpoint);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((PeerTransportKey)obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return ((Peer != null ? Peer.GetHashCode() : 0) * 397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
-            }
-        }
-    }
-
     class SequenceNumberVerifier : ISequenceNumberVerifier
     {
+
+        private class PeerTransportKey
+        {
+            public readonly string Peer;
+            public readonly IEndpoint Endpoint;
+
+            public PeerTransportKey(string peer, IEndpoint endpoint)
+            {
+                Peer = peer;
+                Endpoint = endpoint;
+            }
+
+            protected bool Equals(PeerTransportKey other)
+            {
+                return string.Equals(Peer, other.Peer) && Equals(Endpoint, other.Endpoint);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((PeerTransportKey)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((Peer != null ? Peer.GetHashCode() : 0) * 397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
+                }
+            }
+        }
+
         private readonly Dictionary<PeerTransportKey, int> _sequenceNumber = new Dictionary<PeerTransportKey, int>();
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly ILog _logger = LogManager.GetLogger(typeof(SequenceNumberVerifier));
         private readonly IMessageSender _messageSender;
-
-
-
+        
         public SequenceNumberVerifier(IPeerConfiguration peerConfiguration)
         {
             _peerConfiguration = peerConfiguration;

@@ -2,7 +2,7 @@
 
 namespace Bus.Dispatch
 {
-    public interface IMessageDispatcher
+    interface IMessageDispatcher
     {
         void Dispatch(IMessage message);
     }

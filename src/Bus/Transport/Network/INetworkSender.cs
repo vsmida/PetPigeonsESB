@@ -10,12 +10,12 @@ using log4net.Repository.Hierarchy;
 
 namespace Bus.Transport.Network
 {
-    public interface INetworkSender : IDisposable
+    interface INetworkSender : IDisposable
     {
         void Initialize();
     }
 
-    public class NetworkSender : INetworkSender, IEventHandler<OutboundDisruptorEntry>
+    class NetworkSender : INetworkSender, IEventHandler<OutboundDisruptorEntry>
     {
 
         private class SequencingKey

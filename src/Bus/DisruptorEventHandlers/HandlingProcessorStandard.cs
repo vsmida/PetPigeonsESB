@@ -9,7 +9,7 @@ using Disruptor;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public class HandlingProcessorStandard : IEventHandler<InboundMessageProcessingEntry>
+    class HandlingProcessorStandard : IEventHandler<InboundMessageProcessingEntry>
     {
         private readonly IMessageDispatcher _dispatcher;
         private readonly IMessageSender _messageSender;

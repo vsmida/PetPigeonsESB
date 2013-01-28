@@ -5,7 +5,7 @@ using Bus.Transport.Network;
 
 namespace Bus.Handlers
 {
-    public class HeartbeatMessageHandler : ICommandHandler<HeartbeatRequest>, ICommandHandler<HeartbeatMessage>
+    class HeartbeatMessageHandler : ICommandHandler<HeartbeatRequest>, ICommandHandler<HeartbeatMessage>
     {
         private readonly IHeartbeatManager _heartbeatManager;
         private readonly IReplier _bus;

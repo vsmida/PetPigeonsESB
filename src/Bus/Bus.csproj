@@ -84,6 +84,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BusEventProcessorCommands\DisconnectEndpoint.cs" />
     <Compile Include="BusEventProcessorCommands\ReleaseCachedMessages.cs" />
     <Compile Include="BusEventProcessorCommands\ResetSequenceNumbersForPeer.cs" />
     <Compile Include="CallbackRepository.cs" />

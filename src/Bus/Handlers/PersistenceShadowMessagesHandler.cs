@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Bus.Handlers
 {
-    public class PersistenceShadowMessagesHandler : ICommandHandler<ShadowMessageCommand>,
+    class PersistenceShadowMessagesHandler : ICommandHandler<ShadowMessageCommand>,
                                                     ICommandHandler<ShadowCompletionMessage>,
                                                     ICommandHandler<PublishUnacknowledgedMessagesToPeer>,
                                                     ICommandHandler<SynchronizeWithBrokerCommand>,

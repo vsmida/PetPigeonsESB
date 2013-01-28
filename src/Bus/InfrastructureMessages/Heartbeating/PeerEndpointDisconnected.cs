@@ -3,7 +3,7 @@ using Bus.Transport.Network;
 
 namespace Bus.InfrastructureMessages.Heartbeating
 {
-    public class PeerEndpointDisconnected : IMessage
+    class PeerEndpointDisconnected : IMessage
     {
         public readonly string Peer;
         public readonly IEndpoint Endpoint;

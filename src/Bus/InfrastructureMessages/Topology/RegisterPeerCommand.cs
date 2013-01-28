@@ -8,7 +8,7 @@ namespace Bus.InfrastructureMessages.Topology
 {
     [InfrastructureMessage]
     [ProtoContract]
-    public class RegisterPeerCommand : ICommand
+    class RegisterPeerCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly ServicePeer Peer;

@@ -6,7 +6,7 @@ namespace Bus.InfrastructureMessages.Topology
 {
     [ProtoContract]
     [ProtoInclude(1, typeof(ServicePeer))]
-    public class PeerConnected : IEvent
+    class PeerConnected : IEvent
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly ServicePeer Peer;

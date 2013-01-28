@@ -7,7 +7,7 @@ namespace Bus.InfrastructureMessages.Topology
 {
     [InfrastructureMessage]
     [ProtoContract]
-    public class InitializeTopologyRequest : ICommand
+    class InitializeTopologyRequest : ICommand
     {
         [ProtoMember(1, IsRequired = true)] public readonly ServicePeer Peer;
 

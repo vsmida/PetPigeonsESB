@@ -7,7 +7,7 @@ using Disruptor;
 
 namespace Bus.Transport.SendingPipe
 {
-    public class MessageSender : IMessageSender
+    class MessageSender : IMessageSender
     {
         private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
         private readonly IPeerConfiguration _peerConfiguration;

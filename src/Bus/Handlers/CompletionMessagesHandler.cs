@@ -3,7 +3,7 @@ using Bus.MessageInterfaces;
 
 namespace Bus.Handlers
 {
-    public class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
+    class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
     {
         private readonly ICallbackRepository _callbackRepository;
 

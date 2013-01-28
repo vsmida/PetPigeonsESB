@@ -9,7 +9,7 @@ namespace Bus.InfrastructureMessages.Heartbeating
 {
     [InfrastructureMessage]
     [ProtoContract]
-    public class HeartbeatRequest : ICommand
+    class HeartbeatRequest : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly DateTime RequestTimeStamp;
@@ -20,11 +20,6 @@ namespace Bus.InfrastructureMessages.Heartbeating
         {
             RequestTimeStamp = requestTimeStamp;
             Endpoint = endpoint;
-        }
-
-        public ReliabilityLevel DesiredReliability
-        {
-            get { return ReliabilityLevel.FireAndForget; }
         }
     }
 }

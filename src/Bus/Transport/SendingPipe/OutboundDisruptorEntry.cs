@@ -3,14 +3,13 @@ using Bus.MessageInterfaces;
 
 namespace Bus.Transport.SendingPipe
 {
-    public class OutboundDisruptorEntry
+    class OutboundDisruptorEntry
     {
         public MessageTargetHandlerData MessageTargetHandlerData = new MessageTargetHandlerData();
         public NetworkSenderData NetworkSenderData = new NetworkSenderData();
-
     }
 
-    public class MessageTargetHandlerData
+    class MessageTargetHandlerData
     {
         public IMessage Message;
         public bool IsAcknowledgement;
@@ -18,7 +17,7 @@ namespace Bus.Transport.SendingPipe
         public string TargetPeer;
     }
 
-    public class NetworkSenderData
+    class NetworkSenderData
     {
         public readonly List<WireSendingMessage> WireMessages = new List<WireSendingMessage>(2);
         public IBusEventProcessorCommand Command;

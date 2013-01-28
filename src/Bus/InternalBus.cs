@@ -39,7 +39,7 @@ namespace Bus
             _networkSender = networkSender;
             _heartbeatManager = heartbeatManager;
             _queueConfiguration = queueConfiguration;
-            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.NetworkQueueSize),new BlockingWaitStrategy(), TaskScheduler.Default);
+            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.InboundQueueSize),new BlockingWaitStrategy(), TaskScheduler.Default);
             _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new BlockingWaitStrategy(), TaskScheduler.Default);
         }
 
@@ -80,7 +80,7 @@ namespace Bus
             _heartbeatManager.Dispose();
             _dataReceiver.Dispose();
             
-            while(!_networkInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.NetworkQueueSize) 
+            while(!_networkInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.InboundQueueSize) 
                 || !_outputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.OutboundQueueSize))
             {
                 Thread.Sleep(1);

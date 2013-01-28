@@ -2,7 +2,7 @@
 
 namespace Bus.InfrastructureMessages.Topology
 {
-    public class MessageSettingsUpdated
+    class MessageSettingsUpdated
     {
         public readonly Type MessageType;
         public readonly MessageOptions Options;

@@ -5,14 +5,14 @@ using Disruptor;
 
 namespace Bus.Transport.Network
 {
-    public interface IDataReceiver : IDisposable
+    interface IDataReceiver : IDisposable
     {
         void Initialize(RingBuffer<InboundMessageProcessingEntry> disruptor);
         void InjectMessage(ReceivedTransportMessage message, bool forceMessageThrough = false);
         void InjectCommand(IBusEventProcessorCommand busEventProcessorCommand);
     }
     
-    public class DataReceiver : IDataReceiver
+    class DataReceiver : IDataReceiver
     {
         private readonly IWireReceiverTransport[] _transports;
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;

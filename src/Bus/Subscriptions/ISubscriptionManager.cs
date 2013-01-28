@@ -3,7 +3,7 @@ using Bus.MessageInterfaces;
 
 namespace Bus.Subscriptions
 {
-    public interface ISubscriptionManager
+    interface ISubscriptionManager
     {
         event Action<Type> EventUnsubscibe;
         IDisposable StartListeningTo<T>() where T : IEvent;

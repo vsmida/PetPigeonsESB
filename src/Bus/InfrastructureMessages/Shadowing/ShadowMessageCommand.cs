@@ -6,7 +6,7 @@ using ProtoBuf;
 namespace Bus.InfrastructureMessages.Shadowing
 {
     [ProtoContract]
-    public class ShadowMessageCommand : ICommand
+    class ShadowMessageCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly MessageWireData Message;

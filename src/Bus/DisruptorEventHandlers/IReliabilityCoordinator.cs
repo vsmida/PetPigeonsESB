@@ -4,7 +4,7 @@ using Bus.Transport.SendingPipe;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public interface IReliabilityCoordinator
+    interface IReliabilityCoordinator
     {
         void EnsureReliability(OutboundDisruptorEntry disruptorEntry, IMessage message, MessageSubscription[] concernedSubscriptions, MessageWireData messageData);
     }

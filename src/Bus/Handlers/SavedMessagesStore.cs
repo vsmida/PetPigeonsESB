@@ -7,7 +7,7 @@ using Bus.Transport.Network;
 
 namespace Bus.Handlers
 {
-    public class SavedMessagesStore : ISavedMessagesStore
+    class SavedMessagesStore : ISavedMessagesStore
     {
         private class PeerMessageQueue
         {

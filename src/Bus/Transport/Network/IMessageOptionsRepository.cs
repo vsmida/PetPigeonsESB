@@ -7,7 +7,7 @@ using Shared;
 
 namespace Bus.Transport.Network
 {
-    public interface IMessageOptionsRepository
+    interface IMessageOptionsRepository
     {
         event Action<MessageOptions> OptionsUpdated;
         void RegisterOptions(MessageOptions options);
@@ -16,7 +16,7 @@ namespace Bus.Transport.Network
         void InitializeOptions();
     }
 
-    public class MessageOptionsRepository : IMessageOptionsRepository
+    class MessageOptionsRepository : IMessageOptionsRepository
     {
         public event Action<MessageOptions> OptionsUpdated = delegate{};
         private IAssemblyScanner _assemblyScanner;

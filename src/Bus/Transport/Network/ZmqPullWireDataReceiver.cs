@@ -9,7 +9,7 @@ using log4net;
 
 namespace Bus.Transport.Network
 {
-    public class ZmqPullWireDataReceiver : IWireReceiverTransport
+    class ZmqPullWireDataReceiver : IWireReceiverTransport
     {
         private readonly ZmqContext _context;
         private ZmqSocket _receptionSocket;
@@ -18,7 +18,7 @@ namespace Bus.Transport.Network
         private Thread _pollingReceptionThread;
         private readonly ZmqTransportConfiguration _configuration;
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
-        private ILog _logger = LogManager.GetLogger(typeof (ZmqPullWireDataReceiver));
+        private ILog _logger = LogManager.GetLogger(typeof(ZmqPullWireDataReceiver));
         private ZmqEndpoint _endpoint;
 
         public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
@@ -81,11 +81,11 @@ namespace Bus.Transport.Network
                 entry.Command = null;
                 _ringBuffer.Publish(sequence);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 _logger.Error("Truncated zmq data received {0}", e);
             }
-            
+
         }
 
         public void Dispose()

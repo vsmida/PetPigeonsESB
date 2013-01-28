@@ -12,12 +12,12 @@ using log4net;
 
 namespace Bus.Startup
 {
-    public interface IBusBootstrapper
+    interface IBusBootstrapper
     {
         void BootStrapTopology();
     }
 
-    public class BusBootstrapper : IBusBootstrapper
+    class BusBootstrapper : IBusBootstrapper
     {
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly ZmqTransportConfiguration _zmqTransportConfiguration;

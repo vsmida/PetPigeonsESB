@@ -16,7 +16,7 @@ namespace Bus.Transport.Network
         void Initialize();
     }
 
-    public class HeartbeatManager : IHeartbeatManager
+    class HeartbeatManager : IHeartbeatManager
     {
         private class HeartbeatInformation
         {

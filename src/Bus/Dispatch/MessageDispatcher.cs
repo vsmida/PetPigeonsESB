@@ -7,7 +7,7 @@ using StructureMap;
 
 namespace Bus.Dispatch
 {
-    public class MessageDispatcher : IMessageDispatcher
+    class MessageDispatcher : IMessageDispatcher
     {
         private class HandlerDispatcher
         {

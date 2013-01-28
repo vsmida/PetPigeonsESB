@@ -9,7 +9,7 @@ using Disruptor;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public class MessageTargetsHandler : IEventHandler<OutboundDisruptorEntry>
+    class MessageTargetsHandler : IEventHandler<OutboundDisruptorEntry>
     {
 
         private readonly ICallbackRepository _callbackRepository;

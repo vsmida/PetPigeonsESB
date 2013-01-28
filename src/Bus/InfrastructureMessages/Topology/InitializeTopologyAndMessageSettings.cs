@@ -8,7 +8,7 @@ namespace Bus.InfrastructureMessages.Topology
 {
     [ProtoContract]
     [InfrastructureMessage]
-    public class InitializeTopologyAndMessageSettings : ICommand
+    class InitializeTopologyAndMessageSettings : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly List<ServicePeer> KnownPeers;

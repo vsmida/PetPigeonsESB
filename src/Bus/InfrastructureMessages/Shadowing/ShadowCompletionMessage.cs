@@ -6,7 +6,7 @@ using ProtoBuf;
 namespace Bus.InfrastructureMessages.Shadowing
 {
     [ProtoContract]
-    public class ShadowCompletionMessage : ICommand
+    class ShadowCompletionMessage : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly Guid MessageId;

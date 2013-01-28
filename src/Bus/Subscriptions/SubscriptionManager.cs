@@ -7,7 +7,7 @@ using Shared;
 
 namespace Bus.Subscriptions
 {
-    public class SubscriptionManager : ISubscriptionManager
+    class SubscriptionManager : ISubscriptionManager
     {
         public event Action<Type> NewEventSubscription = delegate{};
         public event Action<Type> EventUnsubscibe = delegate{};

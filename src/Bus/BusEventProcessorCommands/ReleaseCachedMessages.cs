@@ -2,7 +2,7 @@
 
 namespace Bus.BusEventProcessorCommands
 {
-    public class ReleaseCachedMessages : IBusEventProcessorCommand
+    class ReleaseCachedMessages : IBusEventProcessorCommand
     {
          
     }

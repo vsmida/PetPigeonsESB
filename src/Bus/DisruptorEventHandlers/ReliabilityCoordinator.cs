@@ -11,7 +11,7 @@ using Shared;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public class ReliabilityCoordinator : IReliabilityCoordinator
+    class ReliabilityCoordinator : IReliabilityCoordinator
     {
         private readonly IPeerManager _peerManager;
         private readonly IMessageOptionsRepository _optionsRepository;
@@ -20,7 +20,7 @@ namespace Bus.DisruptorEventHandlers
         private Dictionary<string, HashSet<ServicePeer>> _peersToShadows;
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly Dictionary<IEndpoint, int> _endpointToSequenceNumber = new Dictionary<IEndpoint, int>();
-            
+
 
         public ReliabilityCoordinator(IPeerManager peerManager, IPeerConfiguration peerConfiguration, IMessageOptionsRepository optionsRepository)
         {
@@ -47,18 +47,18 @@ namespace Bus.DisruptorEventHandlers
         {
             var messageOptions = _messageOptions[message.GetType().FullName];
 
-            if(messageOptions.ReliabilityLevel != ReliabilityLevel.FireAndForget)
-            foreach (var wireMessage in disruptorEntry.NetworkSenderData.WireMessages)
-            {
-                int seqNum;
-                if(!_endpointToSequenceNumber.TryGetValue(wireMessage.Endpoint, out seqNum))
+            if (messageOptions.ReliabilityLevel != ReliabilityLevel.FireAndForget)
+                foreach (var wireMessage in disruptorEntry.NetworkSenderData.WireMessages)
                 {
-                    _endpointToSequenceNumber.Add(wireMessage.Endpoint,0);
-                    seqNum = 0;
+                    int seqNum;
+                    if (!_endpointToSequenceNumber.TryGetValue(wireMessage.Endpoint, out seqNum))
+                    {
+                        _endpointToSequenceNumber.Add(wireMessage.Endpoint, 0);
+                        seqNum = 0;
+                    }
+                    wireMessage.MessageData.SequenceNumber = seqNum;
+                    _endpointToSequenceNumber[wireMessage.Endpoint] = seqNum + 1;
                 }
-                wireMessage.MessageData.SequenceNumber = seqNum;
-                _endpointToSequenceNumber[wireMessage.Endpoint] = seqNum + 1;
-            }
 
             if (disruptorEntry.MessageTargetHandlerData.IsAcknowledgement)
             {

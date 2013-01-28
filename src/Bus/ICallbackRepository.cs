@@ -2,7 +2,7 @@
 
 namespace Bus
 {
-    public interface ICallbackRepository
+    interface ICallbackRepository
     {
         void RegisterCallback(Guid messageId, ICompletionCallback callback);
         ICompletionCallback GetCallback(Guid messageId);
