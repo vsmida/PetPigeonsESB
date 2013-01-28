@@ -51,8 +51,6 @@ namespace Bus.DisruptorEventHandlers
 
     class PersistenceSynchronizationProcessor : IEventHandler<InboundMessageProcessingEntry>
     {
-        private RingBuffer<InboundInfrastructureEntry> _infrastructureBuffer;
-        private RingBuffer<InboundBusinessMessageEntry> _standardMessagesBuffer;
         private bool _isInitialized = false;
         private readonly IMessageOptionsRepository _optionsRepository;
         private readonly Dictionary<string, MessageOptions> _options = new Dictionary<string, MessageOptions>();
@@ -74,12 +72,6 @@ namespace Bus.DisruptorEventHandlers
         private void OnOptionsUpdated(MessageOptions option)
         {
             _options[option.MessageType] = option;
-        }
-
-        public void Initialize(RingBuffer<InboundInfrastructureEntry> infraBuffer, RingBuffer<InboundBusinessMessageEntry> standardBuffer)
-        {
-            _infrastructureBuffer = infraBuffer;
-            _standardMessagesBuffer = standardBuffer;
         }
 
         public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
@@ -200,13 +192,13 @@ namespace Bus.DisruptorEventHandlers
 
         private void PublishMessageToStandardDispatch(InboundMessageProcessingEntry data, IMessage deserializedMessage)
         {
-            var sequenceStandard = _standardMessagesBuffer.Next();
-            var messageEntry = _standardMessagesBuffer[sequenceStandard];
-            messageEntry.DeserializedMessage = deserializedMessage;
-            messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
-            messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
-            messageEntry.Endpoint = data.InitialTransportMessage.Endpoint;
-            _standardMessagesBuffer.Publish(sequenceStandard);
+
+            data.InboundEntry = new InboundBusinessMessageEntry();
+            data.InboundEntry.DeserializedMessage = deserializedMessage;
+            data.InboundEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
+            data.InboundEntry.Endpoint = data.InitialTransportMessage.Endpoint;
+            data.InboundEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+
         }
 
         private bool IsInfrastructureMessage(Type type)
@@ -222,14 +214,14 @@ namespace Bus.DisruptorEventHandlers
 
         private void PushIntoInfrastructureQueue(InboundMessageProcessingEntry data, IMessage deserializedMessage)
         {
-            var sequenceInfra = _infrastructureBuffer.Next();
-            var messageEntry = _infrastructureBuffer[sequenceInfra];
-            messageEntry.DeserializedMessage = deserializedMessage;
-            messageEntry.ServiceInitialized = _isInitialized;
-            messageEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
-            messageEntry.SendingPeer = data.InitialTransportMessage.PeerName;
-            messageEntry.Endpoint = data.InitialTransportMessage.Endpoint;
-            _infrastructureBuffer.Publish(sequenceInfra);
+
+
+            data.InfrastructureEntry = new InboundInfrastructureEntry();
+            data.InfrastructureEntry.DeserializedMessage = deserializedMessage;
+            data.InfrastructureEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
+            data.InfrastructureEntry.Endpoint = data.InitialTransportMessage.Endpoint;
+            data.InfrastructureEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+            
         }
     }
 }

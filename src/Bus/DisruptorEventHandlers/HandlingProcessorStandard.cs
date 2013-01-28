@@ -9,7 +9,7 @@ using Disruptor;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public class HandlingProcessorStandard : IEventHandler<InboundBusinessMessageEntry>
+    public class HandlingProcessorStandard : IEventHandler<InboundMessageProcessingEntry>
     {
         private readonly IMessageDispatcher _dispatcher;
         private readonly IMessageSender _messageSender;
@@ -20,8 +20,11 @@ namespace Bus.DisruptorEventHandlers
             _messageSender = messageSender;
         }
 
-        public void OnNext(InboundBusinessMessageEntry data, long sequence, bool endOfBatch)
+        public void OnNext(InboundMessageProcessingEntry inboundMessageProcessingEntry, long sequence, bool endOfBatch)
         {
+            var data = inboundMessageProcessingEntry.InboundEntry;
+            if (data == null)
+                return;
             HandleMessage(data.DeserializedMessage, data.SendingPeer, data.Endpoint, data.MessageIdentity);
         }
 

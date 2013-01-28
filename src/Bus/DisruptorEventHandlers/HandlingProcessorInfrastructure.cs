@@ -7,7 +7,7 @@ using Disruptor;
 
 namespace Bus.DisruptorEventHandlers
 {
-    public class HandlingProcessorInfrastructure : IEventHandler<InboundInfrastructureEntry>
+    public class HandlingProcessorInfrastructure : IEventHandler<InboundMessageProcessingEntry>
     {
         private readonly IMessageDispatcher _dispatcher;
         private readonly IMessageSender _messageSender;
@@ -18,8 +18,11 @@ namespace Bus.DisruptorEventHandlers
             _messageSender = messageSender;
         }
 
-        public void OnNext(InboundInfrastructureEntry data, long sequence, bool endOfBatch)
+        public void OnNext(InboundMessageProcessingEntry messageProcessingEntry, long sequence, bool endOfBatch)
         {
+            var data = messageProcessingEntry.InfrastructureEntry;
+            if (data == null)
+                return;
             using (var context = MessageContext.SetContext(data.SendingPeer, data.Endpoint))
             {
                 try

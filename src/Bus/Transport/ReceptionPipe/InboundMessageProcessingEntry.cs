@@ -7,5 +7,8 @@ namespace Bus.Transport.ReceptionPipe
         public ReceivedTransportMessage InitialTransportMessage;
         public bool ForceMessageThrough;
         public IBusEventProcessorCommand Command;
+
+        public InboundBusinessMessageEntry InboundEntry;
+        public InboundInfrastructureEntry InfrastructureEntry;
     }
 }

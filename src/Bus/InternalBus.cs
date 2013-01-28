@@ -23,8 +23,6 @@ namespace Bus
         private readonly IBusBootstrapper _busBootstrapper;
         private readonly IDataReceiver _dataReceiver;
         private readonly Disruptor<InboundMessageProcessingEntry> _networkInputDisruptor;
-        private readonly Disruptor<InboundInfrastructureEntry> _infrastructureInputDisruptor;
-        private readonly Disruptor<InboundBusinessMessageEntry> _normalMessagesInputDisruptor;
         private readonly Disruptor<OutboundDisruptorEntry> _outputDisruptor;
         private readonly IHeartbeatManager _heartbeatManager;
         private readonly IQueueConfiguration _queueConfiguration;
@@ -42,8 +40,6 @@ namespace Bus
             _heartbeatManager = heartbeatManager;
             _queueConfiguration = queueConfiguration;
             _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.NetworkQueueSize),new BlockingWaitStrategy(), TaskScheduler.Default);
-            _infrastructureInputDisruptor = new Disruptor<InboundInfrastructureEntry>(() => new InboundInfrastructureEntry(), new SingleThreadedClaimStrategy(_queueConfiguration.InfrastructureQueueSize), new BlockingWaitStrategy(), TaskScheduler.Default);
-            _normalMessagesInputDisruptor = new Disruptor<InboundBusinessMessageEntry>(() => new InboundBusinessMessageEntry(), new SingleThreadedClaimStrategy(_queueConfiguration.StandardDispatchQueueSize), new BlockingWaitStrategy(), TaskScheduler.Default);
             _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new BlockingWaitStrategy(), TaskScheduler.Default);
         }
 
@@ -60,13 +56,8 @@ namespace Bus
 
         public void Initialize()
         {
-
-            _infrastructureInputDisruptor.HandleEventsWith(_handlingProcessorInfrastructure);
-            _infrastructureInputDisruptor.Start();
-            _normalMessagesInputDisruptor.HandleEventsWith(_handlingProcessorStandard);
-            _normalMessagesInputDisruptor.Start();
-            _networkProcessor.Initialize(_infrastructureInputDisruptor.RingBuffer, _normalMessagesInputDisruptor.RingBuffer);
-            _networkInputDisruptor.HandleEventsWith(_networkProcessor);
+            _networkInputDisruptor.HandleEventsWith(_networkProcessor).Then(_handlingProcessorInfrastructure,
+                                                                            _handlingProcessorStandard);
             _networkInputDisruptor.Start();
             _dataReceiver.Initialize(_networkInputDisruptor.RingBuffer);
 
@@ -90,16 +81,12 @@ namespace Bus
             _dataReceiver.Dispose();
             
             while(!_networkInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.NetworkQueueSize) 
-                || !_normalMessagesInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.StandardDispatchQueueSize)
-                || !_infrastructureInputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.InfrastructureQueueSize)
                 || !_outputDisruptor.RingBuffer.HasAvailableCapacity(_queueConfiguration.OutboundQueueSize))
             {
                 Thread.Sleep(1);
             }
 
             _networkInputDisruptor.Shutdown();
-            _normalMessagesInputDisruptor.Shutdown();
-            _infrastructureInputDisruptor.Shutdown();
             _messageSender.Dispose();
             _outputDisruptor.Shutdown();
             _networkSender.Dispose();
