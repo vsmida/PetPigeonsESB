@@ -149,7 +149,7 @@
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Subscriptions\DummySubscriptionFilter.cs" />
-    <Compile Include="Transport\IMessageSubscription.cs" />
+    <Compile Include="Transport\MessageSubscription.cs" />
     <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
     <Compile Include="Transport\Network\EndpointStatus.cs" />
     <Compile Include="Transport\Network\HeartbeatManager.cs" />

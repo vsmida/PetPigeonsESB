@@ -62,7 +62,7 @@ namespace Bus.Startup
                                                                                    new ZmqEndpoint(
                                                                                        _bootstrapperConfiguration.
                                                                                            DirectoryServiceEndpoint),
-                                                                                   null);
+                                                                                   null, Shared.ReliabilityLevel.FireAndForget);
 
             var directoryServiceRegisterPeerSubscription2 = new MessageSubscription(typeof(InitializeTopologyAndMessageSettings),
                                                                        _bootstrapperConfiguration.
@@ -70,7 +70,7 @@ namespace Bus.Startup
                                                                        new ZmqEndpoint(
                                                                            _bootstrapperConfiguration.
                                                                                DirectoryServiceEndpoint),
-                                                                       null);
+                                                                       null, Shared.ReliabilityLevel.FireAndForget);
 
 
             var directoryServiceCompletionMessageSubscription = new MessageSubscription(typeof(CompletionAcknowledgementMessage),
@@ -79,7 +79,7 @@ namespace Bus.Startup
                                                                        new ZmqEndpoint(
                                                                            _bootstrapperConfiguration.
                                                                                DirectoryServiceEndpoint),
-                                                                       null);
+                                                                       null, Shared.ReliabilityLevel.FireAndForget);
 
             var directoryServiceBarebonesPeer = new ServicePeer(_bootstrapperConfiguration.DirectoryServiceName,
                                                                 new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription, directoryServiceRegisterPeerSubscription2 }, null);

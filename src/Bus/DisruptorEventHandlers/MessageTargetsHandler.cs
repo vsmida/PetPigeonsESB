@@ -85,9 +85,9 @@ namespace Bus.DisruptorEventHandlers
 
         private static void SendToConcernedPeers(MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
-            foreach (var concernedSubscription in concernedSubscriptions)
+            foreach (var endpoint in concernedSubscriptions.Select(x => x.Endpoint).Distinct())
             {
-                var wireMessage = new WireSendingMessage(messageData, concernedSubscription.Endpoint);
+                var wireMessage = new WireSendingMessage(messageData, endpoint);
                 disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
             }
       }

@@ -8,6 +8,7 @@ namespace Shared
 {
     public static class TypeUtils
     {
+        [ThreadStatic]
         private static readonly Dictionary<string, Type> _cache = new Dictionary<string, Type>(); 
 
         public static Type Resolve(string fullName)

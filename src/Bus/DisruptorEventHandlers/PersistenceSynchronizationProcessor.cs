@@ -57,10 +57,7 @@ namespace Bus.DisruptorEventHandlers
                 return; //sync message should be discarded
 
             if (!_sequenceNumberVerifier.IsSequenceNumberValid(data, _isInitialized))
-            {
                 SetUninitializedAndSync();
-
-            }
 
             var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
 
@@ -72,8 +69,6 @@ namespace Bus.DisruptorEventHandlers
 
             if (data.ForceMessageThrough)
             {
-                if (_isInitialized)
-                    return;
                 _logger.DebugFormat("Forcing message type {0} from {1} with seqNum = {2}", data.InitialTransportMessage.MessageType, data.InitialTransportMessage.PeerName, data.InitialTransportMessage.SequenceNumber);
                 if (_waitingMessages.Count != 0)
                 {

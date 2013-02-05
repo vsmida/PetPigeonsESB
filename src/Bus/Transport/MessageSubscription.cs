@@ -2,7 +2,7 @@
 using Bus.Subscriptions;
 using Bus.Transport.Network;
 using ProtoBuf;
-
+using Shared;
 namespace Bus.Transport
 {
 
@@ -18,13 +18,16 @@ namespace Bus.Transport
         public readonly IEndpoint Endpoint;
         [ProtoMember(4, IsRequired = true)]
         public readonly ISubscriptionFilter SubscriptionFilter;
+        [ProtoMember(5, IsRequired = true)]
+        public readonly ReliabilityLevel ReliabilityLevel;
 
-        public MessageSubscription(Type messageType, string peer, IEndpoint endpoint, ISubscriptionFilter subscriptionFilter)
+        public MessageSubscription(Type messageType, string peer, IEndpoint endpoint, ISubscriptionFilter subscriptionFilter, ReliabilityLevel reliabilityLevel)
         {
             MessageType = messageType;
             Peer = peer;
             Endpoint = endpoint;
             SubscriptionFilter = subscriptionFilter;
+            ReliabilityLevel = reliabilityLevel;
         }
 
         private MessageSubscription(){}

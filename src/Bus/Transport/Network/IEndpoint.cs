@@ -12,5 +12,6 @@ namespace Bus.Transport.Network
     public interface IEndpoint : IEquatable<IEndpoint>
     {
         WireTransportType WireTransportType { get; }
+        bool IsMulticast { get; }
     }
 }
