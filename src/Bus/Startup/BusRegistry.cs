@@ -31,7 +31,7 @@ namespace Bus.Startup
              ForSingletonOf<IMessageSender>().Use<MessageSender>();
              For<IMessageDispatcher>().LifecycleIs(new UniquePerRequestLifecycle()).Use<MessageDispatcher>();
              For<IPeerConfiguration>().Use<PeerConfiguration>();
-             ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
+            // ForSingletonOf<IMessageOptionsRepository>().Use<MessageOptionsRepository>();
              ForSingletonOf<ISubscriptionManager>().Use<SubscriptionManager>();
              For<IReliabilityCoordinator>().Use<ReliabilityCoordinator>();
              ForSingletonOf<ISequenceNumberVerifier>().Use<SequenceNumberVerifier>();

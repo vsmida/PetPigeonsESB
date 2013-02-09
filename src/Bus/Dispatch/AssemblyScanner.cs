@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Bus.Attributes;
 using Bus.MessageInterfaces;
+using Bus.Subscriptions;
+using Bus.Transport.Network;
 using Shared;
-using Shared.Attributes;
 
 namespace Bus.Dispatch
 {
@@ -30,23 +32,6 @@ namespace Bus.Dispatch
             return AppDomain.CurrentDomain.GetAssemblies().ToList();
         }
 
-        public Dictionary<Type, ReliabilityLevel> FindMessagesInfosInAssemblies()
-        {
-            var result = new Dictionary<Type, ReliabilityLevel>();
-            var assemblies = GetAssemblies();
-            foreach (var assembly in assemblies)
-            {
-                foreach (var type in assembly.GetTypes())
-                {
-                    if (typeof(IMessage).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
-                    {
-                        var reliability = type.GetCustomAttributes(typeof(BusReliability), false).SingleOrDefault() as BusReliability;
-                        result.Add(type, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel);
-                    }
-                }
-            }
-            return result;
-        }
 
         public virtual List<MethodInfo> FindCommandHandlersInAssemblies(IMessage message)
         {
@@ -70,6 +55,49 @@ namespace Bus.Dispatch
             return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
                                                            (type.GetInterfaces().SingleOrDefault(
                                                                x => IsEventHandler(x, message.GetType())) != null)), "Handle", type => new[] { message.GetType() });
+        }
+
+
+        public List<MessageOptions> GetMessageOptions()
+        {
+            var options = new List<MessageOptions>();
+            var typeToFilter = new Dictionary<Type, ISubscriptionFilter>();
+            var assemblies = GetAssemblies();
+            foreach (var assembly in assemblies)
+            {
+                foreach (var type in assembly.GetTypes())
+                {
+                    var filterAttribute = type.GetCustomAttributes(typeof (ActiveSubscriptionFilterAttribute), true).SingleOrDefault() as ActiveSubscriptionFilterAttribute;
+                    if(filterAttribute != null)
+                    {
+                        var typeGenericParameter = type.GetGenericArguments()[0];
+                        typeToFilter[typeGenericParameter] = Activator.CreateInstance(type,true) as ISubscriptionFilter;
+                    }
+
+
+                }
+            }
+
+            foreach (var assembly in assemblies)
+            {
+                foreach (var type in assembly.GetTypes())
+                {
+                    if (type.IsInterface || type.IsAbstract)
+                        continue;
+                    var messageHandlingInterfaces = type.GetInterfaces()
+                                                        .Where(x => x.IsGenericType 
+                                                        && (x.GetGenericTypeDefinition() == typeof(ICommandHandler<>) || x.GetGenericTypeDefinition() == typeof(IBusEventHandler<>)));
+                    foreach (var messageHandlingInterface in messageHandlingInterfaces)
+                    {
+                        var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
+                        var genericType = messageHandlingInterface.GetGenericArguments()[0];
+                        options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
+                                                                    reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType));
+                    }
+                }
+            }
+
+            return options;
         }
 
         public virtual List<Type> GetHandledCommands()

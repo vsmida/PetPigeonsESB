@@ -7,7 +7,6 @@ using Bus.Transport.Network;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
-using Shared.Attributes;
 using Bus;
 using Bus.Dispatch;
 using Bus.MessageInterfaces;

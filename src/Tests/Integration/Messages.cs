@@ -1,8 +1,9 @@
 ﻿using System;
+using Bus.Attributes;
 using Bus.MessageInterfaces;
+using Bus.Transport.Network;
 using ProtoBuf;
 using Shared;
-using Shared.Attributes;
 
 namespace Tests.Integration
 {
@@ -26,7 +27,7 @@ namespace Tests.Integration
 
 
     [ProtoContract]
-    [BusReliability(ReliabilityLevel.Persisted)]
+    [BusOptions(ReliabilityLevel.Persisted, WireTransportType.ZmqPushPullTransport)]
     public class FakePersistingCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]

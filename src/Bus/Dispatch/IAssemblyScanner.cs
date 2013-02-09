@@ -10,9 +10,8 @@ namespace Bus.Dispatch
     {
         List<MethodInfo> FindCommandHandlersInAssemblies(IMessage message);
         List<MethodInfo> FindEventHandlersInAssemblies(IMessage message);
+        List<MessageOptions> GetMessageOptions();
         List<Type> GetHandledCommands();
         List<Type> GetHandledEvents();
-
-        Dictionary<Type, ReliabilityLevel> FindMessagesInfosInAssemblies();
     }
 }

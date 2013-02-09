@@ -8,6 +8,7 @@ using Bus.Subscriptions;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
+using Shared;
 using log4net;
 
 namespace Bus.Startup
@@ -49,8 +50,7 @@ namespace Bus.Startup
             var messageSubscriptions =
                 _assemblyScanner.GetHandledCommands().Concat(_assemblyScanner.GetHandledEvents()).Select(
                     x =>
-                    new MessageSubscription(x, _peerConfiguration.PeerName,
-                                            new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), GetSubscription(x)));
+                    new MessageSubscription(x, _peerConfiguration.PeerName,new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), GetSubscription(x),ReliabilityLevel.FireAndForget));
 
 
             var peer = new ServicePeer(_peerConfiguration.PeerName, messageSubscriptions.ToList(), _peerConfiguration.ShadowedPeers);

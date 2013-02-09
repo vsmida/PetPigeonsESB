@@ -1,9 +1,9 @@
 ﻿using System;
+using Bus.Attributes;
 using Bus.MessageInterfaces;
 using Bus.Transport.Network;
 using ProtoBuf;
 using Shared;
-using Shared.Attributes;
 
 namespace Bus.InfrastructureMessages.Heartbeating
 {

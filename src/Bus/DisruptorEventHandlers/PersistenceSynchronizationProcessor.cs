@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Bus.Attributes;
 using Bus.BusEventProcessorCommands;
 using Bus.InfrastructureMessages;
 using Bus.MessageInterfaces;
@@ -9,7 +10,6 @@ using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
 using Disruptor;
 using Shared;
-using Shared.Attributes;
 using log4net;
 
 namespace Bus.DisruptorEventHandlers
@@ -17,7 +17,6 @@ namespace Bus.DisruptorEventHandlers
     class PersistenceSynchronizationProcessor : IEventHandler<InboundMessageProcessingEntry>
     {
         private bool _isInitialized = false;
-        private readonly IMessageOptionsRepository _optionsRepository;
         private readonly Dictionary<string, MessageOptions> _options = new Dictionary<string, MessageOptions>();
         private readonly Queue<InboundMessageProcessingEntry> _waitingMessages = new Queue<InboundMessageProcessingEntry>();
         private readonly Dictionary<string, bool> _infrastructureConditionCache = new Dictionary<string, bool>();
@@ -29,17 +28,11 @@ namespace Bus.DisruptorEventHandlers
 
         public PersistenceSynchronizationProcessor(IMessageOptionsRepository optionsRepository, IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier)
         {
-            _optionsRepository = optionsRepository;
             _peerConfiguration = peerConfiguration;
             _messageSender = messageSender;
             _sequenceNumberVerifier = sequenceNumberVerifier;
-            _optionsRepository.OptionsUpdated += OnOptionsUpdated;
         }
 
-        private void OnOptionsUpdated(MessageOptions option)
-        {
-            _options[option.MessageType] = option;
-        }
 
         public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
         {

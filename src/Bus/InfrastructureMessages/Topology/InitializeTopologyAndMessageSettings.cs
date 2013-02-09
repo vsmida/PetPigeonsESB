@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
+using Bus.Attributes;
 using Bus.MessageInterfaces;
 using Bus.Transport;
 using ProtoBuf;
-using Shared.Attributes;
 
 namespace Bus.InfrastructureMessages.Topology
 {

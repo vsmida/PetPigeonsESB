@@ -6,7 +6,7 @@ namespace Bus.Transport.Network
     [ProtoContract]
     public enum WireTransportType
     {
-        ZmqPushPullTransport
+        ZmqPushPullTransport = 0
     }
     [ProtoInclude(1, typeof(ZmqEndpoint))]
     public interface IEndpoint : IEquatable<IEndpoint>
