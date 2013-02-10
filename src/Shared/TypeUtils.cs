@@ -9,11 +9,14 @@ namespace Shared
     public static class TypeUtils
     {
         [ThreadStatic]
-        private static readonly Dictionary<string, Type> _cache = new Dictionary<string, Type>(); 
+        private static Dictionary<string, Type> _cache; 
 
         public static Type Resolve(string fullName)
         {
+            if(_cache == null)
+                _cache = new Dictionary<string, Type>();
             Debug.Assert(fullName != null);
+            Debug.Assert(_cache != null);
             Type cachedType;
             if (_cache.TryGetValue(fullName, out cachedType))
                 return cachedType;

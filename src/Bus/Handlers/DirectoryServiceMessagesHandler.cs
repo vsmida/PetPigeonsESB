@@ -14,14 +14,12 @@ namespace Bus.Handlers
     {
         private readonly IPeerManager _peerManager;
         private readonly IReplier _replier;
-        private readonly IMessageOptionsRepository _optionsRepository;
         private readonly IDataReceiver _dataReceiver;
         private readonly IPeerConfiguration _peerConfiguration;
 
-        public DirectoryServiceMessagesHandler(IPeerManager peerManager, IMessageOptionsRepository optionsRepository, IReplier replier, IDataReceiver dataReceiver, IPeerConfiguration peerConfiguration)
+        public DirectoryServiceMessagesHandler(IPeerManager peerManager, IReplier replier, IDataReceiver dataReceiver, IPeerConfiguration peerConfiguration)
         {
             _peerManager = peerManager;
-            _optionsRepository = optionsRepository;
             _replier = replier;
             _dataReceiver = dataReceiver;
             _peerConfiguration = peerConfiguration;
@@ -60,10 +58,6 @@ namespace Bus.Handlers
                 _peerManager.RegisterPeerConnection(servicePeer);
           //      PublishSavedMessages(servicePeer.PeerName);
             }
-            foreach (var messageOption in message.MessageOptions)
-            {
-                _optionsRepository.RegisterOptions(messageOption);
-            }
         }
 
         public void Handle(RegisterPeerCommand item)
@@ -75,8 +69,7 @@ namespace Bus.Handlers
 
         public void Handle(InitializeTopologyRequest item)
         {
-            var initCommand = new InitializeTopologyAndMessageSettings(_peerManager.GetAllPeers().ToList(),
-                                                                       _optionsRepository.GetAllOptions().Values.ToList());
+            var initCommand = new InitializeTopologyAndMessageSettings(_peerManager.GetAllPeers().ToList());
             _peerManager.RegisterPeerConnection(item.Peer);
 
             _replier.Reply(initCommand);

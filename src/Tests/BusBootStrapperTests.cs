@@ -17,12 +17,12 @@ namespace Tests
     {
         private class FakeCommand : ICommand
         {
-            
+
         }
 
         private class FakeEvent : IEvent
         {
-            
+
         }
 
         private class FakeBootstrapperConfig : IBusBootstrapperConfiguration
@@ -32,7 +32,6 @@ namespace Tests
         }
 
         private BusBootstrapper _bootstrapper;
-        private Mock<IMessageOptionsRepository> _repoMock;
         private Mock<IMessageSender> _senderMock;
         private Mock<ISubscriptionManager> _subscriptionManagerMock;
         private Mock<IAssemblyScanner> _assemblyScannerMock;
@@ -51,12 +50,11 @@ namespace Tests
             _assemblyScannerMock = new Mock<IAssemblyScanner>();
             _senderMock = new Mock<IMessageSender>();
             _subscriptionManagerMock = new Mock<ISubscriptionManager>();
-            _repoMock = new Mock<IMessageOptionsRepository>();
             _completionCallbackMock = new Mock<ICompletionCallback>();
             _senderMock.Setup(x => x.Send(It.IsAny<ICommand>(), It.IsAny<ICompletionCallback>())).Returns(
                 _completionCallbackMock.Object);
             _peerConfigurationMock = new Mock<IPeerConfiguration>();
-            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _repoMock.Object, _senderMock.Object, _peerManagerMock.Object,
+            _bootstrapper = new BusBootstrapper(_assemblyScannerMock.Object, _configTransport, _config, _senderMock.Object, _peerManagerMock.Object,
                 _subscriptionManagerMock.Object, _peerConfigurationMock.Object);
         }
     }

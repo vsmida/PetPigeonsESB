@@ -20,7 +20,7 @@ namespace Bus.Transport.Network
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((ZmqEndpoint) obj);
+            return Equals((ZmqEndpoint)obj);
         }
 
         public override int GetHashCode()
@@ -33,8 +33,10 @@ namespace Bus.Transport.Network
         [ProtoMember(1, IsRequired = true)]
         public string Endpoint { get; set; }
 
-        [ProtoMember(2, IsRequired = true)]
-        public bool IsMulticast {get{return false;}}
+        public bool IsMulticast
+        {
+            get { return false; }
+        }
 
         public ZmqEndpoint(string endpoint)
         {

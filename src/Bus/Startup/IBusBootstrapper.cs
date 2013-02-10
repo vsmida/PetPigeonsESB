@@ -23,20 +23,18 @@ namespace Bus.Startup
         private readonly IAssemblyScanner _assemblyScanner;
         private readonly ZmqTransportConfiguration _zmqTransportConfiguration;
         private readonly IBusBootstrapperConfiguration _bootstrapperConfiguration;
-        private readonly IMessageOptionsRepository _optionsRepo;
         private readonly IMessageSender _messageSender;
         private readonly IPeerManager _peerManager;
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IPeerConfiguration _peerConfiguration;
-        private readonly ILog _logger = LogManager.GetLogger(typeof (BusBootstrapper));
+        private readonly ILog _logger = LogManager.GetLogger(typeof(BusBootstrapper));
 
         public BusBootstrapper(IAssemblyScanner assemblyScanner, ZmqTransportConfiguration zmqTransportConfiguration, IBusBootstrapperConfiguration bootstrapperConfiguration,
-            IMessageOptionsRepository optionsRepo, IMessageSender messageSender, IPeerManager peerManager, ISubscriptionManager subscriptionManager, IPeerConfiguration peerConfiguration)
+            IMessageSender messageSender, IPeerManager peerManager, ISubscriptionManager subscriptionManager, IPeerConfiguration peerConfiguration)
         {
             _assemblyScanner = assemblyScanner;
             _zmqTransportConfiguration = zmqTransportConfiguration;
             _bootstrapperConfiguration = bootstrapperConfiguration;
-            _optionsRepo = optionsRepo;
             _messageSender = messageSender;
             _peerManager = peerManager;
             _subscriptionManager = subscriptionManager;
@@ -45,12 +43,13 @@ namespace Bus.Startup
 
         public void BootStrapTopology()
         {
-            _optionsRepo.InitializeOptions();
+            var messageSubscriptions = _assemblyScanner.GetMessageOptions()
+                .Select(x => new MessageSubscription(x.MessageType, _peerConfiguration.PeerName,
+                                            new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()),
+                                            x.SubscriptionFilter, x.ReliabilityLevel));
 
-            var messageSubscriptions =
-                _assemblyScanner.GetHandledCommands().Concat(_assemblyScanner.GetHandledEvents()).Select(
-                    x =>
-                    new MessageSubscription(x, _peerConfiguration.PeerName,new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()), GetSubscription(x),ReliabilityLevel.FireAndForget));
+
+
 
 
             var peer = new ServicePeer(_peerConfiguration.PeerName, messageSubscriptions.ToList(), _peerConfiguration.ShadowedPeers);
@@ -83,14 +82,14 @@ namespace Bus.Startup
 
             var directoryServiceBarebonesPeer = new ServicePeer(_bootstrapperConfiguration.DirectoryServiceName,
                                                                 new List<MessageSubscription> { directoryServiceRegisterPeerSubscription, directoryServiceCompletionMessageSubscription, directoryServiceRegisterPeerSubscription2 }, null);
-          
+
             _peerManager.RegisterPeerConnection(directoryServiceBarebonesPeer);
             _peerManager.RegisterPeerConnection(peer); //register yourself after dir service in case dirService=Service;
 
             _logger.InfoFormat("Requesting topology from {0}", _bootstrapperConfiguration.DirectoryServiceName);
             var completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
             completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?
-            
+
             //now register with everybody we know of
             _messageSender.Publish(new PeerConnected(peer));
 
@@ -102,15 +101,15 @@ namespace Bus.Startup
             }
 
             //ask for topo again in case someone connected simulataneously to other node
-        //    completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
-        //    completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?
+            //    completionCallback = _messageSender.Route(commandRequest, _bootstrapperConfiguration.DirectoryServiceName);
+            //    completionCallback.WaitForCompletion(); //now should get a init topo (or not) reply and the magic is done?
 
-        
+
         }
 
         private ISubscriptionFilter GetSubscription(Type type)
         {
-            if(type == typeof(SynchronizeWithBrokerCommand) || type == typeof(StopSynchWithBrokerCommand))
+            if (type == typeof(SynchronizeWithBrokerCommand) || type == typeof(StopSynchWithBrokerCommand))
                 return new SynchronizeWithBrokerFilter(_peerConfiguration.ShadowedPeers);
             return null;
 

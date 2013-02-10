@@ -125,7 +125,6 @@
     <Compile Include="IQueueConfiguration.cs" />
     <Compile Include="MessageInterfaces\IBusEventProcessorCommand.cs" />
     <Compile Include="MessageOptions.cs" />
-    <Compile Include="InfrastructureMessages\Topology\MessageSettingsUpdated.cs" />
     <Compile Include="InfrastructureMessages\Topology\PeerConnected.cs" />
     <Compile Include="InfrastructureMessages\EndOfPersistedMessages.cs" />
     <Compile Include="InfrastructureMessages\Heartbeating\PeerEndpointDisconnected.cs" />
@@ -171,7 +170,6 @@
     <Compile Include="Transport\SendingPipe\OutboundDisruptorEntry.cs" />
     <Compile Include="Subscriptions\SubscriptionManager.cs" />
     <Compile Include="Transport\SendingPipe\MessageSender.cs" />
-    <Compile Include="Transport\Network\IMessageOptionsRepository.cs" />
     <Compile Include="Transport\SendingPipe\IMessageSender.cs" />
     <Compile Include="Transport\Network\IPeerManager.cs" />
     <Compile Include="Subscriptions\ISubscriptionManager.cs" />

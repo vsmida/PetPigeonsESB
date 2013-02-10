@@ -14,21 +14,18 @@ namespace Bus.DisruptorEventHandlers
     class ReliabilityCoordinator : IReliabilityCoordinator
     {
         private readonly IPeerManager _peerManager;
-        private readonly IMessageOptionsRepository _optionsRepository;
-        private Dictionary<string, MessageOptions> _messageOptions;
+        private readonly Dictionary<string, MessageSubscription> _selfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
         private IEnumerable<ServicePeer> _selfShadows;
         private Dictionary<string, HashSet<ServicePeer>> _peersToShadows;
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly Dictionary<IEndpoint, int> _endpointToSequenceNumber = new Dictionary<IEndpoint, int>();
 
 
-        public ReliabilityCoordinator(IPeerManager peerManager, IPeerConfiguration peerConfiguration, IMessageOptionsRepository optionsRepository)
+        public ReliabilityCoordinator(IPeerManager peerManager, IPeerConfiguration peerConfiguration)
         {
             _peerManager = peerManager;
             _peerConfiguration = peerConfiguration;
-            _optionsRepository = optionsRepository;
             _peerManager.PeerConnected += OnPeerChange;
-            _optionsRepository.OptionsUpdated += OnOptionsUpdated;
 
         }
 
@@ -36,16 +33,21 @@ namespace Bus.DisruptorEventHandlers
         {
             _peersToShadows = _peerManager.GetAllShadows();
             _selfShadows = _peerManager.PeersThatShadowMe();
+            if (obj.PeerName == _peerConfiguration.PeerName)
+            {
+                _selfMessageSubscriptions.Clear();
+                foreach (var messageSubscription in obj.HandledMessages)
+                {
+                    _selfMessageSubscriptions[messageSubscription.MessageType.FullName] = messageSubscription;
+                }
+            }
+
         }
 
-        private void OnOptionsUpdated(MessageOptions obj)
-        {
-            _messageOptions = _optionsRepository.GetAllOptions();
-        }
 
         public void EnsureReliability(OutboundDisruptorEntry disruptorEntry, IMessage message, MessageSubscription[] concernedSubscriptions, MessageWireData messageData)
         {
-            var messageOptions = _messageOptions[message.GetType().FullName];
+            var messageOptions = _selfMessageSubscriptions[message.GetType().FullName];
 
             if (messageOptions.ReliabilityLevel != ReliabilityLevel.FireAndForget)
                 foreach (var wireMessage in disruptorEntry.NetworkSenderData.WireMessages)
@@ -77,7 +79,7 @@ namespace Bus.DisruptorEventHandlers
         private void SendAcknowledgementShadowMessages(IMessage message, MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
             var completionAcknowledgementMessage = (CompletionAcknowledgementMessage)message;
-            if (_messageOptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)
+            if (_selfMessageSubscriptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)
             {
                 SendToSelfShadows(completionAcknowledgementMessage.MessageId,
                                   completionAcknowledgementMessage.ProcessingSuccessful,

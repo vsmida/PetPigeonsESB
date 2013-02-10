@@ -5,6 +5,7 @@ using Bus.Attributes;
 using Bus.BusEventProcessorCommands;
 using Bus.InfrastructureMessages;
 using Bus.MessageInterfaces;
+using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
@@ -17,20 +18,35 @@ namespace Bus.DisruptorEventHandlers
     class PersistenceSynchronizationProcessor : IEventHandler<InboundMessageProcessingEntry>
     {
         private bool _isInitialized = false;
-        private readonly Dictionary<string, MessageOptions> _options = new Dictionary<string, MessageOptions>();
+        private readonly Dictionary<string, MessageSubscription> _options = new Dictionary<string, MessageSubscription>();
         private readonly Queue<InboundMessageProcessingEntry> _waitingMessages = new Queue<InboundMessageProcessingEntry>();
         private readonly Dictionary<string, bool> _infrastructureConditionCache = new Dictionary<string, bool>();
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly ILog _logger = LogManager.GetLogger(typeof(PersistenceSynchronizationProcessor));
         private readonly IMessageSender _messageSender;
         private readonly ISequenceNumberVerifier _sequenceNumberVerifier;
+        private readonly IPeerManager _peerManager;
 
 
-        public PersistenceSynchronizationProcessor(IMessageOptionsRepository optionsRepository, IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier)
+        public PersistenceSynchronizationProcessor(IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier, IPeerManager peerManager)
         {
             _peerConfiguration = peerConfiguration;
             _messageSender = messageSender;
             _sequenceNumberVerifier = sequenceNumberVerifier;
+            _peerManager = peerManager;
+            _peerManager.PeerConnected += OnPeerConnected;
+        }
+
+        private void OnPeerConnected(ServicePeer obj)
+        {
+            if (obj.PeerName == _peerConfiguration.PeerName)
+            {
+                _options.Clear();
+                foreach (var messageSubscription in obj.HandledMessages)
+                {
+                    _options[messageSubscription.MessageType.FullName] = messageSubscription;
+                }
+            }
         }
 
 
@@ -43,7 +59,7 @@ namespace Bus.DisruptorEventHandlers
             }
 
             var type = TypeUtils.Resolve(data.InitialTransportMessage.MessageType);
-            MessageOptions options;
+             MessageSubscription options;
             _options.TryGetValue(type.FullName, out options);
 
             if (data.ForceMessageThrough && _isInitialized)

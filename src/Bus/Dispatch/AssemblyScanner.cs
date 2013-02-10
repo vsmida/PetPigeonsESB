@@ -92,7 +92,8 @@ namespace Bus.Dispatch
                         var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
                         var genericType = messageHandlingInterface.GetGenericArguments()[0];
                         options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
-                                                                    reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType));
+                                                                    reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
+                                                                    typeToFilter.GetValueOrDefault(type)));
                     }
                 }
             }

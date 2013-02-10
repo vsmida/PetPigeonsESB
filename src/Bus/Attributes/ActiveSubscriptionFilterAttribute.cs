@@ -3,7 +3,7 @@
 namespace Bus.Attributes
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class ActiveSubscriptionFilterAttribute
+    public class ActiveSubscriptionFilterAttribute : Attribute
     {
          
     }

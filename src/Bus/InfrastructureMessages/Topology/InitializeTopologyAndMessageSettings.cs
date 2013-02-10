@@ -12,13 +12,10 @@ namespace Bus.InfrastructureMessages.Topology
     {
         [ProtoMember(1, IsRequired = true)]
         public readonly List<ServicePeer> KnownPeers;
-        [ProtoMember(2, IsRequired = true)]
-        public readonly List<MessageOptions> MessageOptions;
 
-        public InitializeTopologyAndMessageSettings(List<ServicePeer> knownPeers, List<MessageOptions> messageOptions)
+        public InitializeTopologyAndMessageSettings(List<ServicePeer> knownPeers)
         {
             KnownPeers = knownPeers;
-            MessageOptions = messageOptions;
         }
     }
 }
