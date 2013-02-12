@@ -91,11 +91,8 @@ namespace PgmTransportTests
         {
             int structSize = Marshal.SizeOf(obj);
             byte[] allData = new byte[structSize];
-            GCHandle handle =
-                GCHandle.Alloc(allData, GCHandleType.Pinned);
-            Marshal.StructureToPtr(obj,
-                                   handle.AddrOfPinnedObject(),
-                                   false);
+            GCHandle handle = GCHandle.Alloc(allData, GCHandleType.Pinned);
+            Marshal.StructureToPtr(obj, handle.AddrOfPinnedObject(), false);
             handle.Free();
             return allData;
         }
