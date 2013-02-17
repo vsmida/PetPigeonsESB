@@ -36,9 +36,9 @@ namespace PgmTransport
             }
         }
 
-        public static bool EnableGigabit(Socket socket)
+        public bool EnableGigabit()
         {
-            return SetSocketOption(socket, "Gigabit", 1014, 1);
+            return SetSocketOption(this, "Gigabit", 1014, 1);
         }
 
         public static bool SetSocketOption(Socket socket, string name, int option, uint val)

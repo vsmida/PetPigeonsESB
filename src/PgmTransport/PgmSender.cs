@@ -7,7 +7,14 @@ using log4net;
 
 namespace PgmTransport
 {
-    public class PgmSender
+    public interface IPgmSender : IDisposable
+    {
+        void Send(IPEndPoint endpoint, byte[] buffer);
+        void SendAsync(IPEndPoint endpoint, byte[] buffer);
+        void DisconnectEndpoint(IPEndPoint endpoint);
+    }
+
+    public class PgmSender : IPgmSender
     {
         private readonly Dictionary<IPEndPoint, PgmSocket> _endPointToSockets = new Dictionary<IPEndPoint, PgmSocket>();
         private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs());
@@ -42,7 +49,8 @@ namespace PgmTransport
             firstEventArgs.Completed += OnSendCompleted;
             firstEventArgs.SetBuffer(lengthInBytes, 0, lengthInBytes.Length);
 
-            socket.SendAsync(firstEventArgs);
+            if(socket.SendAsync(firstEventArgs))
+                OnSendCompleted(socket, firstEventArgs);
 
             for (int i = 0; i < necessaryBuffers; i++)
             {
@@ -50,7 +58,8 @@ namespace PgmTransport
                 var eventArgs = _eventArgsPool.GetItem();
                 eventArgs.Completed += OnSendCompleted;
                 eventArgs.SetBuffer(buffer, i * 1024, length);
-                socket.SendAsync(eventArgs);
+                if(socket.SendAsync(eventArgs))
+                    OnSendCompleted(socket, eventArgs);
             }
 
             
@@ -89,7 +98,7 @@ namespace PgmTransport
 
             sendingSocket.SetSendWindow(window);
 
-            PgmSocket.EnableGigabit(sendingSocket);
+            sendingSocket.EnableGigabit();
 
             sendingSocket.Connect(endpoint);
             return sendingSocket;
@@ -102,6 +111,14 @@ namespace PgmTransport
                 return;
             socket.Dispose();
 
+        }
+
+        public void Dispose()
+        {
+            foreach (var socket in _endPointToSockets.Values)
+            {
+                socket.Dispose();
+            }
         }
     }
 }

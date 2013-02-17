@@ -44,7 +44,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferManager.cs" />
+    <Compile Include="Frame.cs" />
+    <Compile Include="FrameAccumulator.cs" />
     <Compile Include="PgmConstants.cs" />
+    <Compile Include="PgmReceiver.cs" />
     <Compile Include="PgmSender.cs" />
     <Compile Include="PgmSocket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

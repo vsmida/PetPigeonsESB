@@ -25,7 +25,7 @@ namespace PgmTransportTests
 
             _acceptSocket = new PgmSocket();
             _acceptSocket.Bind(ipEndPoint);
-            PgmSocket.EnableGigabit(_acceptSocket);
+            _acceptSocket.EnableGigabit();
             _acceptSocket.Listen(5);
             var acceptEventArgs = new SocketAsyncEventArgs();
             acceptEventArgs.Completed += OnAccept;
@@ -37,7 +37,7 @@ namespace PgmTransportTests
             sendingSocket.SendBufferSize = 1024 * 1024;
             sendingSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
             SetSendWindow(sendingSocket);
-            PgmSocket.EnableGigabit(sendingSocket);
+            sendingSocket.EnableGigabit();
             sendingSocket.Connect(ipEndPoint);
 
 
@@ -45,7 +45,7 @@ namespace PgmTransportTests
             sendingSocket2.SendBufferSize = 1024 * 1024;
             sendingSocket2.Bind(new IPEndPoint(IPAddress.Any, 0));
             SetSendWindow(sendingSocket2);
-            PgmSocket.EnableGigabit(sendingSocket2);
+            sendingSocket2.EnableGigabit();
             sendingSocket2.Connect(ipEndPoint);
 
 
