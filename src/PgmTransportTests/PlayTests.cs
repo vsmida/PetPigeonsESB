@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
+using System.Linq;
+using PgmTransport;
 
 namespace PgmTransportTests
 {
@@ -23,7 +25,6 @@ namespace PgmTransportTests
 
             _acceptSocket = new PgmSocket();
             _acceptSocket.Bind(ipEndPoint);
-            _acceptSocket.ApplySocketOptions();
             PgmSocket.EnableGigabit(_acceptSocket);
             _acceptSocket.Listen(5);
             var acceptEventArgs = new SocketAsyncEventArgs();
@@ -37,18 +38,34 @@ namespace PgmTransportTests
             sendingSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
             SetSendWindow(sendingSocket);
             PgmSocket.EnableGigabit(sendingSocket);
-            sendingSocket.ApplySocketOptions();
             sendingSocket.Connect(ipEndPoint);
+
+
+            var sendingSocket2 = new PgmSocket();
+            sendingSocket2.SendBufferSize = 1024 * 1024;
+            sendingSocket2.Bind(new IPEndPoint(IPAddress.Any, 0));
+            SetSendWindow(sendingSocket2);
+            PgmSocket.EnableGigabit(sendingSocket2);
+            sendingSocket2.Connect(ipEndPoint);
 
 
             var buffer = Encoding.ASCII.GetBytes("toto");
             var buffer2 = Encoding.ASCII.GetBytes("toto2");
+            var buffer3 = Encoding.ASCII.GetBytes("toto3");
+            sendingSocket.Send(new byte[3000], 0, 3000, SocketFlags.None);
+            sendingSocket2.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
             sendingSocket.Send(buffer, 0, buffer.Length, SocketFlags.None);
             sendingSocket.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
+           
+
+
+            Thread.Sleep(100);
             var bigBuffer = new byte[200000];
-            sendingSocket.Send(bigBuffer, 0, bigBuffer.Length, SocketFlags.None);
+            var sent = sendingSocket.Send(bigBuffer, 0, bigBuffer.Length, SocketFlags.None);
+            sendingSocket.Send(buffer3, 0, buffer3.Length, SocketFlags.None);
+            sendingSocket.Send(buffer3, 0, buffer3.Length, SocketFlags.None);
             
-            Thread.Sleep(1000);
+            Thread.Sleep(25000);
         }
 
         private void OnAccept(object sender, SocketAsyncEventArgs e)
@@ -57,13 +74,24 @@ namespace PgmTransportTests
             var acceptSocket = e.AcceptSocket;
             if ((int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Error) == 0)
             {
+                Console.WriteLine(string.Format("AcceptingSOcket from: {0}", e.AcceptSocket.RemoteEndPoint));
+
                 var receiveEventArgs = new SocketAsyncEventArgs();
                 receiveEventArgs.Completed += OnReceive;
         //        _acceptedSockets.Add("toto",acceptSocket);
                 byte[] buffer = new byte[1024];
                 receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
                 acceptSocket.ReceiveAsync(receiveEventArgs);
-
+            }
+            else
+            {
+                Console.WriteLine(string.Format("Error : {0}", e.SocketError));
+                var receiveEventArgs = new SocketAsyncEventArgs();
+                receiveEventArgs.Completed += OnReceive;
+                //        _acceptedSockets.Add("toto",acceptSocket);
+                byte[] buffer = new byte[1024];
+                receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
+                acceptSocket.ReceiveAsync(receiveEventArgs);
             }
 
 
@@ -74,8 +102,18 @@ namespace PgmTransportTests
         private void OnReceive(object sender, SocketAsyncEventArgs e)
         {
             var socket = sender as Socket;
-            var receivedMessage = e.Buffer;
-            Console.WriteLine(string.Format("received buffer : {0}", Encoding.ASCII.GetString(receivedMessage)));
+            if(e.SocketError != SocketError.Success)
+            {
+                Console.WriteLine(e.SocketError);
+                socket.Dispose();
+             
+//                socket.ReceiveAsync(e);
+                return;
+            }
+            
+            
+            var receivedMessage = e.Buffer.Take(e.BytesTransferred).ToArray();
+            Console.Write(string.Format("received buffer size {1}: {0}", Encoding.ASCII.GetString(receivedMessage), e.BytesTransferred));
             socket.ReceiveAsync(e);
         }
 

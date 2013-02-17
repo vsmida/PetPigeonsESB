@@ -1,4 +1,4 @@
-namespace PgmTransportTests
+namespace PgmTransport
 {
     public class PgmConstants
     {
