@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -21,13 +22,13 @@ namespace PgmTransport
         private readonly Dictionary<Socket, FrameAccumulator> _receivingSockets = new Dictionary<Socket, FrameAccumulator>();
         private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs());
         private readonly ILog _logger = LogManager.GetLogger(typeof(PgmReceiver));
-        private readonly BufferManager _bufferManager;
-        public Action<byte[]> OnMessageReceived = delegate { };
+        private readonly Pool<byte[]> _bufferPool;
+        public Action<Stream> OnMessageReceived = delegate { };
 
 
         public PgmReceiver()
         {
-            _bufferManager = new BufferManager(1024, 1024);
+            _bufferPool = new Pool<byte[]>(() =>new byte[1024], 1024);
         }
 
         public void ListenToEndpoint(IPEndPoint endpoint)
@@ -77,7 +78,7 @@ namespace PgmTransport
             _receivingSockets[receiveSocket] = new FrameAccumulator();
             var receiveEventArgs = _eventArgsPool.GetItem();
             receiveEventArgs.Completed += OnReceive;
-            byte[] buffer = _bufferManager.GetBuffer();
+            byte[] buffer = _bufferPool.GetItem();
             receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
             if(receiveSocket.ReceiveAsync(receiveEventArgs))
                 OnReceive(receiveSocket, receiveEventArgs);
@@ -107,20 +108,16 @@ namespace PgmTransport
             }
             else
             {
-                var messageReady = _receivingSockets[socket].AddFrame(new Frame
-                                                       {
-                                                           Buffer = e.Buffer,
-                                                           Count = e.BytesTransferred,
-                                                           Offset = 0
-                                                       });
+                var messageReady = _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred, _bufferPool));
                 if (messageReady)
                 {
                     var message = _receivingSockets[socket].GetMessage();
                     OnMessageReceived(message);
                 }
-
-
+                
             }
+            byte[] buffer = _bufferPool.GetItem();
+            e.SetBuffer(buffer, 0, buffer.Length);
             if(socket.ReceiveAsync(e))
                 OnReceive(socket, e);
         }

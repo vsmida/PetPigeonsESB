@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using Shared;
 
 namespace PgmTransport
 {
     class FrameAccumulator
     {
         private int? _length;
-        private List<Frame> _frames = new List<Frame>();
+        private readonly List<Frame> _frames = new List<Frame>();
         private int _currentFrameLength;
         private bool _ready = false;
+        private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool));
 
         public void SetLength(int length)
         {
@@ -46,19 +49,13 @@ namespace PgmTransport
             _ready = false;
         }
 
-        public byte[] GetMessage()
+        public Stream GetMessage()
         {
             if (!_ready)
                 throw new ArgumentException("Message is not ready");
-            var buffer = new byte[_length.Value];
-            int offset = 0;
-            foreach (var frame in _frames)
-            {
-                var lengthToCopy = Math.Min(_length.Value - offset, frame.Count);
-                Array.Copy(frame.Buffer, frame.Offset, buffer, offset, lengthToCopy);
-                offset += lengthToCopy;
-            }
-            return buffer;
+            var stream = _streamPool.GetItem();
+            stream.SetFrames(_frames);
+            return stream;
         }
 
     }
