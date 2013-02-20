@@ -13,7 +13,7 @@ namespace PgmTransport
         private bool _ready = false;
         private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool));
 
-        public void SetLength(int length)
+        private void SetLength(int length)
         {
             if (_length.HasValue)
             {
@@ -24,16 +24,27 @@ namespace PgmTransport
 
         public bool AddFrame(Frame frame)
         {
-            if (!_length.HasValue || _ready)
+            if(_ready)
             {
+                _ready = false;
                 Clear();
+            }
+
+            if (!_length.HasValue )
+            {
+                if(frame.Count != 4) // not an int
+                {
+                    Clear();
+                    return false;
+                }
+                SetLength(BitConverter.ToInt32(frame.Buffer, frame.Offset));
                 return false;
             }
 
             _frames.Add(frame);
             _currentFrameLength += frame.Count;
 
-            if (_length <= _currentFrameLength)
+            if (_length == _currentFrameLength)
             {
                 _ready = true;
                 return true;
@@ -47,6 +58,7 @@ namespace PgmTransport
             _frames.Clear();
             _currentFrameLength = 0;
             _ready = false;
+            _length = null;
         }
 
         public Stream GetMessage()

@@ -35,6 +35,7 @@ namespace PgmTransport
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose();
             for (int i = 0; i < _frames.Count(); i++)
             {
                 _frames[i].Dispose();

@@ -49,7 +49,7 @@ namespace PgmTransport
             firstEventArgs.Completed += OnSendCompleted;
             firstEventArgs.SetBuffer(lengthInBytes, 0, lengthInBytes.Length);
 
-            if(socket.SendAsync(firstEventArgs))
+            if(!socket.SendAsync(firstEventArgs))
                 OnSendCompleted(socket, firstEventArgs);
 
             for (int i = 0; i < necessaryBuffers; i++)
@@ -58,7 +58,7 @@ namespace PgmTransport
                 var eventArgs = _eventArgsPool.GetItem();
                 eventArgs.Completed += OnSendCompleted;
                 eventArgs.SetBuffer(buffer, i * 1024, length);
-                if(socket.SendAsync(eventArgs))
+                if(!socket.SendAsync(eventArgs))
                     OnSendCompleted(socket, eventArgs);
             }
 
@@ -71,6 +71,12 @@ namespace PgmTransport
             {
                 _logger.ErrorFormat("Error on send :  {0}", e.SocketError);
             }
+
+            if(e.BytesTransferred != e.Buffer.Length)
+            {
+                _logger.Warn("could not send all bytes");
+            }
+            e.Completed -= OnSendCompleted;
             _eventArgsPool.PutBackItem(e);
         }
 
@@ -92,9 +98,9 @@ namespace PgmTransport
             sendingSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
 
             var window = new _RM_SEND_WINDOW();
-            window.RateKbitsPerSec = 1024;
+            window.RateKbitsPerSec = 1000000;
             window.WindowSizeInMSecs = 0;
-            window.WindowSizeInBytes = 10000000 * 2;
+            window.WindowSizeInBytes = 10000000 * 20;
 
             sendingSocket.SetSendWindow(window);
 

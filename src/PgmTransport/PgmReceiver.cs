@@ -42,7 +42,7 @@ namespace PgmTransport
 
             var acceptEventArgs = _eventArgsPool.GetItem();
             acceptEventArgs.Completed += OnAccept;
-            if(socket.AcceptAsync(acceptEventArgs))
+            if(!socket.AcceptAsync(acceptEventArgs))
                 OnAccept(socket, acceptEventArgs);
         }
 
@@ -80,33 +80,39 @@ namespace PgmTransport
             receiveEventArgs.Completed += OnReceive;
             byte[] buffer = _bufferPool.GetItem();
             receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
-            if(receiveSocket.ReceiveAsync(receiveEventArgs))
+            if(!receiveSocket.ReceiveAsync(receiveEventArgs))
                 OnReceive(receiveSocket, receiveEventArgs);
 
 
 
             e.AcceptSocket = null;
-            if (socket.AcceptAsync(e))
-                OnAccept(socket, e);
+            if (!socket.AcceptAsync(e))
+            {
+                OnAccept(socket, _eventArgsPool.GetItem());
+                _eventArgsPool.PutBackItem(e);
+             
+            }
         }
 
         private void OnReceive(object sender, SocketAsyncEventArgs e)
         {
-            var socket = sender as Socket;
-            if (e.SocketError != SocketError.Success)
-            {
-                _logger.ErrorFormat("Error : {0}", e.SocketError);
-                socket.Dispose();
+            var socket = (Socket) sender;
+            if (CheckError(socket, e))
                 return;
-            }
-
-            if (e.BytesTransferred == 4)
+            DoReceive(socket, e);
+            while(!socket.ReceiveAsync(e))
             {
-                var length = BitConverter.ToInt32(e.Buffer, 0);
-                _receivingSockets[socket].SetLength(length);
-
+                if (CheckError(socket, e))
+                    return;
+                DoReceive(socket, e);
+            //    OnReceive(socket, _eventArgsPool.GetItem());
+            //    _eventArgsPool.PutBackItem(e);
+                
             }
-            else
+        }
+
+        private void DoReceive(Socket socket, SocketAsyncEventArgs e)
+        {
             {
                 var messageReady = _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred, _bufferPool));
                 if (messageReady)
@@ -114,12 +120,20 @@ namespace PgmTransport
                     var message = _receivingSockets[socket].GetMessage();
                     OnMessageReceived(message);
                 }
-                
             }
             byte[] buffer = _bufferPool.GetItem();
             e.SetBuffer(buffer, 0, buffer.Length);
-            if(socket.ReceiveAsync(e))
-                OnReceive(socket, e);
+        }
+
+        private bool CheckError(Socket socket, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError != SocketError.Success || e.BytesTransferred == 0)
+            {
+                _logger.ErrorFormat("Error : {0}", e.SocketError);
+                socket.Dispose();
+                return true;
+            }
+            return false;
         }
 
 
