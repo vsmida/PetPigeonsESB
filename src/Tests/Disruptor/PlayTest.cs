@@ -57,7 +57,6 @@ namespace Tests.Disruptor
             for (int i = 0; i < 1025; i++)
             {
                 long sequenceNo = ringBuffer.Next();
-
                 var entry = ringBuffer[sequenceNo];
 
                 entry.Value = i;

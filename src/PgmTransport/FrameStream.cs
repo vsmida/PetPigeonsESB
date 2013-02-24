@@ -35,7 +35,6 @@ namespace PgmTransport
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose();
             for (int i = 0; i < _frames.Count(); i++)
             {
                 _frames[i].Dispose();
@@ -88,7 +87,7 @@ namespace PgmTransport
             //last
             if(leftBytesToCopyToBuffer > 0)
             {
-                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart, buffer, currentoffset, leftBytesToCopyToBuffer);
+                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesToCopyToBuffer);
                 copiedBytes += leftBytesToCopyToBuffer;
                 leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
                 currentoffset += leftBytesToCopyToBuffer;

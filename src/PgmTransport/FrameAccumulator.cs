@@ -2,72 +2,125 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Shared;
+using log4net;
+using System.Linq;
 
 namespace PgmTransport
 {
-    class FrameAccumulator
+    class PartialMessage
     {
-        private int? _length;
-        private readonly List<Frame> _frames = new List<Frame>();
-        private int _currentFrameLength;
-        private bool _ready = false;
+        private int? _messageLength;
         private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool));
+        private int _readMesssageLength;
+        private readonly List<Frame> _frames = new List<Frame>(10);
+        private Frame _lengthPrefix = new Frame(new byte[4], 0, 0);
 
-        private void SetLength(int length)
+
+        public bool Ready { get; private set; }
+
+
+        public int AddFrame(Frame frame)
         {
-            if (_length.HasValue)
-            {
-                Clear();
-            }
-            _length = length;
-        }
 
-        public bool AddFrame(Frame frame)
-        {
-            if(_ready)
-            {
-                _ready = false;
-                Clear();
-            }
+            if (Ready)
+                throw new ArgumentException("cannot add frame to this message, already ready");
 
-            if (!_length.HasValue )
+            int readFrameBytesForLength = 0;
+            if (!_messageLength.HasValue)
             {
-                if(frame.Count != 4) // not an int
+                var lengthPrefixSizeToRead = Math.Min(4 - _lengthPrefix.Count, frame.Count);
+                for (int i = 0; i < lengthPrefixSizeToRead; i++)
                 {
-                    Clear();
-                    return false;
+                    _lengthPrefix.Buffer[_lengthPrefix.Offset+_lengthPrefix.Count] = frame.Buffer[frame.Offset + i];
+                    _lengthPrefix.Count++;
                 }
-                SetLength(BitConverter.ToInt32(frame.Buffer, frame.Offset));
-                return false;
+                if (_lengthPrefix.Count == 4)
+                {
+                    _messageLength = BitConverter.ToInt32(_lengthPrefix.Buffer, _lengthPrefix.Offset);
+                    if (_messageLength == 0) //null delimiter?
+                        Ready = true;
+                }
+                else
+                    return lengthPrefixSizeToRead;
+
+                readFrameBytesForLength += lengthPrefixSizeToRead;
             }
 
-            _frames.Add(frame);
-            _currentFrameLength += frame.Count;
-
-            if (_length == _currentFrameLength)
+            //size has value
+            var lengthToRead = Math.Min(frame.Count - readFrameBytesForLength, _messageLength.Value - _readMesssageLength);
+            if (lengthToRead > 0)
             {
-                _ready = true;
-                return true;
+                _frames.Add(new Frame(frame.Buffer, frame.Offset + readFrameBytesForLength, lengthToRead, frame.BufferPool));
+                _readMesssageLength += lengthToRead;
+                if (_readMesssageLength == _messageLength)
+                    Ready = true;
+                return lengthToRead + readFrameBytesForLength;
             }
 
-            return false;
-        }
-
-        private void Clear()
-        {
-            _frames.Clear();
-            _currentFrameLength = 0;
-            _ready = false;
-            _length = null;
+            return readFrameBytesForLength;
         }
 
         public Stream GetMessage()
         {
-            if (!_ready)
-                throw new ArgumentException("Message is not ready");
+            if (!Ready)
+                throw new ArgumentException("Cannot get message");
+
             var stream = _streamPool.GetItem();
-            stream.SetFrames(_frames);
+            stream.SetFrames(_frames == null? new List<Frame>():new List<Frame>(_frames));
             return stream;
+        }
+
+
+        public void Clear()
+        {
+            _lengthPrefix.Count = 0;
+            _lengthPrefix.Offset = 0;
+            _readMesssageLength = 0;
+            _messageLength = null;
+            _frames.Clear();
+            Ready = false;
+        }
+    }
+
+
+    class FrameAccumulator
+    {
+        private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
+        private PartialMessage _currentPartialMessage = new PartialMessage();
+        private Queue<Stream> _fullMessages = new Queue<Stream>(10);
+
+
+        public bool AddFrame(Frame frame)
+        {
+            int readFromFrameCount = 0;
+            bool canReturnMessages = false;
+            var originalCount = frame.Count;
+            var originalOffset = frame.Offset;
+            while (frame.Offset < originalCount + originalOffset)
+            {
+                var readFromFrame = _currentPartialMessage.AddFrame(frame);
+
+                if (_currentPartialMessage.Ready)
+                {
+                    _fullMessages.Enqueue(_currentPartialMessage.GetMessage());
+                    canReturnMessages = true;
+                    _currentPartialMessage.Clear();
+                }
+                frame.Offset += readFromFrame;
+                frame.Count -= readFromFrame;
+
+            }
+            return canReturnMessages;
+        }
+
+        public Queue<Stream> GetMessages()
+        {
+            if (_fullMessages.Count == 0)
+                throw new ArgumentException("Should not request messages, none available");
+            var result = _fullMessages;
+            _fullMessages = new Queue<Stream>(10);
+            return result;
+
         }
 
     }

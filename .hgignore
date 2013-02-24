@@ -4,6 +4,8 @@ _ReSharper.*
 .*/obj/.*
 .*/bin/.*
 .git/.*
+.*.vsp
+.*.psess
 syntax: glob
 .*/Release/.*
 .*_ReSharper.*

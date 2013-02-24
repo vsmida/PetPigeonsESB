@@ -39,8 +39,8 @@ namespace Bus
             _networkSender = networkSender;
             _heartbeatManager = heartbeatManager;
             _queueConfiguration = queueConfiguration;
-            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.InboundQueueSize),new BlockingWaitStrategy(), TaskScheduler.Default);
-            _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new BlockingWaitStrategy(), TaskScheduler.Default);
+            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new SingleThreadedClaimStrategy(_queueConfiguration.InboundQueueSize), new SleepingWaitStrategy(), TaskScheduler.Default);
+            _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new SleepingWaitStrategy(), TaskScheduler.Default);
         }
 
         public IBlockableUntilCompletion Send(ICommand command)

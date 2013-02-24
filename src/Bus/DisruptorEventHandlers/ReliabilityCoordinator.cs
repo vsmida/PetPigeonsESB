@@ -14,7 +14,7 @@ namespace Bus.DisruptorEventHandlers
     class ReliabilityCoordinator : IReliabilityCoordinator
     {
         private readonly IPeerManager _peerManager;
-        private readonly Dictionary<string, MessageSubscription> _selfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
+        private Dictionary<string, MessageSubscription> _selfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
         private IEnumerable<ServicePeer> _selfShadows;
         private Dictionary<string, HashSet<ServicePeer>> _peersToShadows;
         private readonly IPeerConfiguration _peerConfiguration;
@@ -35,11 +35,12 @@ namespace Bus.DisruptorEventHandlers
             _selfShadows = _peerManager.PeersThatShadowMe();
             if (obj.PeerName == _peerConfiguration.PeerName)
             {
-                _selfMessageSubscriptions.Clear();
+                Dictionary<string, MessageSubscription> newSelfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
                 foreach (var messageSubscription in obj.HandledMessages)
                 {
-                    _selfMessageSubscriptions[messageSubscription.MessageType.FullName] = messageSubscription;
+                    newSelfMessageSubscriptions[messageSubscription.MessageType.FullName] = messageSubscription;
                 }
+                _selfMessageSubscriptions = newSelfMessageSubscriptions;
             }
 
         }

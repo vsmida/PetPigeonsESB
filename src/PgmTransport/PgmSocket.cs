@@ -15,7 +15,7 @@ namespace PgmTransport
         public const SocketOptionLevel PGM_LEVEL = (SocketOptionLevel) PROTOCOL_TYPE_NUMBER;
 
         public PgmSocket()
-            : base(AddressFamily.InterNetwork, SocketType.Rdm, PGM_PROTOCOL_TYPE)
+            : base(AddressFamily.InterNetwork, SocketType.Stream, PGM_PROTOCOL_TYPE)
         {
         }
 
@@ -47,7 +47,7 @@ namespace PgmTransport
             {
                 byte[] bits = BitConverter.GetBytes(val);
                 SetPgmOption(socket, option, bits);
-                log.Info("Set: " + name + " Option : " + option + " value: " + val);
+               // log.Info("Set: " + name + " Option : " + option + " value: " + val);
                 return true;
             }
             catch (Exception failed)
@@ -82,6 +82,17 @@ namespace PgmTransport
         {
           byte[] allData = PgmSocket.ConvertStructToBytes(window);
           SetSocketOption(PgmSocket.PGM_LEVEL, (SocketOptionName)1001, allData);
+        }
+
+
+        public unsafe _RM_SEND_WINDOW GetSendWindow()
+        {
+            int size = sizeof(_RM_SEND_WINDOW);
+            byte[] data = this.GetSocketOption(PgmSocket.PGM_LEVEL, (SocketOptionName)1001, size);
+            fixed (byte* pBytes = &data[0])
+            {
+                return *((_RM_SEND_WINDOW*)pBytes);
+            }
         }
     }
 }

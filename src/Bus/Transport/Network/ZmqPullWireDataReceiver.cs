@@ -53,6 +53,7 @@ namespace Bus.Transport.Network
         {
             _receptionSocket = _context.CreateSocket(SocketType.PULL);
             _receptionSocket.Linger = TimeSpan.FromSeconds(1);
+            _receptionSocket.ReceiveHighWatermark = 30000;
             _receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             _receptionSocket.Bind(endpoint);
             _receptionPoller.AddSocket(_receptionSocket);

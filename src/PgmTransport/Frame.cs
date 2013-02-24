@@ -5,14 +5,14 @@ namespace PgmTransport
 {
     struct Frame : IDisposable
     {
-        private readonly Pool<byte[]> _bufferPool;
+        public readonly Pool<byte[]> BufferPool;
 
         public Frame(byte[] buffer, int offset, int count, Pool<byte[]> bufferPool = null)
         {
             Buffer = buffer;
             Offset = offset;
             Count = count;
-            _bufferPool = bufferPool;
+            BufferPool = bufferPool;
         }
 
         public int Count;
@@ -21,7 +21,8 @@ namespace PgmTransport
 
         public void Dispose()
         {
-            _bufferPool.PutBackItem(Buffer);
+            if(BufferPool != null)
+            BufferPool.PutBackItem(Buffer);
         }
     }
 }

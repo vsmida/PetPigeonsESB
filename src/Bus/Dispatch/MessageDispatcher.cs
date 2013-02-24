@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Bus.MessageInterfaces;
+using Disruptor;
 using StructureMap;
 
 namespace Bus.Dispatch
@@ -12,12 +14,14 @@ namespace Bus.Dispatch
         private class HandlerDispatcher
         {
             public Type MessageType;
-            public MethodInfo MethodToInvoke;
+            public Action<object, IMessage> HandleMethod;
+            public Type HandlerType;
 
-            public HandlerDispatcher(Type messageType, MethodInfo methodToInvoke)
+            public HandlerDispatcher(Type messageType, Action<object, IMessage> handleMethod, Type handlerType)
             {
                 MessageType = messageType;
-                MethodToInvoke = methodToInvoke;
+                HandleMethod = handleMethod;
+                HandlerType = handlerType;
             }
         }
 
@@ -37,6 +41,19 @@ namespace Bus.Dispatch
         {
             InvokeHandlers(message);
         }
+
+        private Action<object, IMessage> GenerateHandleAction(Type interfaceType)
+        {
+            var methodInfo = interfaceType.GetMethod("Handle");
+            var messageType = interfaceType.GetGenericArguments()[0];
+
+            var instance = Expression.Parameter(typeof(object), "instance");
+            var message = Expression.Parameter(typeof(IMessage), "message");
+            var body = Expression.Call(Expression.Convert(instance, interfaceType), methodInfo, Expression.Convert(message, messageType));
+            var lambda = Expression.Lambda(typeof(Action<object, IMessage>), body, instance, message);
+            return (Action<object, IMessage>)lambda.Compile();
+        }
+
 
         private void InvokeHandlers(IMessage message)
         {
@@ -58,14 +75,15 @@ namespace Bus.Dispatch
             if (!_messageTypeToEventHandlers.TryGetValue(message.GetType(), out eventHandlers))
             {
                 var methods = _assemblyScanner.FindEventHandlersInAssemblies(message) ?? Enumerable.Empty<MethodInfo>();
-                eventHandlers = methods.Select(x => new HandlerDispatcher(message.GetType(), x)).ToList();
+                var handlertype = typeof (IBusEventHandler<>);
+                eventHandlers = methods.Select(x => new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),x.DeclaringType)).ToList();
                 _messageTypeToEventHandlers[message.GetType()] = eventHandlers;
             }
 
             foreach (var eventDispatcher in eventHandlers)
             {
-                var instance = _objectFactory.GetInstance(eventDispatcher.MethodToInvoke.DeclaringType);
-                eventDispatcher.MethodToInvoke.Invoke(instance, new object[] { message });
+                var instance = _objectFactory.GetInstance(eventDispatcher.HandlerType);
+                eventDispatcher.HandleMethod(instance, message);
             }
         }
 
@@ -83,13 +101,13 @@ namespace Bus.Dispatch
                     throw new Exception(string.Format("Multiple handlers present for command type {0} in app domain",
                                                       message.GetType().FullName));
                 var methodInfo = handlers.Single();
-
-                handlerDispatcher = new HandlerDispatcher(message.GetType(), methodInfo);
+                var handlertype = typeof (ICommandHandler<>);
+                handlerDispatcher = new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),methodInfo.DeclaringType);
                 _messageTypeToCommandHandler[message.GetType()] = handlerDispatcher;
             }
 
-            var instance = _objectFactory.GetInstance(handlerDispatcher.MethodToInvoke.DeclaringType);
-            handlerDispatcher.MethodToInvoke.Invoke(instance, new object[] { message });
+            var instance = _objectFactory.GetInstance(handlerDispatcher.HandlerType);
+            handlerDispatcher.HandleMethod(instance, message);
         }
 
 

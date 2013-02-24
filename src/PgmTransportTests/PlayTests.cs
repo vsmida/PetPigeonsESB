@@ -52,10 +52,10 @@ namespace PgmTransportTests
             var buffer = Encoding.ASCII.GetBytes("toto");
             var buffer2 = Encoding.ASCII.GetBytes("toto2");
             var buffer3 = Encoding.ASCII.GetBytes("toto3");
-            sendingSocket.Send(new byte[3000], 0, 3000, SocketFlags.None);
-            sendingSocket2.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
-            sendingSocket.Send(buffer, 0, buffer.Length, SocketFlags.None);
-            sendingSocket.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
+     //       sendingSocket.Send(new byte[3000], 0, 3000, SocketFlags.None);
+       //     sendingSocket2.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
+   //         sendingSocket.Send(buffer, 0, buffer.Length, SocketFlags.None);
+     //       sendingSocket.Send(buffer2, 0, buffer2.Length, SocketFlags.None);
            
 
 
@@ -63,7 +63,7 @@ namespace PgmTransportTests
             var bigBuffer = new byte[200000];
             var sent = sendingSocket.Send(bigBuffer, 0, bigBuffer.Length, SocketFlags.None);
             sendingSocket.Send(buffer3, 0, buffer3.Length, SocketFlags.None);
-            sendingSocket.Send(buffer3, 0, buffer3.Length, SocketFlags.None);
+        //    sendingSocket.Send(buffer3, 0, buffer3.Length, SocketFlags.None);
             
             Thread.Sleep(25000);
         }

@@ -40,7 +40,7 @@ namespace Shared
         }
 
         private  Buffer _writeBuffer;
-        private  Buffer _readBuffer;
+        private   Buffer _readBuffer;
         private readonly BufferPool _pool = new BufferPool();
         private int _readBufferIndex = 0;
         private int _writeBufferIndex = 0;

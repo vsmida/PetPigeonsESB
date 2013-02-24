@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace PgmTransport
 {
     public class PgmConstants
@@ -48,6 +50,8 @@ namespace PgmTransport
 
         // get receiver statistics
         public static readonly int RM_RECEIVER_STATISTICS = (RM_OPTIONSBASE + 13);
+
+        public static readonly int RM_HIGH_SPEED_INTRANET_OPT = (RM_OPTIONSBASE + 14);
     }
 
     internal enum eWINDOW_ADVANCE_METHOD
@@ -59,7 +63,7 @@ namespace PgmTransport
 //==============================================================
 //
 // Structures
-//
+//  
     public struct _RM_SEND_WINDOW
     {
         public uint RateKbitsPerSec; // Send rate

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using Bus.Transport.SendingPipe;
 using ZeroMQ;
 using log4net;
@@ -42,18 +43,21 @@ namespace Bus.Transport.Network
             //    socket.Send(message.MessageData.Data);
             Stopwatch watch = new Stopwatch();
             SendStatus status = SendStatus.TryAgain;
+            SpinWait wait = new SpinWait();
             watch.Start();
 
-            while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 200)
+            var buffer = BusSerializer.Serialize(message.MessageData);
+            while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 2000)
             {
-                status = socket.Send(BusSerializer.Serialize(message.MessageData), TimeSpan.FromMilliseconds(200));
-
+                socket.Send(buffer, buffer.Length, SocketFlags.DontWait);
+                status = socket.SendStatus;
+                wait.SpinOnce();
             }
 
             watch.Stop();
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
-                _logger.Debug(string.Format("disconnect of endpoint {0}", zmqEndpoint.Endpoint));
+                _logger.Info(string.Format("disconnect of endpoint {0}", zmqEndpoint.Endpoint));
                 EndpointDisconnected(endpoint);
                 //dispose socket and allow for re-creation of socket with same endpoint; everything will get slow as hell if we continue trying? or only if high water mark
                 socket.Dispose();
@@ -75,7 +79,7 @@ namespace Bus.Transport.Network
         {
             _logger.Debug(string.Format("Creating zmq push socket to endpoint {0}", zmqEndpoint));
             var socket = _context.CreateSocket(SocketType.PUSH);
-            socket.SendHighWatermark = 20000;
+            socket.SendHighWatermark = 30000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
             socket.Connect(zmqEndpoint.Endpoint);
             return socket;
