@@ -46,7 +46,7 @@ namespace Bus.DisruptorEventHandlers
         }
 
 
-        public void EnsureReliability(OutboundDisruptorEntry disruptorEntry, IMessage message, MessageSubscription[] concernedSubscriptions, MessageWireData messageData)
+        public void EnsureReliability(OutboundDisruptorEntry disruptorEntry, IMessage message, IEnumerable<MessageSubscription> concernedSubscriptions, MessageWireData messageData)
         {
             var messageOptions = _selfMessageSubscriptions[message.GetType().FullName];
 
@@ -77,7 +77,7 @@ namespace Bus.DisruptorEventHandlers
             }
         }
 
-        private void SendAcknowledgementShadowMessages(IMessage message, MessageSubscription[] concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
+        private void SendAcknowledgementShadowMessages(IMessage message, IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
             var completionAcknowledgementMessage = (CompletionAcknowledgementMessage)message;
             if (_selfMessageSubscriptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)

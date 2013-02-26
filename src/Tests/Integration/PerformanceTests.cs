@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
 using Bus;
@@ -127,6 +128,7 @@ namespace Tests.Integration
         [Test, Repeat(10)]
         public void should_send_messages()
         {
+         //   GCSettings.LatencyMode = GCLatencyMode.LowLatency;
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             var randomPortBroker = NetworkUtils.GetRandomUnusedPort();
