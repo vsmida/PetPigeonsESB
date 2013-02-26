@@ -33,7 +33,7 @@ namespace PgmTransportTests
 
 
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
-            sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+            //sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
             Thread.Sleep(1000);
 
             receiver.ListenToEndpoint(ipEndPoint);
@@ -42,8 +42,8 @@ namespace PgmTransportTests
 
             Thread senderThread = new Thread(() =>
             {
-                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("",Enumerable.Range(0,1000).Select(x => x.ToString())));
-                sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("",Enumerable.Range(0,56).Select(x => x.ToString())));
+                sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                 Console.WriteLine("after first sends");
 
                 waitForMessage1.WaitOne();
@@ -52,20 +52,23 @@ namespace PgmTransportTests
                 waitForMessage1.Reset();
            //     waitForMessage2.Reset();
              //   waitForMessage3.Reset();
+                Thread.Sleep(10000);
+                
                 for (int j = 0; j < 10; j++)
                 {
                     Console.WriteLine("Entering loop");
                     var watch = new Stopwatch();
                     watch.Start();
-                    for (int i = 0; i < 10000; i++)
+                    var batchSize = 200000;
+                    for (int i = 0; i < batchSize; i++)
                     {
                         _messSentNumber++;
                         // //               if (_messSentNumber % 1000 == 0)
                         //                   Console.WriteLine("sending mess num" + _messSentNumber);
-                        sender.Send(ipEndPoint, _sentBuffer);
+                        sender.SendAsync2(ipEndPoint, _sentBuffer);
 
                     }
-                    sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                    sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
 
                     waitForMessage1.WaitOne();
                  //   waitForMessage2.WaitOne();
@@ -75,8 +78,8 @@ namespace PgmTransportTests
               //      waitForMessage3.Reset();
 
                     watch.Stop();
-
-                    Console.WriteLine(string.Format("elapsed for async sends and receiving = : {0} ms", watch.ElapsedMilliseconds));
+                    var fps = batchSize/(watch.ElapsedMilliseconds/1000m);
+                    Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}",fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
                 }
             });
 
@@ -173,8 +176,8 @@ namespace PgmTransportTests
             _messNumber ++;
             //if(_messNumber %1000 == 0)
             //    Console.WriteLine("processing mess num" +_messNumber);
-            var buffer = new byte[stream.Length];
-            stream.Read(buffer, 0, (int)stream.Length);
+      //      var buffer = new byte[stream.Length];
+        //    stream.Read(buffer, 0, (int)stream.Length);
 
    //         var message = Encoding.ASCII.GetString(buffer);
             //     Console.WriteLine(message);

@@ -27,7 +27,7 @@ namespace Bus.DisruptorEventHandlers
         public void OnNext(InboundMessageProcessingEntry inboundMessageProcessingEntry, long sequence, bool endOfBatch)
         {
             var data = inboundMessageProcessingEntry.InboundEntries;
-            if (data == null || !data.Any())
+            if (data == null)
                 return;
             foreach (var entry in data)
             {

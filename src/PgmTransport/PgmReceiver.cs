@@ -23,7 +23,7 @@ namespace PgmTransport
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
         private readonly ConcurrentDictionary<Socket, FrameAccumulator> _receivingSockets = new ConcurrentDictionary<Socket, FrameAccumulator>();
-        private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs());
+        private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(PgmReceiver));
         private readonly Pool<byte[]> _bufferPool;
         public Action<IPEndPoint, Stream> OnMessageReceived = delegate { };
@@ -33,7 +33,7 @@ namespace PgmTransport
 
         public SocketReceiver()
         {
-            _bufferPool = new Pool<byte[]>(() => new byte[1024], 2000);
+            _bufferPool = new Pool<byte[]>(() => new byte[16384], 2000);
         }
 
         public void ListenToEndpoint(IPEndPoint endpoint)

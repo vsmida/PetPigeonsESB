@@ -14,7 +14,6 @@ namespace Bus.Transport.Network
     {
         private readonly ZmqContext _context;
         private ZmqSocket _receptionSocket;
-        private readonly Poller _receptionPoller = new Poller();
         private volatile bool _running = true;
         private Thread _pollingReceptionThread;
         private readonly ZmqTransportConfiguration _configuration;
@@ -38,15 +37,45 @@ namespace Bus.Transport.Network
                                                                    socketsCreated.Set();
                                                                    while (_running)
                                                                    {
-                                                                       _receptionPoller.Poll(TimeSpan.FromMilliseconds(500));
+                                                                       DoReceive();
                                                                    }
                                                                    _receptionSocket.Dispose();
-                                                                   _receptionPoller.Dispose();
                                                                });
 
             _pollingReceptionThread.Start();
             socketsCreated.WaitOne();
             _endpoint = new ZmqEndpoint(_configuration.GetConnectEndpoint());
+        }
+
+        private void DoReceive()
+        {
+            try
+            {
+                var receive = _receptionSocket.Receive(TimeSpan.FromMilliseconds(500));
+                if (receive.Length == 0)
+                    return;
+                var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
+
+                //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
+                var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
+                                                                            messagedata.SendingPeer,
+                                                                            messagedata.MessageIdentity,
+                                                                            _endpoint,
+                                                                            messagedata.Data,
+                                                                            messagedata.SequenceNumber);
+                var sequence = _ringBuffer.Next();
+                var entry = _ringBuffer[sequence];
+                entry.InitialTransportMessage = receivedTransportMessage;
+                entry.ForceMessageThrough = false;
+                entry.Command = null;
+                entry.InboundEntries = new List<InboundBusinessMessageEntry>();
+                entry.InfrastructureEntry = null;
+                _ringBuffer.Publish(sequence);
+            }
+            catch (Exception e)
+            {
+                _logger.Error("Truncated zmq data received {0}", e);
+            }
         }
 
         public void CreateCommandReceiverSocket(string endpoint)
@@ -56,7 +85,6 @@ namespace Bus.Transport.Network
             _receptionSocket.ReceiveHighWatermark = 30000;
             _receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             _receptionSocket.Bind(endpoint);
-            _receptionPoller.AddSocket(_receptionSocket);
             _logger.DebugFormat("Command processor socket bound to {0}", endpoint);
         }
 

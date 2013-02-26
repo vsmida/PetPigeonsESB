@@ -14,9 +14,12 @@ namespace Bus
         static BusSerializer()
         {
             _model = RuntimeTypeModel.Default;
+
             _model.Add(typeof (IEndpoint), false).AddSubType(1, typeof (ZmqEndpoint));
             _model.Add(typeof(ISubscriptionFilter), false).AddSubType(1, typeof(DummySubscriptionFilter));
             _model.Add(typeof(ISubscriptionFilter), false).AddSubType(2, typeof(SynchronizeWithBrokerFilter));
+            _model.AutoCompile = true;
+            _model.CompileInPlace();
         }
 
         public static byte[] Serialize(object instance)

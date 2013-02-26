@@ -27,7 +27,7 @@ namespace PgmTransport
         public void SetFrames(List<Frame> frames)
         {
             _frames = frames;
-            for (int i = 0; i < _frames.Count(); i++)
+            for (int i = 0; i < _frames.Count; i++)
             {
                 _length += _frames[i].Count;
             }

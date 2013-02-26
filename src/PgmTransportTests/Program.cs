@@ -11,7 +11,7 @@ namespace PgmTransportTests
         public static void Main(string[] args)
         {
             var t = new SenderReceiverIntegrationTests();
-            t.should_send_and_receive_a_message();
+            t.tcp();
         }
     }
 }

@@ -10,7 +10,7 @@ namespace PgmTransport
     class PartialMessage
     {
         private int? _messageLength;
-        private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool));
+        private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool), 10000);
         private int _readMesssageLength;
         private readonly List<Frame> _frames = new List<Frame>(10);
         private Frame _lengthPrefix = new Frame(new byte[4], 0, 0);
@@ -92,7 +92,6 @@ namespace PgmTransport
 
         public bool AddFrame(Frame frame)
         {
-            int readFromFrameCount = 0;
             bool canReturnMessages = false;
             var originalCount = frame.Count;
             var originalOffset = frame.Offset;

@@ -28,7 +28,7 @@ namespace Tests.Integration
         {
             var fakeTransportConfiguration = new FakeTransportConfiguration();
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData("test", Guid.NewGuid(), "tt", new byte[0]), endpoint);
+            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[0]), endpoint);
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -105,9 +105,10 @@ namespace Tests.Integration
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            var messagesCountTotal = 300000;
+            var messagesCountTotal = 400000;
             for (int i = 0; i < messagesCountTotal; i++)
             {
+                wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
                 transportSend.SendMessage(wireSendingMessage, endpoint);                
             }
             SpinWait wait = new SpinWait();
@@ -117,7 +118,7 @@ namespace Tests.Integration
             }
             watch.Stop();
             var fps = messagesCountTotal / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps);
+            Console.WriteLine(" FPS : " + fps.ToString("N2"));
 
             transportSend.Dispose();
             transportReceive.Dispose();
@@ -148,7 +149,7 @@ namespace Tests.Integration
 
             //small micro-benchmark
 
-            for (int j = 0; j < 5; j++)
+            for (int j = 0; j < 50; j++)
             {
                 SendMessages(bus1, j);
             }
