@@ -98,7 +98,6 @@
     <Compile Include="DisruptorEventHandlers\ISequenceNumberVerifier.cs" />
     <Compile Include="DisruptorEventHandlers\MessageTargetsHandler.cs" />
     <Compile Include="DisruptorEventHandlers\ReliabilityCoordinator.cs" />
-    <Compile Include="ExtendIMessage.cs" />
     <Compile Include="Dispatch\IAssemblyScanner.cs" />
     <Compile Include="FailedMessageProcessingException.cs" />
     <Compile Include="Handlers\CompletionMessagesHandler.cs" />

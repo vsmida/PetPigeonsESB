@@ -57,12 +57,12 @@ namespace Bus.Dispatch
 
         private void InvokeHandlers(IMessage message)
         {
-            if (message.IsICommand())
+            if (message is ICommand)
             {
                 InvokeCommandHandler(message);
             }
 
-            if (message.IsIEvent())
+            if (message is IEvent)
             {
                 InvokeEventHandlers(message);
             }

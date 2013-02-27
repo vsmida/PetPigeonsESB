@@ -9,7 +9,7 @@ namespace Bus
 {
     public static class BusSerializer
     {
-        private static RuntimeTypeModel _model;
+        private static readonly RuntimeTypeModel _model;
 
         static BusSerializer()
         {
