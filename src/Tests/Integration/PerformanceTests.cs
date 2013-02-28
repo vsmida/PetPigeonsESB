@@ -37,7 +37,9 @@ namespace Tests.Integration
             for (int i = 0; i < messagesInBatch; i++)
             {
                 var ser = BusSerializer.Serialize(wireSendingMessage);
-                BusSerializer.Deserialize<WireSendingMessage>(ser);
+       //         BusSerializer.Deserialize<WireSendingMessage>(ser);
+                ser = BusSerializer.Serialize(wireSendingMessage);
+
             }
             var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
             Console.WriteLine(" FPS : " + fps);
@@ -51,20 +53,21 @@ namespace Tests.Integration
                                                                         new SingleThreadedClaimStrategy((int)Math.Pow(2,17)), 
                                                                         new SleepingWaitStrategy(), 
                                                                         TaskScheduler.Default);
-            disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest());
+            disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest2());
             disruptor.Start();
-            int size = 150*1000*1000;
+           int size = 150*1000*1000;
+           // int size = 2;
 
             var watch = new Stopwatch();
             watch.Start();
             for(int i = 0; i<size; i++)
             {
-                var sequence = disruptor.RingBuffer.Next(TimeSpan.Zero);
+                var sequence = disruptor.RingBuffer.Next();
                 disruptor.RingBuffer.Publish(sequence);
             }
 
             var wait = new SpinWait();
-            while (eventprocessorTest.MessageCount < size)
+            while (eventprocessorTest2.MessageCount < size )
             {
                 wait.SpinOnce();
             }
@@ -72,6 +75,7 @@ namespace Tests.Integration
             watch.Stop();
             var fps = size / (watch.ElapsedMilliseconds / 1000m);
             Console.WriteLine(" FPS : " + fps.ToString("N2"));
+            disruptor.Shutdown();
 
         }
 
@@ -86,6 +90,17 @@ namespace Tests.Integration
             }
         }
 
+        class eventprocessorTest2 : IEventHandler<InboundMessageProcessingEntry>
+        {
+            public static int MessageCount;
+
+            public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
+            {
+                //  BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
+                MessageCount++;
+            }
+        }
+
         [Test]
         public void transport_test()
         {
@@ -96,7 +111,7 @@ namespace Tests.Integration
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
             var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                                         new MultiThreadedClaimStrategy(32768), 
+                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 14)), 
                                                                          new SleepingWaitStrategy(),
                                                                          TaskScheduler.Default);
             disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest());
@@ -135,17 +150,17 @@ namespace Tests.Integration
             var busName1 = "Service1";
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
-         //   var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner());
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1);
-        //    var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
-        //    var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
-      //                                        new SimpleMessageExchange.FakeAssemblyScanner(),
-      //                                       new DummyPeerConfig(brokerName, new List<string> { busName2 }));
+           var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner());
+      //      var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1);
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+       //     var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
+     //                                        new SimpleMessageExchange.FakeAssemblyScanner(),
+    //                                         new DummyPeerConfig(brokerName, new List<string> { busName2 }));
 
             bus1.Initialize();
-      //      brokerForBus2.Initialize();
+         //   brokerForBus2.Initialize();
 
-      //      bus2.Initialize();
+            bus2.Initialize();
             FakePersistingCommandHandler.OnCommandReceived -= OnPersistingCommandReceived;
             FakePersistingCommandHandler.OnCommandReceived += OnPersistingCommandReceived;
 
@@ -153,14 +168,20 @@ namespace Tests.Integration
 
             for (int j = 0; j < 50; j++)
             {
+                var gc0 = GC.CollectionCount(0);
+                var gc1 = GC.CollectionCount(1);
+                var gc2 = GC.CollectionCount(2);
                 SendMessages(bus1, j);
+                gc0 = GC.CollectionCount(0) - gc0;
+                gc1 = GC.CollectionCount(1) - gc1;
+                gc2 = GC.CollectionCount(2) -gc2;
             }
 
 
 
             bus1.Dispose();
-       //     bus2.Dispose();
-       //     brokerForBus2.Dispose();
+           bus2.Dispose();
+         //   brokerForBus2.Dispose();
 
         }
 
@@ -175,7 +196,7 @@ namespace Tests.Integration
             watch.Start();
 
             IBlockableUntilCompletion resetEvent = null;
-            var messagesInBatch = 30000;
+            var messagesInBatch = 20000;
             for (int i = 0; i < messagesInBatch; i++)
             {
          //       resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));

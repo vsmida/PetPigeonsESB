@@ -41,18 +41,19 @@ namespace Bus.Transport.Network
             //   socket.SendMore(message.MessageData.SendingPeer, Encoding.ASCII);
             //    socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
             //    socket.Send(message.MessageData.Data);
-            Stopwatch watch = new Stopwatch();
-            SendStatus status = SendStatus.TryAgain;
-            SpinWait wait = new SpinWait();
+            var watch = new Stopwatch();
+            var status = SendStatus.TryAgain;
+            var wait = new SpinWait();
             watch.Start();
 
             var buffer = BusSerializer.Serialize(message.MessageData);
-            while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 2000)
+            do
             {
-                socket.Send(buffer, buffer.Length, SocketFlags.DontWait);
+                socket.Send(buffer, 0, SocketFlags.DontWait);
                 status = socket.SendStatus;
                 wait.SpinOnce();
-            }
+            } while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 2000);
+
 
             watch.Stop();
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?

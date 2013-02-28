@@ -10,12 +10,12 @@ namespace Bus
     {
         public int InboundQueueSize
         {
-            get { return 32768; }
+            get { return 32768 *2; }
         }
 
         public int OutboundQueueSize
         {
-            get { return 32768; }
+            get { return 32768 *2; }
         }
     }
 }

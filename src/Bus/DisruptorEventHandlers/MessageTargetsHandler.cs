@@ -55,15 +55,15 @@ namespace Bus.DisruptorEventHandlers
                 return;
 
             var messageType = data.MessageTargetHandlerData.Message.GetType().FullName;
-            var subscriptions = _messageTypesToSubscriptions[messageType].Where(x => data.MessageTargetHandlerData.TargetPeer == null  || x.Peer == data.MessageTargetHandlerData.TargetPeer);
-                              //  .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
-                                    //         && (data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer)).ToArray();
-            
+            var subscriptions = _messageTypesToSubscriptions[messageType].Where(x => data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer).ToList();
+            //  .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
+            //         && (data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer)).ToArray();
+
             SendUsingSubscriptions(data.MessageTargetHandlerData.Message, data.MessageTargetHandlerData.Callback, subscriptions, data);
 
         }
 
-        private void SendUsingSubscriptions(IMessage message, ICompletionCallback callback, IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData)
+        private void SendUsingSubscriptions(IMessage message, ICompletionCallback callback, List<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData)
         {
             var messageData = CreateMessageWireData(message);
 
@@ -76,14 +76,26 @@ namespace Bus.DisruptorEventHandlers
 
         }
 
-        private static void SendToConcernedPeers(IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
+        private static void SendToConcernedPeers(List<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
-            foreach (var endpoint in concernedSubscriptions.Select(x => x.Endpoint).Distinct())
+            HashSet<IEndpoint> endpoints = new HashSet<IEndpoint>();
+            for (int i = 0; i < concernedSubscriptions.Count; i++)
             {
-                var wireMessage = new WireSendingMessage(messageData, endpoint);
-                disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
+                var endpoint = concernedSubscriptions[i].Endpoint;
+                if (!endpoints.Contains(endpoint))
+                {
+                    var wireMessage = new WireSendingMessage(messageData, endpoint);
+                    endpoints.Add(endpoint);
+                    disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
+                }
             }
-      }
+
+            //foreach (var endpoint in concernedSubscriptions.Select(x => x.Endpoint).Distinct())
+            //{
+            //    var wireMessage = new WireSendingMessage(messageData, endpoint);
+            //    disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
+            //}
+        }
 
         private MessageWireData CreateMessageWireData(IMessage message)
         {

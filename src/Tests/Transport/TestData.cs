@@ -50,7 +50,7 @@ namespace Tests.Transport
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), null, new byte[0], 0);
+            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), null,new byte[0],0);
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
