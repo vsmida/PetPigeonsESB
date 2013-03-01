@@ -15,6 +15,7 @@ namespace Bus.Transport.Network
         private readonly Dictionary<ZmqEndpoint, ZmqSocket> _endpointsToSockets = new Dictionary<ZmqEndpoint, ZmqSocket>();
         private readonly ZmqContext _context;
         private readonly ILog _logger = LogManager.GetLogger(typeof(ZmqPushWireSendingTransport));
+        private Stopwatch _watch = new Stopwatch();
 
 
         public ZmqPushWireSendingTransport(ZmqContext context)
@@ -41,21 +42,20 @@ namespace Bus.Transport.Network
             //   socket.SendMore(message.MessageData.SendingPeer, Encoding.ASCII);
             //    socket.SendMore(message.MessageData.MessageIdentity.ToByteArray());
             //    socket.Send(message.MessageData.Data);
-            var watch = new Stopwatch();
             var status = SendStatus.TryAgain;
-            var wait = new SpinWait();
-            watch.Start();
+            var wait = default(SpinWait);
+            _watch.Start();
 
-            var buffer = BusSerializer.Serialize(message.MessageData);
+            var buffer = BusSerializer.SerializeAndGetRawBuffer(message.MessageData);
             do
             {
-                socket.Send(buffer, 0, SocketFlags.DontWait);
+                socket.Send(buffer.Array, buffer.Count, SocketFlags.DontWait);
                 status = socket.SendStatus;
                 wait.SpinOnce();
-            } while (status == SendStatus.TryAgain && watch.ElapsedMilliseconds < 2000);
+            } while (status == SendStatus.TryAgain && _watch.ElapsedMilliseconds < 200);
 
 
-            watch.Stop();
+            _watch.Reset();
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
                 _logger.Info(string.Format("disconnect of endpoint {0}", zmqEndpoint.Endpoint));

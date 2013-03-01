@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.Serialization;
+using System.Threading;
 using Bus.Subscriptions;
 using Bus.Transport.Network;
 using ProtoBuf.Meta;
@@ -10,8 +11,7 @@ namespace Bus
     public static class BusSerializer
     {
         private static readonly RuntimeTypeModel _model;
-        [ThreadStatic]
-        private static MemoryStream _memoryStream;
+        private static ThreadLocal<MemoryStream> _memoryStream = new ThreadLocal<MemoryStream>(() => new MemoryStream());
 
         static BusSerializer()
         {
@@ -22,18 +22,28 @@ namespace Bus
             _model.Add(typeof(ISubscriptionFilter), false).AddSubType(2, typeof(SynchronizeWithBrokerFilter));
             _model.AutoCompile = true;
             _model.CompileInPlace();
+            
         }
 
-        public static ArraySegment<byte> Serialize(object instance)
+        public static byte[] Serialize(object instance)
         {
-            if (_memoryStream == null)
-                _memoryStream = new MemoryStream();
+            var memoryStream = _memoryStream.Value;
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            memoryStream.SetLength(0);
 
-            _memoryStream.Seek(0, SeekOrigin.Begin);
-            _memoryStream.SetLength(0);
+            _model.Serialize(memoryStream, instance);
+            return memoryStream.ToArray();
 
-            _model.Serialize(_memoryStream, instance);
-            return new ArraySegment<byte>(_memoryStream.ToArray(),0,(int)_memoryStream.Length);
+        }
+
+        public static ArraySegment<byte> SerializeAndGetRawBuffer(object instance)
+        {
+            var memoryStream = _memoryStream.Value;
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            memoryStream.SetLength(0);
+
+            _model.Serialize(memoryStream, instance);
+            return new ArraySegment<byte>(memoryStream.GetBuffer(), 0, (int)memoryStream.Length);
 
         }
 
@@ -54,17 +64,15 @@ namespace Bus
 
         public static object Deserialize(ArraySegment<byte> data, Type type)
         {
-            if (_memoryStream == null)
-                _memoryStream = new MemoryStream();
 
-            _memoryStream.Seek(0, SeekOrigin.Begin);
-            _memoryStream.Write(data.Array, data.Offset, data.Count);
-            _memoryStream.Seek(0, SeekOrigin.Begin);
+            _memoryStream.Value.Seek(0, SeekOrigin.Begin);
+            _memoryStream.Value.Write(data.Array, data.Offset, data.Count);
+            _memoryStream.Value.Seek(0, SeekOrigin.Begin);
 
-            _memoryStream.SetLength(data.Count);
+            _memoryStream.Value.SetLength(data.Count);
 
             var obj = FormatterServices.GetUninitializedObject(type);
-            _model.Deserialize(_memoryStream, obj, type);
+            _model.Deserialize(_memoryStream.Value, obj, type);
             return obj;
 
         }
@@ -72,17 +80,15 @@ namespace Bus
 
         public static object Deserialize(byte[] data, Type type)
         {
-            if (_memoryStream == null)
-                _memoryStream = new MemoryStream();
+            var memoryStream = _memoryStream.Value;
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            memoryStream.Write(data, 0, data.Length);
+            memoryStream.Seek(0, SeekOrigin.Begin);
 
-            _memoryStream.Seek(0, SeekOrigin.Begin);
-            _memoryStream.Write(data, 0, data.Length);
-            _memoryStream.Seek(0, SeekOrigin.Begin);
-
-            _memoryStream.SetLength(data.Length);
+            memoryStream.SetLength(data.Length);
 
             var obj = FormatterServices.GetUninitializedObject(type);
-            _model.Deserialize(_memoryStream, obj, type);
+            _model.Deserialize(memoryStream, obj, type);
             return obj;
 
         }

@@ -5,7 +5,7 @@ namespace Bus.Transport.ReceptionPipe
 {
     public class InboundMessageProcessingEntry
     {
-        public ReceivedTransportMessage InitialTransportMessage;
+        public ReceivedTransportMessage InitialTransportMessage = new ReceivedTransportMessage();
         public bool ForceMessageThrough;
         public IBusEventProcessorCommand Command;
 

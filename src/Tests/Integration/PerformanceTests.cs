@@ -143,7 +143,7 @@ namespace Tests.Integration
         [Test, Repeat(10)]
         public void should_send_messages()
         {
-         //   GCSettings.LatencyMode = GCLatencyMode.LowLatency;
+            GC.Collect();
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             var randomPortBroker = NetworkUtils.GetRandomUnusedPort();
@@ -197,10 +197,11 @@ namespace Tests.Integration
 
             IBlockableUntilCompletion resetEvent = null;
             var messagesInBatch = 20000;
+            var fakeCommand = new TestData.FakeCommand();
             for (int i = 0; i < messagesInBatch; i++)
             {
-         //       resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
-               resetEvent = bus1.Send(new TestData.FakeCommand());
+                //       resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
+                resetEvent = bus1.Send(fakeCommand);
             }
 
             resetEvent.WaitForCompletion();

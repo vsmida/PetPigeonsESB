@@ -57,15 +57,35 @@ namespace Bus.Transport.Network
                 var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
 
                 //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
-                var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
+
+
+
+                //var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
+                //                                                            messagedata.SendingPeer,
+                //                                                            messagedata.MessageIdentity,
+                //                                                            _endpoint,
+                //                                                            messagedata.Data,
+                //                                                            messagedata.SequenceNumber);
+                var sequence = _ringBuffer.Next();
+                var entry = _ringBuffer[sequence];
+                if (entry.InitialTransportMessage != null)
+                    entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
+                                                                                messagedata.SendingPeer,
+                                                                                messagedata.MessageIdentity,
+                                                                                _endpoint,
+                                                                                messagedata.Data,
+                                                                                messagedata.SequenceNumber);
+                else
+                {
+                    entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
                                                                             messagedata.SendingPeer,
                                                                             messagedata.MessageIdentity,
                                                                             _endpoint,
                                                                             messagedata.Data,
                                                                             messagedata.SequenceNumber);
-                var sequence = _ringBuffer.Next();
-                var entry = _ringBuffer[sequence];
-                entry.InitialTransportMessage = receivedTransportMessage;
+                }
+
+                //    entry.InitialTransportMessage = receivedTransportMessage;
                 entry.ForceMessageThrough = false;
                 entry.Command = null;
                 entry.InboundEntries = new List<InboundBusinessMessageEntry>();
@@ -83,42 +103,10 @@ namespace Bus.Transport.Network
             _receptionSocket = _context.CreateSocket(SocketType.PULL);
             _receptionSocket.Linger = TimeSpan.FromSeconds(1);
             _receptionSocket.ReceiveHighWatermark = 30000;
-            _receptionSocket.ReceiveReady += (s, e) => ReceiveFromSocket(e);
             _receptionSocket.Bind(endpoint);
             _logger.DebugFormat("Command processor socket bound to {0}", endpoint);
         }
 
-
-        private void ReceiveFromSocket(SocketEventArgs socketEventArgs)
-        {
-            var zmqSocket = socketEventArgs.Socket;
-            //  var type = zmqSocket.Receive(Encoding.ASCII);
-            //   var peerName = zmqSocket.Receive(Encoding.ASCII);
-
-            //    var serializedId = zmqSocket.Receive();
-            //     var messageId = new Guid(serializedId);
-            //    var serializedItem = zmqSocket.Receive();
-            try
-            {
-                var messagedata = BusSerializer.Deserialize<MessageWireData>(zmqSocket.Receive());
-
-                //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
-                var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType, messagedata.SendingPeer, messagedata.MessageIdentity, _endpoint, messagedata.Data, messagedata.SequenceNumber);
-                var sequence = _ringBuffer.Next();
-                var entry = _ringBuffer[sequence];
-                entry.InitialTransportMessage = receivedTransportMessage;
-                entry.ForceMessageThrough = false;
-                entry.Command = null;
-                entry.InboundEntries = new List<InboundBusinessMessageEntry>();
-                entry.InfrastructureEntry = null;
-                _ringBuffer.Publish(sequence);
-            }
-            catch (Exception e)
-            {
-                _logger.Error("Truncated zmq data received {0}", e);
-            }
-
-        }
 
         public void Dispose()
         {

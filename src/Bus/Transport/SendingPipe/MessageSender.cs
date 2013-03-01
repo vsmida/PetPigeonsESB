@@ -103,7 +103,9 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.TargetPeer = originatingPeer;
             data.MessageTargetHandlerData.IsAcknowledgement = true;
             data.MessageTargetHandlerData.Callback = null;
-            data.NetworkSenderData = new NetworkSenderData();
+            data.NetworkSenderData.Command = null;
+            data.NetworkSenderData.WireMessages.Clear();
+//            data.NetworkSenderData = new NetworkSenderData();
 
 
             _ringBuffer.Publish(sequence);
