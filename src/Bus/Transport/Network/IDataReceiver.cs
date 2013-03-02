@@ -38,8 +38,10 @@ namespace Bus.Transport.Network
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = message;
             entry.ForceMessageThrough = forceMessage;
-            entry.InboundEntries = new List<InboundBusinessMessageEntry>();
-            entry.InfrastructureEntry = null;
+            entry.QueuedInboundEntries = null;
+            entry.IsInfrastructureMessage = false;
+            entry.IsStrandardMessage = false;
+            entry.IsCommand = false;
             entry.Command = null;
             _ringBuffer.Publish(sequence);
         }
@@ -50,8 +52,10 @@ namespace Bus.Transport.Network
             var entry = _ringBuffer[sequence];
             entry.InitialTransportMessage = null;
             entry.ForceMessageThrough = false;
-            entry.InboundEntries = null;
-            entry.InfrastructureEntry = null;
+            entry.QueuedInboundEntries = null;
+            entry.IsInfrastructureMessage = false;
+            entry.IsStrandardMessage = false;
+            entry.IsCommand = false;
             entry.Command = busEventProcessorCommand;
             _ringBuffer.Publish(sequence);
         }

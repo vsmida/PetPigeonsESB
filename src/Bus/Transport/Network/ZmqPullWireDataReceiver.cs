@@ -56,16 +56,6 @@ namespace Bus.Transport.Network
                     return;
                 var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
 
-                //  var receivedTransportMessage = new ReceivedTransportMessage(type, peerName, messageId,TransportType, serializedItem);
-
-
-
-                //var receivedTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
-                //                                                            messagedata.SendingPeer,
-                //                                                            messagedata.MessageIdentity,
-                //                                                            _endpoint,
-                //                                                            messagedata.Data,
-                //                                                            messagedata.SequenceNumber);
                 var sequence = _ringBuffer.Next();
                 var entry = _ringBuffer[sequence];
                 if (entry.InitialTransportMessage != null)
@@ -87,9 +77,12 @@ namespace Bus.Transport.Network
 
                 //    entry.InitialTransportMessage = receivedTransportMessage;
                 entry.ForceMessageThrough = false;
+                entry.IsInfrastructureMessage = false;
+                entry.IsStrandardMessage = false;
+                entry.IsCommand = false;
                 entry.Command = null;
-                entry.InboundEntries = new List<InboundBusinessMessageEntry>();
-                entry.InfrastructureEntry = null;
+                entry.QueuedInboundEntries = null;
+               // entry.InfrastructureEntry = null;
                 _ringBuffer.Publish(sequence);
             }
             catch (Exception e)

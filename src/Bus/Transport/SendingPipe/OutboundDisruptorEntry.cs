@@ -19,7 +19,7 @@ namespace Bus.Transport.SendingPipe
 
     class NetworkSenderData
     {
-        public readonly List<WireSendingMessage> WireMessages = new List<WireSendingMessage>(2);
+        public List<WireSendingMessage> WireMessages = new List<WireSendingMessage>(2);
         public IBusEventProcessorCommand Command;
     }
 }

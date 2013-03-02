@@ -54,9 +54,9 @@ namespace Bus.DisruptorEventHandlers
                 return;
 
             var messageType = data.MessageTargetHandlerData.Message.GetType().FullName;
-            var subscriptions = _messageTypesToSubscriptions[messageType].Where(x => data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer);
-            //  .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
-            //         && (data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer)).ToArray();
+            var subscriptions = _messageTypesToSubscriptions[messageType]
+              .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
+                     && (data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer)).ToArray();
 
             SendUsingSubscriptions(data.MessageTargetHandlerData.Message, data.MessageTargetHandlerData.Callback, subscriptions, data);
 

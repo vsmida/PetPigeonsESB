@@ -20,10 +20,11 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundMessageProcessingEntry messageProcessingEntry, long sequence, bool endOfBatch)
         {
-            var data = messageProcessingEntry.InfrastructureEntry;
-            if (data == null)
+            if(!messageProcessingEntry.IsInfrastructureMessage)
                 return;
-            using (var context = MessageContext.SetContext(data.SendingPeer, data.Endpoint))
+            var data = messageProcessingEntry.InfrastructureEntry;
+
+            using (MessageContext.SetContext(data.SendingPeer, data.Endpoint))
             {
                 try
                 {

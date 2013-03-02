@@ -86,7 +86,7 @@ namespace Tests.Integration
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
               //  BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
-                MessageCount++;
+                Interlocked.Increment(ref MessageCount);
             }
         }
 
@@ -94,10 +94,12 @@ namespace Tests.Integration
         {
             public static int MessageCount;
 
+
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
-                //  BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
-                MessageCount++;
+                BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
+                
+                Interlocked.Increment(ref MessageCount);
             }
         }
 
@@ -114,21 +116,21 @@ namespace Tests.Integration
                                                                          new MultiThreadedClaimStrategy((int)Math.Pow(2, 14)), 
                                                                          new SleepingWaitStrategy(),
                                                                          TaskScheduler.Default);
-            disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest());
+            disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest2());
             disruptor.Start();
             transportReceive.Initialize(disruptor.RingBuffer);
             transportSend.SendMessage(wireSendingMessage,endpoint);
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            var messagesCountTotal = 400000;
+            var messagesCountTotal = 2600000;
             for (int i = 0; i < messagesCountTotal; i++)
             {
-                wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
+                wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
                 transportSend.SendMessage(wireSendingMessage, endpoint);                
             }
             SpinWait wait = new SpinWait();
-            while(eventprocessorTest.MessageCount <messagesCountTotal)
+            while(eventprocessorTest2.MessageCount <messagesCountTotal)
             {
                 wait.SpinOnce();
             }

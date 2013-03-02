@@ -44,7 +44,7 @@ namespace Bus.Transport.Network
             //    socket.Send(message.MessageData.Data);
             var status = SendStatus.TryAgain;
             var wait = default(SpinWait);
-            _watch.Start();
+          //  _watch.Start();
 
             var buffer = BusSerializer.SerializeAndGetRawBuffer(message.MessageData);
             do
@@ -52,10 +52,10 @@ namespace Bus.Transport.Network
                 socket.Send(buffer.Array, buffer.Count, SocketFlags.DontWait);
                 status = socket.SendStatus;
                 wait.SpinOnce();
-            } while (status == SendStatus.TryAgain && _watch.ElapsedMilliseconds < 200);
+            } while (status == SendStatus.TryAgain && wait.Count <500);
 
 
-            _watch.Reset();
+         //   _watch.Reset();
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
                 _logger.Info(string.Format("disconnect of endpoint {0}", zmqEndpoint.Endpoint));
@@ -80,7 +80,7 @@ namespace Bus.Transport.Network
         {
             _logger.Debug(string.Format("Creating zmq push socket to endpoint {0}", zmqEndpoint));
             var socket = _context.CreateSocket(SocketType.PUSH);
-            socket.SendHighWatermark = 30000;
+            socket.SendHighWatermark = 10000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
             socket.Connect(zmqEndpoint.Endpoint);
             return socket;

@@ -4,7 +4,6 @@ using System.Linq;
 using Bus.InfrastructureMessages;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
-using Bus.Transport.SendingPipe;
 using log4net;
 
 namespace Bus.DisruptorEventHandlers
@@ -18,7 +17,7 @@ namespace Bus.DisruptorEventHandlers
     class SequenceNumberVerifier : ISequenceNumberVerifier
     {
 
-        private class PeerTransportKey
+        private struct PeerTransportKey
         {
             public readonly string Peer;
             public readonly IEndpoint Endpoint;
@@ -29,7 +28,7 @@ namespace Bus.DisruptorEventHandlers
                 Endpoint = endpoint;
             }
 
-            protected bool Equals(PeerTransportKey other)
+            public bool Equals(PeerTransportKey other)
             {
                 return string.Equals(Peer, other.Peer) && Equals(Endpoint, other.Endpoint);
             }
@@ -37,25 +36,23 @@ namespace Bus.DisruptorEventHandlers
             public override bool Equals(object obj)
             {
                 if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((PeerTransportKey)obj);
+                return obj is PeerTransportKey && Equals((PeerTransportKey) obj);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return ((Peer != null ? Peer.GetHashCode() : 0) * 397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
+                    return ((Peer != null ? Peer.GetHashCode() : 0)*397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
                 }
             }
         }
+        
 
         private readonly Dictionary<PeerTransportKey, int> _sequenceNumber = new Dictionary<PeerTransportKey, int>();
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly ILog _logger = LogManager.GetLogger(typeof(SequenceNumberVerifier));
-        private readonly IMessageSender _messageSender;
-        
+
         public SequenceNumberVerifier(IPeerConfiguration peerConfiguration)
         {
             _peerConfiguration = peerConfiguration;

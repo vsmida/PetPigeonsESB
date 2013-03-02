@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Bus.InfrastructureMessages;
 using Bus.InfrastructureMessages.Heartbeating;
 using Bus.MessageInterfaces;
@@ -25,7 +26,7 @@ namespace Bus.Transport.SendingPipe
             var heartbeatRequest = new HeartbeatRequest(DateTime.UtcNow, endpoint);
             var serializedMessage = BusSerializer.Serialize(heartbeatRequest);
             var messageWireData = new MessageWireData(typeof(HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
-            data.NetworkSenderData.WireMessages.Clear();
+            data.NetworkSenderData.WireMessages = new List<WireSendingMessage>();
             data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData, endpoint));
 
             _ringBuffer.Publish(sequence);
@@ -64,7 +65,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.Callback = callback;
             data.MessageTargetHandlerData.TargetPeer = null;
             data.MessageTargetHandlerData.IsAcknowledgement = false;
-            data.NetworkSenderData = new NetworkSenderData();
+            data.NetworkSenderData.WireMessages = new List<WireSendingMessage>(2);
 
             _ringBuffer.Publish(sequence);
         }
@@ -85,7 +86,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.Callback = callback;
             data.MessageTargetHandlerData.TargetPeer = peerName;
             data.MessageTargetHandlerData.IsAcknowledgement = false;
-            data.NetworkSenderData = new NetworkSenderData();
+            data.NetworkSenderData.WireMessages = new List<WireSendingMessage>(2);
 
 
             _ringBuffer.Publish(sequence);
@@ -104,7 +105,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData.IsAcknowledgement = true;
             data.MessageTargetHandlerData.Callback = null;
             data.NetworkSenderData.Command = null;
-            data.NetworkSenderData.WireMessages.Clear();
+            data.NetworkSenderData.WireMessages = new List<WireSendingMessage>(2);
 //            data.NetworkSenderData = new NetworkSenderData();
 
 

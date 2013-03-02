@@ -86,8 +86,8 @@ namespace Bus.DisruptorEventHandlers
                     {
                         _messageSender.Send(new StopSynchWithBrokerCommand(_peerConfiguration.PeerName));
                         _waitingMessages.Dequeue();
-                        PublishMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
-                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data.InboundEntries);
+                        PublishQueuedMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data);
                         ReleaseCachedMessages(data);
                         return;
                     }
@@ -96,8 +96,8 @@ namespace Bus.DisruptorEventHandlers
             }
 
             if (_isInitialized || options == null || options.ReliabilityLevel == ReliabilityLevel.FireAndForget || data.ForceMessageThrough)
-                PublishMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
-                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data.InboundEntries);
+                PublishToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data);
 
             else
                 _waitingMessages.Enqueue(data);
@@ -134,8 +134,8 @@ namespace Bus.DisruptorEventHandlers
                 }
                 var itemType = TypeUtils.Resolve(item.InitialTransportMessage.MessageType);
                 var deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
-                PublishMessageToStandardDispatch(deserializedSavedMessage, item.InitialTransportMessage.MessageIdentity,
-                                                                           item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerName, data.InboundEntries);
+                PublishQueuedMessageToStandardDispatch(deserializedSavedMessage, item.InitialTransportMessage.MessageIdentity,
+                                                                           item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerName, data);
             }
         }
 
@@ -146,14 +146,27 @@ namespace Bus.DisruptorEventHandlers
             _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
         }
 
-        private void PublishMessageToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, List<InboundBusinessMessageEntry> entriesList)
+        private void PublishQueuedMessageToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, InboundMessageProcessingEntry data)
         {
             var inboundEntry = new InboundBusinessMessageEntry();
             inboundEntry.DeserializedMessage = deserializedMessage;
             inboundEntry.MessageIdentity = messageId;
             inboundEntry.Endpoint = endpoint;
             inboundEntry.SendingPeer = peerName;
-            entriesList.Add(inboundEntry);
+            if(data.QueuedInboundEntries == null)
+                data.QueuedInboundEntries = new List<InboundBusinessMessageEntry>();
+            data.QueuedInboundEntries.Add(inboundEntry);
+            data.IsStrandardMessage = true;
+
+        }
+
+        private void PublishToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, InboundMessageProcessingEntry entry)
+        {
+            entry.InboundBusinessMessageEntry.DeserializedMessage = deserializedMessage;
+            entry.InboundBusinessMessageEntry.MessageIdentity = messageId;
+            entry.InboundBusinessMessageEntry.Endpoint = endpoint;
+            entry.InboundBusinessMessageEntry.SendingPeer = peerName;
+            entry.IsStrandardMessage = true;
 
         }
 
@@ -170,6 +183,7 @@ namespace Bus.DisruptorEventHandlers
 
         private void PushIntoInfrastructureQueue(InboundMessageProcessingEntry data, IMessage deserializedMessage)
         {
+            data.IsInfrastructureMessage = true;
             data.InfrastructureEntry = new InboundInfrastructureEntry();
             data.InfrastructureEntry.DeserializedMessage = deserializedMessage;
             data.InfrastructureEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;

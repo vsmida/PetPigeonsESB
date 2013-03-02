@@ -9,7 +9,11 @@ namespace Bus.Transport.ReceptionPipe
         public bool ForceMessageThrough;
         public IBusEventProcessorCommand Command;
 
-        public List<InboundBusinessMessageEntry> InboundEntries;
-        public InboundInfrastructureEntry InfrastructureEntry;
+        public List<InboundBusinessMessageEntry> QueuedInboundEntries;
+        public InboundInfrastructureEntry InfrastructureEntry = new InboundInfrastructureEntry();
+        public InboundBusinessMessageEntry InboundBusinessMessageEntry = new InboundBusinessMessageEntry();
+        public bool IsInfrastructureMessage;
+        public bool IsStrandardMessage;
+        public bool IsCommand;
     }
 }

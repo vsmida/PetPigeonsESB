@@ -3,6 +3,7 @@ using Bus.Dispatch;
 using Bus.Startup;
 using Bus.Transport;
 using StructureMap;
+using Tests.Transport;
 
 namespace Tests.Integration
 {
@@ -37,6 +38,7 @@ namespace Tests.Integration
 
                 ctx.For<IAssemblyScanner>().Use(
                     assemblyScanner ?? new AssemblyScanner());
+
             });
         }
 

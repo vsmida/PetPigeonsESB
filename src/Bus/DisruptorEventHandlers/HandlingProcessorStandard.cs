@@ -26,12 +26,20 @@ namespace Bus.DisruptorEventHandlers
 
         public void OnNext(InboundMessageProcessingEntry inboundMessageProcessingEntry, long sequence, bool endOfBatch)
         {
-            var data = inboundMessageProcessingEntry.InboundEntries;
-            if (data == null)
+            if (!inboundMessageProcessingEntry.IsStrandardMessage)
                 return;
-            foreach (var entry in data)
+            var queuedMessages = inboundMessageProcessingEntry.QueuedInboundEntries;
+            if (queuedMessages != null)
             {
-                HandleMessage(entry.DeserializedMessage, entry.SendingPeer, entry.Endpoint, entry.MessageIdentity);                
+                foreach (var entry in queuedMessages)
+                {
+                    HandleMessage(entry.DeserializedMessage, entry.SendingPeer, entry.Endpoint, entry.MessageIdentity);
+                }
+            }
+            else
+            {
+                var entry = inboundMessageProcessingEntry.InboundBusinessMessageEntry;
+                HandleMessage(entry.DeserializedMessage, entry.SendingPeer, entry.Endpoint, entry.MessageIdentity);
             }
         }
 
