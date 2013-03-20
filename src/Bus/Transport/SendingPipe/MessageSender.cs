@@ -13,6 +13,7 @@ namespace Bus.Transport.SendingPipe
         private RingBuffer<OutboundDisruptorEntry> _ringBuffer;
         private readonly IPeerConfiguration _peerConfiguration;
 
+
         public MessageSender(IPeerConfiguration peerConfiguration)
         {
             _peerConfiguration = peerConfiguration;

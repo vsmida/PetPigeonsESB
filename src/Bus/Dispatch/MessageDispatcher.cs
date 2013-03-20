@@ -105,7 +105,6 @@ namespace Bus.Dispatch
                 handlerDispatcher = new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),methodInfo.DeclaringType);
                 _messageTypeToCommandHandler[message.GetType()] = handlerDispatcher;
             }
-
             var instance = _objectFactory.GetInstance(handlerDispatcher.HandlerType);
             handlerDispatcher.HandleMethod(instance, message);
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Bus.Dispatch;
 using Bus.InfrastructureMessages;
 using Bus.InfrastructureMessages.Shadowing;
 using Bus.MessageInterfaces;
@@ -14,41 +15,47 @@ namespace Bus.DisruptorEventHandlers
     class ReliabilityCoordinator : IReliabilityCoordinator
     {
         private readonly IPeerManager _peerManager;
-        private Dictionary<string, MessageSubscription> _selfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
+        private Dictionary<string, MessageOptions> _messageOptions = new Dictionary<string, MessageOptions>();
         private IEnumerable<ServicePeer> _selfShadows;
         private Dictionary<string, HashSet<ServicePeer>> _peersToShadows;
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly Dictionary<IEndpoint, int> _endpointToSequenceNumber = new Dictionary<IEndpoint, int>();
+        private readonly IAssemblyScanner _assemblyScanner;
 
-
-        public ReliabilityCoordinator(IPeerManager peerManager, IPeerConfiguration peerConfiguration)
+        public ReliabilityCoordinator(IPeerManager peerManager, IPeerConfiguration peerConfiguration, IAssemblyScanner assemblyScanner)
         {
             _peerManager = peerManager;
             _peerConfiguration = peerConfiguration;
+            _assemblyScanner = assemblyScanner;
             _peerManager.PeerConnected += OnPeerChange;
 
+            var messageOptionses = _assemblyScanner.GetHandledMessageOptions();
+            foreach (var messageOptionse in messageOptionses)
+            {
+                _messageOptions.Add(messageOptionse.MessageType.FullName, messageOptionse);
+            }
         }
 
         private void OnPeerChange(ServicePeer obj)
         {
             _peersToShadows = _peerManager.GetAllShadows();
             _selfShadows = _peerManager.PeersThatShadowMe();
-            if (obj.PeerName == _peerConfiguration.PeerName)
-            {
-                Dictionary<string, MessageSubscription> newSelfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
-                foreach (var messageSubscription in obj.HandledMessages)
-                {
-                    newSelfMessageSubscriptions[messageSubscription.MessageType.FullName] = messageSubscription;
-                }
-                _selfMessageSubscriptions = newSelfMessageSubscriptions;
-            }
+            //if (obj.PeerName == _peerConfiguration.PeerName)
+            //{
+            //    Dictionary<string, MessageSubscription> newSelfMessageSubscriptions = new Dictionary<string, MessageSubscription>();
+            //    foreach (var messageSubscription in obj.HandledMessages)
+            //    {
+            //        newSelfMessageSubscriptions[messageSubscription.MessageType.FullName] = messageSubscription;
+            //    }
+            //    _messageOptions = newSelfMessageSubscriptions;
+            //}
 
         }
 
 
         public void EnsureReliability(OutboundDisruptorEntry disruptorEntry, IMessage message, IEnumerable<MessageSubscription> concernedSubscriptions, MessageWireData messageData)
         {
-            var messageOptions = _selfMessageSubscriptions[message.GetType().FullName];
+            var messageOptions = _messageOptions[message.GetType().FullName];
 
             if (messageOptions.ReliabilityLevel != ReliabilityLevel.FireAndForget)
                 foreach (var wireMessage in disruptorEntry.NetworkSenderData.WireMessages)
@@ -80,7 +87,7 @@ namespace Bus.DisruptorEventHandlers
         private void SendAcknowledgementShadowMessages(IMessage message, IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
         {
             var completionAcknowledgementMessage = (CompletionAcknowledgementMessage)message;
-            if (_selfMessageSubscriptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)
+            if (_messageOptions[completionAcknowledgementMessage.MessageType].ReliabilityLevel == ReliabilityLevel.Persisted)
             {
                 SendToSelfShadows(completionAcknowledgementMessage.MessageId,
                                   completionAcknowledgementMessage.ProcessingSuccessful,

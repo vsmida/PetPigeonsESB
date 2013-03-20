@@ -43,11 +43,12 @@ namespace Bus.Startup
 
         public void BootStrapTopology()
         {
-            var messageSubscriptions = _assemblyScanner.GetMessageOptions()
+            var handledTypes = new HashSet<Type>(_assemblyScanner.GetHandledCommands().Union(_assemblyScanner.GetHandledEvents()));
+
+            var messageSubscriptions = _assemblyScanner.GetHandledMessageOptions().Where(x => handledTypes.Contains(x.MessageType))
                 .Select(x => new MessageSubscription(x.MessageType, _peerConfiguration.PeerName,
                                             new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()),
                                             x.SubscriptionFilter, x.ReliabilityLevel));
-
 
 
 

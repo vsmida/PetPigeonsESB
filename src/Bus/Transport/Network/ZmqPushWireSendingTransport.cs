@@ -15,7 +15,8 @@ namespace Bus.Transport.Network
         private readonly Dictionary<ZmqEndpoint, ZmqSocket> _endpointsToSockets = new Dictionary<ZmqEndpoint, ZmqSocket>();
         private readonly ZmqContext _context;
         private readonly ILog _logger = LogManager.GetLogger(typeof(ZmqPushWireSendingTransport));
-        private Stopwatch _watch = new Stopwatch();
+     //   private Stopwatch _watch = new Stopwatch();
+
 
 
         public ZmqPushWireSendingTransport(ZmqContext context)
@@ -47,12 +48,13 @@ namespace Bus.Transport.Network
           //  _watch.Start();
 
             var buffer = BusSerializer.SerializeAndGetRawBuffer(message.MessageData);
+
             do
             {
                 socket.Send(buffer.Array, buffer.Count, SocketFlags.DontWait);
                 status = socket.SendStatus;
                 wait.SpinOnce();
-            } while (status == SendStatus.TryAgain && wait.Count <500);
+            } while (status == SendStatus.TryAgain && wait.Count <1000);
 
 
          //   _watch.Reset();
@@ -80,7 +82,7 @@ namespace Bus.Transport.Network
         {
             _logger.Debug(string.Format("Creating zmq push socket to endpoint {0}", zmqEndpoint));
             var socket = _context.CreateSocket(SocketType.PUSH);
-            socket.SendHighWatermark = 10000;
+            socket.SendHighWatermark = 20000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
             socket.Connect(zmqEndpoint.Endpoint);
             return socket;

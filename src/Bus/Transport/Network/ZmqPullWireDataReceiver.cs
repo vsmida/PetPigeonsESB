@@ -54,6 +54,7 @@ namespace Bus.Transport.Network
                 var receive = _receptionSocket.Receive(TimeSpan.FromMilliseconds(500));
                 if (receive.Length == 0)
                     return;
+                    
                 var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
 
                 var sequence = _ringBuffer.Next();
@@ -95,7 +96,7 @@ namespace Bus.Transport.Network
         {
             _receptionSocket = _context.CreateSocket(SocketType.PULL);
             _receptionSocket.Linger = TimeSpan.FromSeconds(1);
-            _receptionSocket.ReceiveHighWatermark = 30000;
+            _receptionSocket.ReceiveHighWatermark = 10000;
             _receptionSocket.Bind(endpoint);
             _logger.DebugFormat("Command processor socket bound to {0}", endpoint);
         }

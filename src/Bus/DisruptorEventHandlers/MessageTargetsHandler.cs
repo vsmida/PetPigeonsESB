@@ -19,6 +19,7 @@ namespace Bus.DisruptorEventHandlers
         private Dictionary<string, List<MessageSubscription>> _messageTypesToSubscriptions;
         private readonly IReliabilityCoordinator _reliabilityCoordinator;
 
+
         public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator)
         {
             _callbackRepository = callbackRepository;
@@ -54,35 +55,34 @@ namespace Bus.DisruptorEventHandlers
                 return;
 
             var messageType = data.MessageTargetHandlerData.Message.GetType().FullName;
-            var subscriptions = _messageTypesToSubscriptions[messageType]
+            var allSubscriptions = _messageTypesToSubscriptions[messageType];
+            var concernedSubscriptions = allSubscriptions
               .Where(x => (x.SubscriptionFilter == null || x.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
                      && (data.MessageTargetHandlerData.TargetPeer == null || x.Peer == data.MessageTargetHandlerData.TargetPeer)).ToArray();
 
-            SendUsingSubscriptions(data.MessageTargetHandlerData.Message, data.MessageTargetHandlerData.Callback, subscriptions, data);
-
-        }
-
-        private void SendUsingSubscriptions(IMessage message, ICompletionCallback callback, IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData)
-        {
-            var messageData = CreateMessageWireData(message);
-
+            var messageData = CreateMessageWireData(data.MessageTargetHandlerData.Message);
+            var callback = data.MessageTargetHandlerData.Callback;
             if (callback != null)
                 _callbackRepository.RegisterCallback(messageData.MessageIdentity, callback);
 
-            SendToConcernedPeers(concernedSubscriptions, disruptorData, messageData);
-
-            _reliabilityCoordinator.EnsureReliability(disruptorData, message, concernedSubscriptions, messageData);
-
-        }
-
-        private void SendToConcernedPeers(IEnumerable<MessageSubscription> concernedSubscriptions, OutboundDisruptorEntry disruptorData, MessageWireData messageData)
-        {
-            var endpoints = concernedSubscriptions.Select(x => x.Endpoint).Distinct();
-            foreach (var endpoint in endpoints)
+            for (int i = 0; i < allSubscriptions.Count; i++)
             {
-                var wireMessage = new WireSendingMessage(messageData, endpoint);
-                disruptorData.NetworkSenderData.WireMessages.Add(wireMessage);
+                var subscription = allSubscriptions[i];
+                var endpoint = subscription.Endpoint;
+                if ((subscription.SubscriptionFilter == null || subscription.SubscriptionFilter.Matches(data.MessageTargetHandlerData.Message))
+                    && (data.MessageTargetHandlerData.TargetPeer == null || subscription.Peer == data.MessageTargetHandlerData.TargetPeer)
+                    && !data.NetworkSenderData.WireMessages.Any(x => Equals(x.Endpoint, endpoint)))
+                {
+                    var wireMessage = new WireSendingMessage(messageData, endpoint);
+                    data.NetworkSenderData.WireMessages.Add(wireMessage);
+                }
+                    
             }
+
+         //   SendToConcernedPeers(concernedSubscriptions, data, messageData);
+
+            _reliabilityCoordinator.EnsureReliability(data, data.MessageTargetHandlerData.Message, concernedSubscriptions, messageData);
+
         }
 
         private MessageWireData CreateMessageWireData(IMessage message)

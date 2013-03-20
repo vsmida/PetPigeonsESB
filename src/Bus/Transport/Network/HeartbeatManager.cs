@@ -44,7 +44,12 @@ namespace Bus.Transport.Network
 
         public void StartMonitoring(IEndpoint endpoint)
         {
-            _heartbeatsByEndpoint.AddOrUpdate(endpoint, new HeartbeatInformation(), (point, oldinfo) => oldinfo);
+            _heartbeatsByEndpoint.AddOrUpdate(endpoint, new HeartbeatInformation(), OnUpdateValueFactory);
+        }
+
+        private HeartbeatInformation OnUpdateValueFactory(IEndpoint point, HeartbeatInformation oldinfo)
+        {
+            return oldinfo;
         }
 
         public void RegisterHeartbeat(HeartbeatMessage heartbeat)

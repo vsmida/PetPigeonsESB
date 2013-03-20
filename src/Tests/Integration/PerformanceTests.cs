@@ -33,16 +33,16 @@ namespace Tests.Integration
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            var messagesInBatch = 500000;  
+            var messagesInBatch = 1000000;  
             for (int i = 0; i < messagesInBatch; i++)
             {
                 var ser = BusSerializer.Serialize(wireSendingMessage);
-       //         BusSerializer.Deserialize<WireSendingMessage>(ser);
-                ser = BusSerializer.Serialize(wireSendingMessage);
+                BusSerializer.DeserializeStruct<WireSendingMessage>(ser);
+         //       ser = BusSerializer.Serialize(wireSendingMessage);
 
             }
             var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps);
+            Console.WriteLine(" FPS : " + fps.ToString("N2"));
         }
 
         [Test]
@@ -177,6 +177,10 @@ namespace Tests.Integration
                 gc0 = GC.CollectionCount(0) - gc0;
                 gc1 = GC.CollectionCount(1) - gc1;
                 gc2 = GC.CollectionCount(2) -gc2;
+
+                Console.WriteLine("GC 0 " +gc0);
+                Console.WriteLine("GC 1 " +gc1);
+                Console.WriteLine("GC 2 " +gc2);
             }
 
 
@@ -202,7 +206,7 @@ namespace Tests.Integration
             var fakeCommand = new TestData.FakeCommand();
             for (int i = 0; i < messagesInBatch; i++)
             {
-                //       resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
+                  //     resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
                 resetEvent = bus1.Send(fakeCommand);
             }
 

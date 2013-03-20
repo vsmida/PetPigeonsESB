@@ -58,7 +58,7 @@ namespace Bus.Dispatch
         }
 
 
-        public List<MessageOptions> GetMessageOptions()
+        public  List<MessageOptions> GetHandledMessageOptions()
         {
             var options = new List<MessageOptions>();
             var typeToFilter = new Dictionary<Type, ISubscriptionFilter>();
@@ -91,6 +91,7 @@ namespace Bus.Dispatch
                     {
                         var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
                         var genericType = messageHandlingInterface.GetGenericArguments()[0];
+                        if(!options.Any(x => x.MessageType == genericType))
                         options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
                                                                     reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
                                                                     typeToFilter.GetValueOrDefault(type)));
@@ -101,7 +102,7 @@ namespace Bus.Dispatch
             return options;
         }
 
-        public virtual List<Type> GetHandledCommands()
+        public virtual  List<Type> GetHandledCommands()
         {
             var handledCommands = new HashSet<Type>();
             var assemblies = GetAssemblies();

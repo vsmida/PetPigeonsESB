@@ -13,6 +13,7 @@ using Bus.MessageInterfaces;
 using Bus.Startup;
 using Bus.Transport;
 using StructureMap;
+using Tests.Transport;
 using log4net;
 
 namespace Tests.Integration
@@ -87,11 +88,11 @@ namespace Tests.Integration
 
         public class FakeAssemblyScanner : AssemblyScanner
         {
-
+             
             public override List<Type> GetHandledCommands()
             {
                 var result = base.GetHandledCommands();
-                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand)).ToList();
+                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand) && x!=typeof(TestData.FakeCommand)).ToList();
             }
         }
 
