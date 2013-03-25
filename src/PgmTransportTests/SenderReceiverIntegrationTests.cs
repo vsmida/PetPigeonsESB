@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PgmTransport;
+using Shared;
 
 namespace PgmTransportTests
 {
@@ -18,12 +19,107 @@ namespace PgmTransportTests
         private int _messNumber;
         private int _messSentNumber;
         private byte[] _sentBuffer;
+        private int _currentNumber;
 
+        [SetUp]
+        public void setup()
+        {
+            log4net.Config.XmlConfigurator.Configure(new FileInfo("Log4net.config"));
+
+
+
+
+        }
+
+        [Test, Timeout(2000000), Repeat(10)]
+        public void CheckAllMessagesInOrder()
+        {
+            //Console.WriteLine("Test Start");
+            _currentNumber = 1;
+            var sender = new TcpSender();
+            var receiver = new TcpReceiver();
+
+            AutoResetEvent waitHandle = new AutoResetEvent(false);
+            var port = NetworkUtils.GetRandomUnusedPort();
+            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), port);
+            var batchSize = 2000000;
+            receiver.OnMessageReceived +=(x,y) => OnCheckErrorMessageReceived(x,y,waitHandle, batchSize);
+
+
+            var beforebindDataCount = 100;
+            for (int i = 1; i < beforebindDataCount; i++)
+            {
+                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));                
+            }
+            Thread.Sleep(800);
+            receiver.ListenToEndpoint(ipEndPoint);
+            SpinWait.SpinUntil(() => _currentNumber == beforebindDataCount);
+            Console.WriteLine("received first messages");
+            var watch = new Stopwatch();
+            watch.Start();
+            for (int i = beforebindDataCount; i < batchSize / 2; i++)
+            {
+                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));
+            }
+            Console.WriteLine("stoppping reception on endpoint");
+
+            SpinWait.SpinUntil(() => _currentNumber >= batchSize / 2);
+
+            
+            receiver.StopListeningTo(ipEndPoint);
+            Thread.Sleep(100);
+            Console.WriteLine("re-establishing reception on endpoint");
+
+
+            sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(batchSize / 2));
+            sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(batchSize / 2 +1));
+            Thread.Sleep(100);
+            receiver.ListenToEndpoint(ipEndPoint);
+            Thread.Sleep(500);
+
+
+            for (int i = batchSize / 2 +2; i < batchSize; i++)
+            {
+                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));
+            }
+            Console.WriteLine("sent last messages");
+
+            waitHandle.WaitOne();
+            if(_currentNumber != batchSize)
+                Assert.Fail();
+            watch.Stop();
+            var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
+            Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
+
+            sender.Dispose();
+            receiver.Dispose();
+
+            Thread.Sleep(500);
+        }
+
+        private void OnCheckErrorMessageReceived(IPEndPoint endpoint, Stream stream, AutoResetEvent waitHandle, int batchSize)
+        {
+            var buff = new byte[4];
+            stream.Read(buff, 0, 4);
+            var number = BitConverter.ToInt32(buff, 0);
+            if (number != _currentNumber)
+            {
+                Console.WriteLine(string.Format("current number = {0}, received number = {1}, batchSize /2 = {2}", _currentNumber, number, batchSize / 2));
+                waitHandle.Set();
+                return;
+            }
+            _currentNumber++;
+            if (_currentNumber % 100000 == 0)
+                Console.WriteLine(string.Format("current number =  {0}", _currentNumber));
+            
+            if (_currentNumber == batchSize)
+                waitHandle.Set();
+
+        }
 
         [Test]
         public void tcp()
         {
-            log4net.Config.XmlConfigurator.Configure(new FileInfo("Log4net.config"));
             var waitForMessage1 = new ManualResetEvent(false);
             var waitForMessage2 = new ManualResetEvent(false);
             var waitForMessage3 = new ManualResetEvent(false);
@@ -42,18 +138,18 @@ namespace PgmTransportTests
 
             Thread senderThread = new Thread(() =>
             {
-                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("",Enumerable.Range(0,56).Select(x => x.ToString())));
+                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 56).Select(x => x.ToString())));
                 sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                 Console.WriteLine("after first sends");
 
                 waitForMessage1.WaitOne();
-             //   waitForMessage2.WaitOne();
-           //     waitForMessage3.WaitOne();
+                //   waitForMessage2.WaitOne();
+                //     waitForMessage3.WaitOne();
                 waitForMessage1.Reset();
-           //     waitForMessage2.Reset();
-             //   waitForMessage3.Reset();
+                //     waitForMessage2.Reset();
+                //   waitForMessage3.Reset();
                 Thread.Sleep(10000);
-                
+
                 for (int j = 0; j < 10; j++)
                 {
                     Console.WriteLine("Entering loop");
@@ -71,15 +167,15 @@ namespace PgmTransportTests
                     sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
 
                     waitForMessage1.WaitOne();
-                 //   waitForMessage2.WaitOne();
-                //    waitForMessage3.WaitOne();
+                    //   waitForMessage2.WaitOne();
+                    //    waitForMessage3.WaitOne();
                     waitForMessage1.Reset();
-             //       waitForMessage2.Reset();
-              //      waitForMessage3.Reset();
+                    //       waitForMessage2.Reset();
+                    //      waitForMessage3.Reset();
 
                     watch.Stop();
-                    var fps = batchSize/(watch.ElapsedMilliseconds/1000m);
-                    Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}",fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
+                    var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
+                    Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
                 }
             });
 
@@ -100,7 +196,7 @@ namespace PgmTransportTests
             var waitForMessage3 = new ManualResetEvent(false);
             var sender = new PgmSender();
             var receiver = new PgmReceiver();
-            
+
 
 
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("224.0.0.1"), 2000);
@@ -109,10 +205,10 @@ namespace PgmTransportTests
             receiver.ListenToEndpoint(ipEndPoint);
             receiver.ListenToEndpoint(ipEndPoint2);
             receiver.ListenToEndpoint(ipEndPoint3);
-            receiver.OnMessageReceived += (endpoint, stream) => OnMessageReceived(endpoint, stream, waitForMessage1, waitForMessage2,waitForMessage3, ipEndPoint, ipEndPoint2, ipEndPoint3);
+            receiver.OnMessageReceived += (endpoint, stream) => OnMessageReceived(endpoint, stream, waitForMessage1, waitForMessage2, waitForMessage3, ipEndPoint, ipEndPoint2, ipEndPoint3);
 
 
-            Thread senderThread =new Thread(() =>
+            Thread senderThread = new Thread(() =>
                                                 {
                                                     _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 1000).Select(x => x.ToString())));
                                                     sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
@@ -134,13 +230,13 @@ namespace PgmTransportTests
                                                         for (int i = 0; i < 10000; i++)
                                                         {
                                                             _messSentNumber++;
-                                            // //               if (_messSentNumber % 1000 == 0)
-                                             //                   Console.WriteLine("sending mess num" + _messSentNumber);
+                                                            // //               if (_messSentNumber % 1000 == 0)
+                                                            //                   Console.WriteLine("sending mess num" + _messSentNumber);
                                                             sender.SendAsync(ipEndPoint, _sentBuffer);
                                                             sender.SendAsync(ipEndPoint2, _sentBuffer);
                                                             sender.SendAsync(ipEndPoint3, _sentBuffer);
-                                                        //       sender.SendAsync(ipEndPoint, buffer);
-                                                         //      sender.SendAsync(ipEndPoint2, buffer);
+                                                            //       sender.SendAsync(ipEndPoint, buffer);
+                                                            //      sender.SendAsync(ipEndPoint2, buffer);
 
                                                         }
                                                         sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
@@ -173,17 +269,17 @@ namespace PgmTransportTests
         private void OnMessageReceived(IPEndPoint endpoint, Stream stream, EventWaitHandle waitForMessage1, EventWaitHandle waitForMessage2, EventWaitHandle waitForMessage3, IPEndPoint ipEndPoint1, IPEndPoint ipEndPoint2, IPEndPoint ipEndPoint3)
         {
 
-            _messNumber ++;
+            _messNumber++;
             //if(_messNumber %1000 == 0)
             //    Console.WriteLine("processing mess num" +_messNumber);
-      //      var buffer = new byte[stream.Length];
-        //    stream.Read(buffer, 0, (int)stream.Length);
+            //      var buffer = new byte[stream.Length];
+            //    stream.Read(buffer, 0, (int)stream.Length);
 
-   //         var message = Encoding.ASCII.GetString(buffer);
+            //         var message = Encoding.ASCII.GetString(buffer);
             //     Console.WriteLine(message);
-       //     if(stream.Length !=4)
-      //      Assert.AreEqual(message.Length, _sentBuffer.Length);
-            
+            //     if(stream.Length !=4)
+            //      Assert.AreEqual(message.Length, _sentBuffer.Length);
+
 
             if (stream.Length == 4 && Equals(endpoint, ipEndPoint1))
             {
@@ -208,7 +304,7 @@ namespace PgmTransportTests
 
         private void OnMessageReceived(IPEndPoint endpoint, Stream stream, AutoResetEvent waitForMessage, AutoResetEvent waitForMessage2)
         {
-           
+
         }
 
 
