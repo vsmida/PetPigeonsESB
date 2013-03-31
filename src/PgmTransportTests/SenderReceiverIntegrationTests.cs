@@ -49,7 +49,7 @@ namespace PgmTransportTests
             var beforebindDataCount = 100;
             for (int i = 1; i < beforebindDataCount; i++)
             {
-                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));                
+                sender.Send(ipEndPoint, BitConverter.GetBytes(i));                
             }
             Thread.Sleep(800);
             receiver.ListenToEndpoint(ipEndPoint);
@@ -59,7 +59,7 @@ namespace PgmTransportTests
             watch.Start();
             for (int i = beforebindDataCount; i < batchSize / 2; i++)
             {
-                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));
+                sender.Send(ipEndPoint, BitConverter.GetBytes(i));
             }
             Console.WriteLine("stoppping reception on endpoint");
 
@@ -71,8 +71,8 @@ namespace PgmTransportTests
             Console.WriteLine("re-establishing reception on endpoint");
 
 
-            sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(batchSize / 2));
-            sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(batchSize / 2 +1));
+            sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2));
+            sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2 +1));
             Thread.Sleep(100);
             receiver.ListenToEndpoint(ipEndPoint);
             Thread.Sleep(500);
@@ -80,7 +80,7 @@ namespace PgmTransportTests
 
             for (int i = batchSize / 2 +2; i < batchSize; i++)
             {
-                sender.SendAsync2(ipEndPoint, BitConverter.GetBytes(i));
+                sender.Send(ipEndPoint, BitConverter.GetBytes(i));
             }
             Console.WriteLine("sent last messages");
 
@@ -123,12 +123,13 @@ namespace PgmTransportTests
             var waitForMessage1 = new ManualResetEvent(false);
             var waitForMessage2 = new ManualResetEvent(false);
             var waitForMessage3 = new ManualResetEvent(false);
-            var sender = new TcpSender();
-            var receiver = new TcpReceiver();
+            var sender = new PgmSender();
+            var receiver = new PgmReceiver();
 
 
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
+          //  var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
+            var ipEndPoint = new IPEndPoint(IPAddress.Parse("224.0.0.1"), 2000);
             //sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
             Thread.Sleep(1000);
 
@@ -139,7 +140,7 @@ namespace PgmTransportTests
             Thread senderThread = new Thread(() =>
             {
                 _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 56).Select(x => x.ToString())));
-                sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                 Console.WriteLine("after first sends");
 
                 waitForMessage1.WaitOne();
@@ -155,16 +156,16 @@ namespace PgmTransportTests
                     Console.WriteLine("Entering loop");
                     var watch = new Stopwatch();
                     watch.Start();
-                    var batchSize = 200000;
+                    var batchSize = 500000;
                     for (int i = 0; i < batchSize; i++)
                     {
                         _messSentNumber++;
                         // //               if (_messSentNumber % 1000 == 0)
                         //                   Console.WriteLine("sending mess num" + _messSentNumber);
-                        sender.SendAsync2(ipEndPoint, _sentBuffer);
+                        sender.Send(ipEndPoint, _sentBuffer);
 
                     }
-                    sender.SendAsync2(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                    sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
 
                     waitForMessage1.WaitOne();
                     //   waitForMessage2.WaitOne();
@@ -211,7 +212,6 @@ namespace PgmTransportTests
             Thread senderThread = new Thread(() =>
                                                 {
                                                     _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 1000).Select(x => x.ToString())));
-                                                    sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                                                     sender.Send(ipEndPoint2, Encoding.ASCII.GetBytes("stop"));
                                                     sender.Send(ipEndPoint3, Encoding.ASCII.GetBytes("stop"));
                                                     Console.WriteLine("after first sends");
@@ -232,14 +232,14 @@ namespace PgmTransportTests
                                                             _messSentNumber++;
                                                             // //               if (_messSentNumber % 1000 == 0)
                                                             //                   Console.WriteLine("sending mess num" + _messSentNumber);
-                                                            sender.SendAsync(ipEndPoint, _sentBuffer);
-                                                            sender.SendAsync(ipEndPoint2, _sentBuffer);
-                                                            sender.SendAsync(ipEndPoint3, _sentBuffer);
+                                                            sender.Send(ipEndPoint, _sentBuffer);
+                                                            sender.Send(ipEndPoint2, _sentBuffer);
+                                                            sender.Send(ipEndPoint3, _sentBuffer);
                                                             //       sender.SendAsync(ipEndPoint, buffer);
                                                             //      sender.SendAsync(ipEndPoint2, buffer);
 
                                                         }
-                                                        sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                                                        sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                                                         sender.Send(ipEndPoint2, Encoding.ASCII.GetBytes("stop"));
                                                         sender.Send(ipEndPoint3, Encoding.ASCII.GetBytes("stop"));
 

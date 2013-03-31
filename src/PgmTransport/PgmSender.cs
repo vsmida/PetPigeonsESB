@@ -19,8 +19,8 @@ namespace PgmTransport
                 sendingSocket.SetSocketOption(PgmSocket.PGM_LEVEL, (SocketOptionName)PgmConstants.RM_SEND_WINDOW_ADV_RATE, 20);
                 var window = new _RM_SEND_WINDOW();
                 window.RateKbitsPerSec = 0;
-                window.WindowSizeInBytes = 100 * 1000 * 1000;
-                window.WindowSizeInMSecs = 100;
+                window.WindowSizeInBytes = 100 * 1024 * 1024;
+                window.WindowSizeInMSecs = 50;
                 sendingSocket.SetSendWindow(window);
 
                 sendingSocket.EnableGigabit();

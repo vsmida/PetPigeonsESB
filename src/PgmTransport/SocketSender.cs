@@ -30,14 +30,11 @@ namespace PgmTransport
         }
 
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
-        private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketSender));
         private int _buffersSize = 2048;
         private ConcurrentQueue<FrameToSend> _frameQueue;
-        private ConcurrentQueue<FrameToSend> _switchQueue;
         private Stopwatch _watch = new Stopwatch();
-        private SpinLock _spinLock = new SpinLock();
 
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _failedStuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
@@ -47,30 +44,8 @@ namespace PgmTransport
         protected SocketSender()
         {
             _frameQueue = new ConcurrentQueue<FrameToSend>();
-            _switchQueue = new ConcurrentQueue<FrameToSend>();
             _watch.Start();
             CreateIOThread();
-        }
-
-        public void Send(IPEndPoint endpoint, byte[] buffer)
-        {
-            var socket = GetSocket(endpoint);
-            if (socket == null)
-                return;
-
-            var necessaryBuffers = Math.Ceiling(((double)buffer.Length) / _buffersSize);
-            byte[] lengthInBytes = BitConverter.GetBytes(buffer.Length);
-
-            var sentBytes = socket.Send(lengthInBytes, 0, lengthInBytes.Length, SocketFlags.None);
-            CheckError(sentBytes, lengthInBytes.Length, socket);
-
-            for (int i = 0; i < necessaryBuffers; i++)
-            {
-                var length = Math.Min(buffer.Length - (i) * _buffersSize, _buffersSize);
-                sentBytes = socket.Send(buffer, i * 1024, length, SocketFlags.None);
-                CheckError(sentBytes, length, socket);
-            }
-
         }
 
         private void CreateIOThread()
@@ -85,36 +60,19 @@ namespace PgmTransport
                                                {
 
                                                    ExecuteElapsedTimers();
-                                                   ConcurrentQueue<FrameToSend> queue = null;
-                                                   bool lockTaken = false;
-
-                                                   try
                                                    {
-
-                                                       _spinLock.Enter(ref lockTaken);
-                                                       queue = _frameQueue;
-                                                       _frameQueue = _switchQueue;
-                                                   }
-                                                   finally
-                                                   {
-                                                       if(lockTaken)
-                                                       _spinLock.Exit(true);
-                                                   }
-                                                 
-                                                   if (queue != null)
-                                                   {
-                                                       var count = queue.Count;
+                                                       var count = _frameQueue.Count;
                                                        for (int i = 0; i < count; i++)
                                                        {
-                                                           
+
                                                            FrameToSend frameToSend;
-                                                           queue.TryDequeue(out frameToSend);
+                                                           _frameQueue.TryDequeue(out frameToSend);
                                                            var currentEndpoint = frameToSend.Endpoint;
                                                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(currentEndpoint);
 
                                                            int size = 0;
                                                            _stuffToSendSize.TryGetValue(currentEndpoint, out size);
-                                                           if (size >= 60000000000)//for PGM or udp, to cleanup
+                                                           if (size >= 60000)//for PGM or udp, to cleanup
                                                            {
                                                                SendData(currentEndpoint, stuffToSendForFrameEndpoint);
                                                                _stuffToSend[currentEndpoint].Clear();
@@ -135,18 +93,6 @@ namespace PgmTransport
 
                                                    ResetFrameAggregationDictionaries();
 
-                                                   lockTaken = false;
-                                                   try
-                                                   {
-                                                       _spinLock.Enter(ref lockTaken);
-                                                       _switchQueue = queue;
-
-                                                   }
-                                                   finally
-                                                   {
-                                                       if (lockTaken)
-                                                           _spinLock.Exit(true);
-                                                   }
 
                                                    spinWait.SpinOnce();
                                                }
@@ -202,9 +148,6 @@ namespace PgmTransport
                 }
 
                 sentBytes = socket.Send(data, SocketFlags.None);
-                var bytes = BitConverter.GetBytes(1000000); 
-                if (data.Count >= 2 && data[1].Array[0] == bytes[0] && data[1].Array[1] == bytes[1] && data[1].Array[2] == bytes[2] && data[1].Array[3] == bytes[3])
-                //    Debugger.Break();
                 CheckError(sentBytes, data.Sum(x => x.Count), socket);
 
                 _stuffToSendSize[endpoint] = 0;
@@ -268,28 +211,10 @@ namespace PgmTransport
             }
         }
 
-        private void FlushDataForEndpoint(List<ArraySegment<byte>> buffers, IPEndPoint endpoint)
-        {
-            var socket = GetSocket(endpoint);
-            var sentBytes = socket.Send(buffers, SocketFlags.None);
-            CheckError(sentBytes, buffers.Sum(x => x.Count), socket);
-
-        }
-
-        public void SendAsync2(IPEndPoint endpoint, byte[] buffer)
+        public void Send(IPEndPoint endpoint, byte[] buffer)
         {
             var frameClass = new FrameToSend { Frame = new ArraySegment<byte>(buffer, 0, buffer.Length), Endpoint = endpoint };
-            bool lockTaken = false;
-            try
-            {
-                _spinLock.Enter(ref lockTaken);
-                _frameQueue.Enqueue(frameClass);
-            }
-            finally
-            {
-                if(lockTaken)
-                    _spinLock.Exit(true);
-            }
+            _frameQueue.Enqueue(frameClass);
 
         }
 
@@ -339,59 +264,13 @@ namespace PgmTransport
             return socket;
         }
 
-        public void SendAsync(IPEndPoint endpoint, byte[] buffer)
-        {
-            var socket = GetSocket(endpoint);
-            if (socket == null)
-                return;
-
-
-            var necessaryBuffers = Math.Ceiling(((double)buffer.Length) / _buffersSize);
-            byte[] lengthInBytes = BitConverter.GetBytes(buffer.Length);
-
-            var firstEventArgs = _eventArgsPool.GetItem();
-            firstEventArgs.Completed += OnSendCompleted;
-
-            var bufferList = firstEventArgs.BufferList;
-            if (bufferList == null)
-                bufferList = new List<ArraySegment<byte>>();
-            else
-                bufferList.Clear();
-            bufferList.Add(new ArraySegment<byte>(lengthInBytes));
-
-            for (int i = 0; i < necessaryBuffers; i++)
-            {
-                var length = Math.Min(buffer.Length - (i) * _buffersSize, _buffersSize);
-                bufferList.Add(new ArraySegment<byte>(buffer, i * _buffersSize, length));
-
-            }
-            firstEventArgs.BufferList = bufferList;
-            if (!socket.SendAsync(firstEventArgs))
-                OnSendCompleted(socket, firstEventArgs);
-        }
-
-        private void OnSendCompleted(object sender, SocketAsyncEventArgs e)
-        {
-            if (e.SocketError != SocketError.Success)
-            {
-                _logger.ErrorFormat("Error on send :  {0}", e.SocketError);
-            }
-
-            if (e.BytesTransferred != e.BufferList.Sum(x => x.Count))
-            {
-                _logger.Warn("could not send all bytes");
-            }
-            e.Completed -= OnSendCompleted;
-            _eventArgsPool.PutBackItem(e);
-        }
-
         public void DisconnectEndpoint(IPEndPoint endpoint)
         {
             Socket socket;
             if (!_endPointToSockets.TryGetValue(endpoint, out socket))
                 return;
-            socket.Close();
-            socket.Dispose();
+            socket.Shutdown(SocketShutdown.Send);
+            socket.Dispose(); //??
 
         }
 

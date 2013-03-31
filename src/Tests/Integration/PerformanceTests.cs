@@ -29,7 +29,7 @@ namespace Tests.Integration
         {
             var fakeTransportConfiguration = new FakeTransportConfiguration();
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[0]), endpoint);
+            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[10]), endpoint);
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -97,7 +97,7 @@ namespace Tests.Integration
 
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
-                BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
+               // BusSerializer.Deserialize(data.InitialTransportMessage.Data, TypeUtils.Resolve(typeof(FakePersistingCommand).FullName));
                 
                 Interlocked.Increment(ref MessageCount);
             }
