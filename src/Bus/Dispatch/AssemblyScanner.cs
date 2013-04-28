@@ -82,20 +82,25 @@ namespace Bus.Dispatch
             {
                 foreach (var type in assembly.GetTypes())
                 {
-                    if (type.IsInterface || type.IsAbstract)
+                    if (type.IsInterface || type.IsAbstract || (!typeof(IMessage).IsAssignableFrom(type)))
                         continue;
-                    var messageHandlingInterfaces = type.GetInterfaces()
-                                                        .Where(x => x.IsGenericType 
-                                                        && (x.GetGenericTypeDefinition() == typeof(ICommandHandler<>) || x.GetGenericTypeDefinition() == typeof(IBusEventHandler<>)));
-                    foreach (var messageHandlingInterface in messageHandlingInterfaces)
-                    {
-                        var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
-                        var genericType = messageHandlingInterface.GetGenericArguments()[0];
-                        if(!options.Any(x => x.MessageType == genericType))
-                        options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
+                    var reliability = type.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
+                    if(options.All(x => x.MessageType != type))
+                        options.Add(new MessageOptions(type, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
                                                                     reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
                                                                     typeToFilter.GetValueOrDefault(type)));
-                    }
+                    //var messageHandlingInterfaces = type.GetInterfaces()
+                    //                                    .Where(x => x.IsGenericType 
+                    //                                    && (x.GetGenericTypeDefinition() == typeof(ICommandHandler<>) || x.GetGenericTypeDefinition() == typeof(IBusEventHandler<>)));
+                    //foreach (var messageHandlingInterface in messageHandlingInterfaces)
+                    //{
+                    //    var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
+                    //    var genericType = messageHandlingInterface.GetGenericArguments()[0];
+                    //    if(!options.Any(x => x.MessageType == genericType))
+                    //    options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
+                    //                                                reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
+                    //                                                typeToFilter.GetValueOrDefault(type)));
+                    //}
                 }
             }
 
