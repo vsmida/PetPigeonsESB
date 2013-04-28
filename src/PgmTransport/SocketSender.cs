@@ -21,6 +21,12 @@ namespace PgmTransport
     }
 
 
+    public enum HighWaterMarkBehavior
+    {
+        Drop,
+        Block,
+    }
+
     public abstract class SocketSender : IDisposable
     {
         private struct FrameToSend
@@ -35,10 +41,12 @@ namespace PgmTransport
         private int _buffersSize = 2048;
         private ConcurrentQueue<FrameToSend> _frameQueue;
         private Stopwatch _watch = new Stopwatch();
-
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _failedStuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private Dictionary<IPEndPoint, int> _stuffToSendSize = new Dictionary<IPEndPoint, int>();
+        private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
+
+
         private Thread _iothread;
 
         protected SocketSender()
@@ -58,7 +66,7 @@ namespace PgmTransport
                                                var spinWait = default(SpinWait);
                                                while (true)
                                                {
-
+                                                   var failedSockets = new HashSet<Socket>();
                                                    ExecuteElapsedTimers();
                                                    {
                                                        var count = _frameQueue.Count;
@@ -74,7 +82,7 @@ namespace PgmTransport
                                                            _stuffToSendSize.TryGetValue(currentEndpoint, out size);
                                                            if (size >= 60000)//for PGM or udp, to cleanup
                                                            {
-                                                               SendData(currentEndpoint, stuffToSendForFrameEndpoint);
+                                                               SendData(currentEndpoint, stuffToSendForFrameEndpoint, failedSockets);
                                                                _stuffToSend[currentEndpoint].Clear();
                                                                _stuffToSendSize[currentEndpoint] = 0;
                                                            }
@@ -87,7 +95,7 @@ namespace PgmTransport
                                                        {
                                                            if (pair.Value.Count == 0)
                                                                continue;
-                                                           SendData(pair.Key, pair.Value);
+                                                           SendData(pair.Key, pair.Value, failedSockets);
                                                        }
                                                    }
 
@@ -134,19 +142,20 @@ namespace PgmTransport
             _stuffToSendSize[currentEndpoint] += frameToSend.Frame.Count + 4;
         }
 
-        private void SendData(IPEndPoint endpoint, List<ArraySegment<byte>> data)
+        private void SendData(IPEndPoint endpoint, List<ArraySegment<byte>> data, HashSet<Socket> failedSockets)
         {
             int sentBytes = 0;
             Socket socket = null;
             try
             {
                 socket = GetSocket(endpoint);
-                if (socket == null) //socket has been previously disconnected or cannot be created somehow, circuit breaker dont do anything
+                if (socket == null || failedSockets.Contains(socket)) //socket has been previously disconnected or cannot be created somehow, circuit breaker dont do anything
                 {
                     SaveUnsentData(endpoint, socket, sentBytes, data);
                     return;
                 }
 
+                var eventArgs = _eventArgsPool.GetItem();
                 sentBytes = socket.Send(data, SocketFlags.None);
                 CheckError(sentBytes, data.Sum(x => x.Count), socket);
 
@@ -158,6 +167,8 @@ namespace PgmTransport
             {
                 _logger.Error(string.Format("Error on send {0}", e.Message));
                 if (socket != null)
+                    failedSockets.Add(socket);
+                if (socket != null)
                 {
                     socket.Disconnect(false);
                     socket.Dispose();
@@ -168,6 +179,7 @@ namespace PgmTransport
                 _timers.Add(_watch.ElapsedTicks + TimeSpan.FromSeconds(1).Ticks, () => CreateSocketForEndpoint(endpoint));
                 SaveUnsentData(endpoint, socket, sentBytes, data);
             }
+
         }
 
         private void ResetFrameAggregationDictionaries()
