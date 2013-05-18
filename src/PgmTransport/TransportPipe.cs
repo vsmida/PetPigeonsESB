@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -7,24 +6,29 @@ using log4net;
 
 namespace PgmTransport
 {
-    public abstract class TransportPipe
+    public abstract class TransportPipe : IDisposable
     {
-        private readonly ConcurrentQueue<ArraySegment<byte>> _frames = new ConcurrentQueue<ArraySegment<byte>>();
+        internal readonly MessageContainer MessageContainer = new MessageContainer();
         private readonly int _highWaterMark;
         private readonly HighWaterMarkBehavior _highWaterMarkBehavior; //use polymorphism instead?
-        
-        public TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior)
+        public readonly IPEndPoint EndPoint;
+        private SendingTransport _transport;
+
+        public TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
         {
+            _transport = transport;
             _highWaterMarkBehavior = highWaterMarkBehavior;
+            EndPoint = endPoint;
             _highWaterMark = highWaterMark;
+            transport.AttachToIoThread(this, sendingThreadNumber);
         }
 
         public bool Send(ArraySegment<byte> data)
         {
-            if (_frames.Count < _highWaterMark)
-                _frames.Enqueue(data);
+            if (MessageContainer.Count < _highWaterMark)
+                MessageContainer.InsertMessage(data);
             else
-            { 
+            {
                 switch (_highWaterMarkBehavior)
                 {
                     case HighWaterMarkBehavior.Drop:
@@ -32,11 +36,11 @@ namespace PgmTransport
                     case HighWaterMarkBehavior.Block:
                         {
                             var wait = new SpinWait();
-                            while (_frames.Count >= _highWaterMark)
+                            while (MessageContainer.Count >= _highWaterMark)
                             {
                                 wait.SpinOnce();
                             }
-                            _frames.Enqueue(data);
+                            MessageContainer.InsertMessage(data);
                             break;
                         }
                     default:
@@ -47,16 +51,19 @@ namespace PgmTransport
         }
 
         public abstract Socket CreateSocket();
+        public void Dispose()
+        {
+            _transport.DetachFromIoThread(this);
         }
+    }
 
     public class TcpTransportPipe : TransportPipe
     {
-        private IPEndPoint _endPoint;
         private readonly ILog _logger = LogManager.GetLogger(typeof(TcpTransportPipe));
 
-        public TcpTransportPipe(IPEndPoint endPoint, int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior) : base(highWaterMark, highWaterMarkBehavior)
+
+        public TcpTransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0) : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
         {
-            _endPoint = endPoint;
         }
 
         public override Socket CreateSocket()
@@ -65,7 +72,7 @@ namespace PgmTransport
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.SendBufferSize = 1024 * 1024;
-                socket.Connect(_endPoint);
+                socket.Connect(EndPoint);
                 return socket;
             }
             catch (Exception e)

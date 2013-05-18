@@ -36,11 +36,11 @@ namespace PgmTransport
         }
 
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
+        private Stopwatch _watch = new Stopwatch();
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketSender));
         private int _buffersSize = 2048;
         private ConcurrentQueue<FrameToSend> _frameQueue;
-        private Stopwatch _watch = new Stopwatch();
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private Dictionary<IPEndPoint, List<ArraySegment<byte>>> _failedStuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private Dictionary<IPEndPoint, int> _stuffToSendSize = new Dictionary<IPEndPoint, int>();

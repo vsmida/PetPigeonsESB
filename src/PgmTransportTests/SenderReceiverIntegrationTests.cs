@@ -36,12 +36,14 @@ namespace PgmTransportTests
         {
             //Console.WriteLine("Test Start");
             _currentNumber = 1;
-            var sender = new TcpSender();
-            var receiver = new TcpReceiver();
-
-            AutoResetEvent waitHandle = new AutoResetEvent(false);
             var port = NetworkUtils.GetRandomUnusedPort();
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), port);
+            var transport = new SendingTransport();
+           // var sender = new TcpSender();
+            var sender = new TcpTransportPipe(100000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
+            var receiver = new TcpReceiver();
+
+            var waitHandle = new AutoResetEvent(false);
             var batchSize = 2000000;
             receiver.OnMessageReceived +=(x,y) => OnCheckErrorMessageReceived(x,y,waitHandle, batchSize);
 
@@ -49,7 +51,8 @@ namespace PgmTransportTests
             var beforebindDataCount = 100;
             for (int i = 1; i < beforebindDataCount; i++)
             {
-                sender.Send(ipEndPoint, BitConverter.GetBytes(i));                
+                sender.Send(new ArraySegment<byte>(BitConverter.GetBytes(i)));                
+              //  sender.Send(ipEndPoint, BitConverter.GetBytes(i));                
             }
             Thread.Sleep(800);
             receiver.ListenToEndpoint(ipEndPoint);
@@ -59,7 +62,8 @@ namespace PgmTransportTests
             watch.Start();
             for (int i = beforebindDataCount; i < batchSize / 2; i++)
             {
-                sender.Send(ipEndPoint, BitConverter.GetBytes(i));
+              //  sender.Send(ipEndPoint, BitConverter.GetBytes(i));
+                sender.Send(new ArraySegment<byte>(BitConverter.GetBytes(i)));
             }
             Console.WriteLine("stoppping reception on endpoint");
 
@@ -71,8 +75,10 @@ namespace PgmTransportTests
             Console.WriteLine("re-establishing reception on endpoint");
 
 
-            sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2));
-            sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2 +1));
+         //   sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2));
+         //   sender.Send(ipEndPoint, BitConverter.GetBytes(batchSize / 2 +1));
+            sender.Send(new ArraySegment<byte>(BitConverter.GetBytes(batchSize / 2)));
+            sender.Send(new ArraySegment<byte>(BitConverter.GetBytes(batchSize / 2 + 1)));
             Thread.Sleep(100);
             receiver.ListenToEndpoint(ipEndPoint);
             Thread.Sleep(500);
@@ -80,7 +86,8 @@ namespace PgmTransportTests
 
             for (int i = batchSize / 2 +2; i < batchSize; i++)
             {
-                sender.Send(ipEndPoint, BitConverter.GetBytes(i));
+              //  sender.Send(ipEndPoint, BitConverter.GetBytes(i));
+                sender.Send(new ArraySegment<byte>(BitConverter.GetBytes(i)));
             }
             Console.WriteLine("sent last messages");
 
@@ -92,6 +99,7 @@ namespace PgmTransportTests
             Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
 
             sender.Dispose();
+            transport.Dispose();
             receiver.Dispose();
 
             Thread.Sleep(500);
