@@ -131,13 +131,15 @@ namespace PgmTransportTests
             var waitForMessage1 = new ManualResetEvent(false);
             var waitForMessage2 = new ManualResetEvent(false);
             var waitForMessage3 = new ManualResetEvent(false);
-            var sender = new PgmSender();
-            var receiver = new PgmReceiver();
+            //var sender = new PgmSender();
+            //var receiver = new PgmReceiver();
+            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
+            var transport = new SendingTransport();
+            var sender = new TcpTransportPipe(100000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
+            var receiver = new TcpReceiver();
 
 
-
-          //  var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("224.0.0.1"), 2000);
+        //    var ipEndPoint = new IPEndPoint(IPAddress.Parse("224.0.0.1"), 2000);
             //sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
             Thread.Sleep(1000);
 
@@ -148,7 +150,8 @@ namespace PgmTransportTests
             Thread senderThread = new Thread(() =>
             {
                 _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 56).Select(x => x.ToString())));
-                sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+              //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
                 Console.WriteLine("after first sends");
 
                 waitForMessage1.WaitOne();
@@ -170,10 +173,12 @@ namespace PgmTransportTests
                         _messSentNumber++;
                         // //               if (_messSentNumber % 1000 == 0)
                         //                   Console.WriteLine("sending mess num" + _messSentNumber);
-                        sender.Send(ipEndPoint, _sentBuffer);
+                       // sender.Send(ipEndPoint, _sentBuffer);
+                        sender.Send(new ArraySegment<byte>(_sentBuffer));
 
                     }
-                    sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                    sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
+                  //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
 
                     waitForMessage1.WaitOne();
                     //   waitForMessage2.WaitOne();

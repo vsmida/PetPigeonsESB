@@ -63,7 +63,7 @@ namespace PgmTransport
                 {
                     ExecuteElapsedTimers();
                     {
-                        foreach (var pipe in _transportPipes)
+                        foreach (var pipe in _transportPipes.ToList()) //might alter the collection while iterating by detaching a pipe
                         {
                             var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint);
 
@@ -76,9 +76,19 @@ namespace PgmTransport
                                 ArraySegment<byte> message;
                                 pipe.MessageContainer.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
+
+                                if(sizeToSend >= 600000)
+                                {
+                                    SendData(pipe, stuffToSendForFrameEndpoint);
+                                    stuffToSendForFrameEndpoint.Clear();
+                                }
                             }
-                            SendData(pipe, stuffToSendForFrameEndpoint);
-                            stuffToSendForFrameEndpoint.Clear();
+                            if(stuffToSendForFrameEndpoint.Count > 0)
+                            {
+                                SendData(pipe, stuffToSendForFrameEndpoint);
+                                stuffToSendForFrameEndpoint.Clear();
+                            }
+
                             RemovePipeIfNeeded(pipe);
 
                         }
@@ -91,6 +101,10 @@ namespace PgmTransport
                 //_logger.Error(exception);
                 Thread.ResetAbort();
             }
+            catch(Exception e)
+            {
+                _logger.Error(e);
+            }
         }
 
         private void RemovePipeIfNeeded(TransportPipe pipe)
@@ -100,7 +114,10 @@ namespace PgmTransport
                 TransportPipe toRemove;
                 _transportPipes.TryTake(out toRemove);
                 Socket socket;
-                _endPointToSockets.TryRemove(pipe, out socket);
+                lock (_endPointToSockets)
+                {
+                    _endPointToSockets.TryRemove(pipe, out socket);
+                }
                 if (socket != null)
                     socket.Dispose();
                 AutoResetEvent waitHandle;
@@ -174,9 +191,13 @@ namespace PgmTransport
             {
                 _logger.Info(string.Format("Creating send socket for endpoint {0}", pipe.EndPoint));
                 var socket = pipe.CreateSocket();
-                if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
-                    //todo: race condition here, could be detaching while this is being called in the main thread; could lock on dictionary here and in detach.
-                    _endPointToSockets[pipe] = socket;
+                lock(_endPointToSockets)
+                {
+                    if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
+                        //todo: race condition here, could be detaching while this is being called in the main thread; could lock on dictionary here and in detach.
+                        _endPointToSockets[pipe] = socket;
+                }
+
                 if (socket == null)
                 {
                     _timers.Add(_watch.ElapsedTicks + TimeSpan.FromSeconds(1).Ticks, () => CreateSocketForEndpoint(pipe));

@@ -62,7 +62,6 @@ namespace PgmTransport
                                        {
                                            try
                                            {
-
                                                var spinWait = default(SpinWait);
                                                while (true)
                                                {
