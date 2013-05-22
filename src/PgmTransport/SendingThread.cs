@@ -14,13 +14,13 @@ namespace PgmTransport
     internal class SendingThread : IDisposable
     {
         private readonly Thread _thread;
-        private readonly ConcurrentBag<TransportPipe> _transportPipes = new ConcurrentBag<TransportPipe>();
-        private readonly ConcurrentDictionary<TransportPipe, Socket> _endPointToSockets = new ConcurrentDictionary<TransportPipe, Socket>();
+        private readonly List<TransportPipe> _transportPipes = new List<TransportPipe>();
+        private readonly Dictionary<TransportPipe, Socket> _endPointToSockets = new Dictionary<TransportPipe, Socket>();
         private readonly Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private readonly Stopwatch _watch = new Stopwatch();
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
+        private readonly ConcurrentBag<Action> _commands = new ConcurrentBag<Action>();
         private readonly ILog _logger = LogManager.GetLogger(typeof(SendingThread));
-        private readonly ConcurrentDictionary<TransportPipe, AutoResetEvent> _pipesToBeRemoved = new ConcurrentDictionary<TransportPipe, AutoResetEvent>();
 
 
         internal SendingThread()
@@ -31,7 +31,7 @@ namespace PgmTransport
 
         internal void Attach(TransportPipe pipe)
         {
-            _transportPipes.Add(pipe);
+            _commands.Add(() => _transportPipes.Add(pipe));
         }
 
         private void ExecuteElapsedTimers()
@@ -61,6 +61,7 @@ namespace PgmTransport
                 var spinWait = default(SpinWait);
                 while (true)
                 {
+                    ExecuteCommands();
                     ExecuteElapsedTimers();
                     {
                         foreach (var pipe in _transportPipes.ToList()) //might alter the collection while iterating by detaching a pipe
@@ -77,19 +78,18 @@ namespace PgmTransport
                                 pipe.MessageContainer.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
 
-                                if(sizeToSend >= 600000)
+                                if (sizeToSend >= 600000)
                                 {
                                     SendData(pipe, stuffToSendForFrameEndpoint);
                                     stuffToSendForFrameEndpoint.Clear();
+                                    sizeToSend = 0;
                                 }
                             }
-                            if(stuffToSendForFrameEndpoint.Count > 0)
+                            if (stuffToSendForFrameEndpoint.Count > 0)
                             {
                                 SendData(pipe, stuffToSendForFrameEndpoint);
                                 stuffToSendForFrameEndpoint.Clear();
                             }
-
-                            RemovePipeIfNeeded(pipe);
 
                         }
                     }
@@ -101,31 +101,27 @@ namespace PgmTransport
                 //_logger.Error(exception);
                 Thread.ResetAbort();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 _logger.Error(e);
             }
         }
 
-        private void RemovePipeIfNeeded(TransportPipe pipe)
+        private void ExecuteCommands()
         {
-            if (_pipesToBeRemoved.ContainsKey(pipe))
+            foreach (var command in _commands)
             {
-                TransportPipe toRemove;
-                _transportPipes.TryTake(out toRemove);
-                Socket socket;
-                lock (_endPointToSockets)
-                {
-                    _endPointToSockets.TryRemove(pipe, out socket);
-                }
-                if (socket != null)
-                    socket.Dispose();
-                AutoResetEvent waitHandle;
-                _pipesToBeRemoved.TryRemove(toRemove, out waitHandle);
-
-
-                waitHandle.Set();
+                command();
             }
+        }
+
+        private void RemovePipe(TransportPipe pipe)
+        {
+            _transportPipes.Remove(pipe);
+            Socket socket = _endPointToSockets[pipe];
+            _endPointToSockets.Remove(pipe);
+            if (socket != null)
+                socket.Dispose();
         }
 
         private Socket GetSocket(TransportPipe pipe)
@@ -191,12 +187,8 @@ namespace PgmTransport
             {
                 _logger.Info(string.Format("Creating send socket for endpoint {0}", pipe.EndPoint));
                 var socket = pipe.CreateSocket();
-                lock(_endPointToSockets)
-                {
-                    if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
-                        //todo: race condition here, could be detaching while this is being called in the main thread; could lock on dictionary here and in detach.
-                        _endPointToSockets[pipe] = socket;
-                }
+                if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
+                    _endPointToSockets[pipe] = socket;
 
                 if (socket == null)
                 {
@@ -227,6 +219,7 @@ namespace PgmTransport
         public void Dispose()
         {
             _thread.Abort();
+            _thread.Join();
             foreach (var socket in _endPointToSockets.Values)
             {
                 socket.Dispose();
@@ -235,8 +228,13 @@ namespace PgmTransport
 
         public void Detach(TransportPipe pipe)
         {
+
             var waitHandle = new AutoResetEvent(false);
-            _pipesToBeRemoved.TryAdd(pipe, waitHandle);
+            _commands.Add(() =>
+                              {
+                                  RemovePipe(pipe);
+                                  waitHandle.Set();
+                              });
             waitHandle.WaitOne();
         }
     }
