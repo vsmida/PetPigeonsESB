@@ -64,7 +64,7 @@ namespace PgmTransport
                     ExecuteCommands();
                     ExecuteElapsedTimers();
                     {
-                        foreach (var pipe in _transportPipes.ToList()) //might alter the collection while iterating by detaching a pipe
+                        foreach (var pipe in _transportPipes)
                         {
                             var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint);
 
@@ -78,16 +78,16 @@ namespace PgmTransport
                                 pipe.MessageContainer.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
 
-                                if (sizeToSend >= 600000)
+                                if (sizeToSend >= pipe.MaximumBatchSize)
                                 {
-                                    SendData(pipe, stuffToSendForFrameEndpoint);
+                                    SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
                                     stuffToSendForFrameEndpoint.Clear();
                                     sizeToSend = 0;
                                 }
                             }
                             if (stuffToSendForFrameEndpoint.Count > 0)
                             {
-                                SendData(pipe, stuffToSendForFrameEndpoint);
+                                SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
                                 stuffToSendForFrameEndpoint.Clear();
                             }
 
@@ -109,8 +109,10 @@ namespace PgmTransport
 
         private void ExecuteCommands()
         {
-            foreach (var command in _commands)
+            for (int i = 0; i < _commands.Count; i++)
             {
+                Action command;
+                _commands.TryTake(out command);
                 command();
             }
         }
@@ -147,7 +149,7 @@ namespace PgmTransport
         }
 
 
-        private void SendData(TransportPipe pipe, List<ArraySegment<byte>> data)
+        private void SendData(TransportPipe pipe, List<ArraySegment<byte>> data, int dataSize)
         {
             int sentBytes = 0;
             Socket socket = null;
@@ -161,7 +163,7 @@ namespace PgmTransport
                 }
 
                 sentBytes = socket.Send(data, SocketFlags.None);
-                CheckError(sentBytes, data.Sum(x => x.Count), socket);
+                CheckError(sentBytes, dataSize, socket);
 
             }
 

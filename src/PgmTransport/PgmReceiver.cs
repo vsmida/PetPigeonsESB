@@ -81,7 +81,7 @@ namespace PgmTransport
         private void OnAccept(object sender, SocketAsyncEventArgs e)
         {
 
-            
+
             var socket = sender as Socket;
             var receiveSocket = e.AcceptSocket;
 
@@ -175,14 +175,13 @@ namespace PgmTransport
 
         private void DoReceive(Socket socket, SocketAsyncEventArgs e)
         {
+
+            var messageReady = _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred));
+            if (messageReady)
             {
-                var messageReady = _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred));
-                if (messageReady)
-                {
-                    var messages = _receivingSockets[socket].GetMessages();
-                    while (messages.Count > 0)
-                        OnMessageReceived((IPEndPoint)e.UserToken, messages.Dequeue());
-                }
+                var messages = _receivingSockets[socket].GetMessages();
+                while (messages.Count > 0)
+                    OnMessageReceived((IPEndPoint)e.UserToken, messages.Dequeue());
             }
 
         }

@@ -12,7 +12,9 @@ namespace PgmTransport
         private readonly int _highWaterMark;
         private readonly HighWaterMarkBehavior _highWaterMarkBehavior; //use polymorphism instead?
         public readonly IPEndPoint EndPoint;
-        private SendingTransport _transport;
+        private readonly SendingTransport _transport;
+
+        public abstract int MaximumBatchSize { get; }
 
         public TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
         {
@@ -62,8 +64,14 @@ namespace PgmTransport
         private readonly ILog _logger = LogManager.GetLogger(typeof(TcpTransportPipe));
 
 
-        public TcpTransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0) : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
+        public TcpTransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
+            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
         {
+        }
+
+        public override int MaximumBatchSize
+        {
+            get { return 1024* 512; }
         }
 
         public override Socket CreateSocket()
