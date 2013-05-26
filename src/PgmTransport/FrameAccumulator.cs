@@ -65,7 +65,8 @@ namespace PgmTransport
                 throw new ArgumentException("Cannot get message");
 
             var stream = _streamPool.GetItem();
-            stream.SetFrames(_frames == null? new List<Frame>():new List<Frame>(_frames));
+            stream.SetFrames(_frames ?? new List<Frame>());
+         //   stream.SetFrames(_frames == null? new List<Frame>():new List<Frame>(_frames));
             return stream;
         }
 
@@ -86,10 +87,9 @@ namespace PgmTransport
     {
         private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
         private PartialMessage _currentPartialMessage = new PartialMessage();
-        private Queue<Stream> _fullMessages = new Queue<Stream>(10);
+        public event Action<Stream> MessageReceived = delegate{};
 
-
-        public bool AddFrame(Frame frame)
+        public void AddFrame(Frame frame)
         {
             bool canReturnMessages = false;
             var originalCount = frame.Count;
@@ -100,25 +100,15 @@ namespace PgmTransport
 
                 if (_currentPartialMessage.Ready)
                 {
-                    _fullMessages.Enqueue(_currentPartialMessage.GetMessage());
-                    canReturnMessages = true;
+                    MessageReceived(_currentPartialMessage.GetMessage());
+                  //  _fullMessages.Enqueue(_currentPartialMessage.GetMessage());
+                  //  canReturnMessages = true;
                     _currentPartialMessage.Clear();
                 }
                 frame.Offset += readFromFrame;
                 frame.Count -= readFromFrame;
 
             }
-            return canReturnMessages;
-        }
-
-        public Queue<Stream> GetMessages()
-        {
-            if (_fullMessages.Count == 0)
-                throw new ArgumentException("Should not request messages, none available");
-            var result = _fullMessages;
-            _fullMessages = new Queue<Stream>(10);
-            return result;
-
         }
 
     }

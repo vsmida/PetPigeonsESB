@@ -126,7 +126,10 @@ namespace PgmTransport
                 }
                 socketsForEndpoint.Add(receiveSocket);
             }
-            _receivingSockets[receiveSocket] = new FrameAccumulator();
+            var frameAccumulator = new FrameAccumulator();
+            var localEndPoint = (IPEndPoint)socket.LocalEndPoint;
+            frameAccumulator.MessageReceived += (s) => OnMessageReceived(localEndPoint, s);
+            _receivingSockets[receiveSocket] = frameAccumulator;
             var receiveEventArgs = _eventArgsPool.GetItem();
             receiveEventArgs.UserToken = socket.LocalEndPoint;
             receiveEventArgs.Completed += OnReceive;
@@ -175,15 +178,7 @@ namespace PgmTransport
 
         private void DoReceive(Socket socket, SocketAsyncEventArgs e)
         {
-
-            var messageReady = _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred));
-            if (messageReady)
-            {
-                var messages = _receivingSockets[socket].GetMessages();
-                while (messages.Count > 0)
-                    OnMessageReceived((IPEndPoint)e.UserToken, messages.Dequeue());
-            }
-
+            _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred));
         }
 
         private bool CheckError(Socket socket, SocketAsyncEventArgs e)

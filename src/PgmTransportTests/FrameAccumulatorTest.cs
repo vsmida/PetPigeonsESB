@@ -83,59 +83,59 @@ namespace PgmTransportTests
         }
 
 
-        [Test]
-        public void accumulator_should_give_back_one_message()
-        {
-            var buffer = Encoding.ASCII.GetBytes(_originalString);
-            var lengthBuffer = BitConverter.GetBytes(buffer.Length);
+        //[Test]
+        //public void accumulator_should_give_back_one_message()
+        //{
+        //    var buffer = Encoding.ASCII.GetBytes(_originalString);
+        //    var lengthBuffer = BitConverter.GetBytes(buffer.Length);
 
-            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 0, 2));
-            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 2, 2));
-            Assert.IsTrue(_frameAccumulator.AddFrame(new Frame(buffer, 0, buffer.Length)));
+        //    _frameAccumulator.AddFrame(new Frame(lengthBuffer, 0, 2));
+        //    _frameAccumulator.AddFrame(new Frame(lengthBuffer, 2, 2));
+        //    Assert.IsTrue(_frameAccumulator.AddFrame(new Frame(buffer, 0, buffer.Length)));
 
-            var messages = _frameAccumulator.GetMessages();
-            Assert.AreEqual(1, messages.Count);
+        //    var messages = _frameAccumulator.GetMessages();
+        //    Assert.AreEqual(1, messages.Count);
 
-            var message = messages.Dequeue();
-            byte[] messageBuffer = new byte[buffer.Length];
-            message.Read(messageBuffer, 0, (int)message.Length);
+        //    var message = messages.Dequeue();
+        //    byte[] messageBuffer = new byte[buffer.Length];
+        //    message.Read(messageBuffer, 0, (int)message.Length);
 
-            var stringMessage = Encoding.ASCII.GetString(messageBuffer);
-            Assert.AreEqual(_originalString, stringMessage);
-        }
+        //    var stringMessage = Encoding.ASCII.GetString(messageBuffer);
+        //    Assert.AreEqual(_originalString, stringMessage);
+        //}
 
-        [Test]
-        public void accumulator_should_give_back_multiple_message()
-        {
+        //[Test]
+        //public void accumulator_should_give_back_multiple_message()
+        //{
 
-            var buffer = Encoding.ASCII.GetBytes(_originalString);
-            var lengthBuffer = BitConverter.GetBytes(buffer.Length);
-            var bigBuffer = new byte[8 + 2 * buffer.Length +3]; //+12 for simulating truncated message;
-            Array.Copy(lengthBuffer, bigBuffer, 4);
-            Array.Copy(buffer, 0, bigBuffer, 4, buffer.Length);
-            Array.Copy(lengthBuffer, 0, bigBuffer, 4 + buffer.Length, 4);
-            Array.Copy(buffer, 0, bigBuffer, 8 + buffer.Length, buffer.Length);
+        //    var buffer = Encoding.ASCII.GetBytes(_originalString);
+        //    var lengthBuffer = BitConverter.GetBytes(buffer.Length);
+        //    var bigBuffer = new byte[8 + 2 * buffer.Length +3]; //+12 for simulating truncated message;
+        //    Array.Copy(lengthBuffer, bigBuffer, 4);
+        //    Array.Copy(buffer, 0, bigBuffer, 4, buffer.Length);
+        //    Array.Copy(lengthBuffer, 0, bigBuffer, 4 + buffer.Length, 4);
+        //    Array.Copy(buffer, 0, bigBuffer, 8 + buffer.Length, buffer.Length);
 
-            Assert.IsTrue(_frameAccumulator.AddFrame(new Frame(bigBuffer, 0, bigBuffer.Length)));
+        //    Assert.IsTrue(_frameAccumulator.AddFrame(new Frame(bigBuffer, 0, bigBuffer.Length)));
 
-            var messages = _frameAccumulator.GetMessages();
-            Assert.AreEqual(2, messages.Count);
+        //    var messages = _frameAccumulator.GetMessages();
+        //    Assert.AreEqual(2, messages.Count);
 
-            var message = messages.Dequeue();
-            byte[] messageBuffer = new byte[buffer.Length];
-            message.Read(messageBuffer, 0, (int)message.Length);
+        //    var message = messages.Dequeue();
+        //    byte[] messageBuffer = new byte[buffer.Length];
+        //    message.Read(messageBuffer, 0, (int)message.Length);
 
-            var stringMessage = Encoding.ASCII.GetString(messageBuffer);
-            Assert.AreEqual(_originalString, stringMessage);
+        //    var stringMessage = Encoding.ASCII.GetString(messageBuffer);
+        //    Assert.AreEqual(_originalString, stringMessage);
 
-            message = messages.Dequeue();
-             messageBuffer = new byte[buffer.Length];
-            message.Read(messageBuffer, 0, (int)message.Length);
+        //    message = messages.Dequeue();
+        //     messageBuffer = new byte[buffer.Length];
+        //    message.Read(messageBuffer, 0, (int)message.Length);
 
-            stringMessage = Encoding.ASCII.GetString(messageBuffer);
-            Assert.AreEqual(_originalString, stringMessage);
+        //    stringMessage = Encoding.ASCII.GetString(messageBuffer);
+        //    Assert.AreEqual(_originalString, stringMessage);
 
-        }
+        //}
 
      
     }
