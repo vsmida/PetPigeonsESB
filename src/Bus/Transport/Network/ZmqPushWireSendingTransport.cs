@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Bus.Serializer;
 using Bus.Transport.SendingPipe;
 using ZeroMQ;
 using log4net;
@@ -16,7 +17,7 @@ namespace Bus.Transport.Network
         private readonly ZmqContext _context;
         private readonly ILog _logger = LogManager.GetLogger(typeof(ZmqPushWireSendingTransport));
      //   private Stopwatch _watch = new Stopwatch();
-
+        private readonly MessageWireDataSerializer _serializer = new MessageWireDataSerializer();
 
 
         public ZmqPushWireSendingTransport(ZmqContext context)
@@ -47,11 +48,12 @@ namespace Bus.Transport.Network
             var wait = default(SpinWait);
           //  _watch.Start();
 
-            var buffer = BusSerializer.SerializeAndGetRawBuffer(message.MessageData);
+            var buffer = _serializer.Serialize(message.MessageData);
+         //   var buffer = BusSerializer.SerializeAndGetRawBuffer(message.MessageData);
 
             do
             {
-                socket.Send(buffer.Array, buffer.Count, SocketFlags.DontWait);
+                socket.Send(buffer, buffer.Length, SocketFlags.DontWait);
                 status = socket.SendStatus;
                 wait.SpinOnce();
             } while (status == SendStatus.TryAgain && wait.Count <1000);

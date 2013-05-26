@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
+using Bus.Serializer;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
 using Disruptor;
@@ -20,6 +22,7 @@ namespace Bus.Transport.Network
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
         private ILog _logger = LogManager.GetLogger(typeof(ZmqPullWireDataReceiver));
         private ZmqEndpoint _endpoint;
+        private readonly MessageWireDataSerializer _serializer = new MessageWireDataSerializer();
 
         public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
         {
@@ -54,37 +57,42 @@ namespace Bus.Transport.Network
                 var receive = _receptionSocket.Receive(TimeSpan.FromMilliseconds(500));
                 if (receive.Length == 0)
                     return;
-                    
-                var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
 
-                var sequence = _ringBuffer.Next();
-                var entry = _ringBuffer[sequence];
-                if (entry.InitialTransportMessage != null)
-                    entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
-                                                                                messagedata.SendingPeer,
-                                                                                messagedata.MessageIdentity,
-                                                                                _endpoint,
-                                                                                messagedata.Data,
-                                                                                messagedata.SequenceNumber);
-                else
+                //var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
+                using (var stream = new MemoryStream(receive))
                 {
-                    entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
-                                                                            messagedata.SendingPeer,
-                                                                            messagedata.MessageIdentity,
-                                                                            _endpoint,
-                                                                            messagedata.Data,
-                                                                            messagedata.SequenceNumber);
-                }
+                    var messagedata = _serializer.Deserialize(stream);
 
-                //    entry.InitialTransportMessage = receivedTransportMessage;
-                entry.ForceMessageThrough = false;
-                entry.IsInfrastructureMessage = false;
-                entry.IsStrandardMessage = false;
-                entry.IsCommand = false;
-                entry.Command = null;
-                entry.QueuedInboundEntries = null;
-               // entry.InfrastructureEntry = null;
-                _ringBuffer.Publish(sequence);
+
+                    var sequence = _ringBuffer.Next();
+                    var entry = _ringBuffer[sequence];
+                    if (entry.InitialTransportMessage != null)
+                        entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
+                                                                   messagedata.SendingPeer,
+                                                                   messagedata.MessageIdentity,
+                                                                   _endpoint,
+                                                                   messagedata.Data,
+                                                                   messagedata.SequenceNumber);
+                    else
+                    {
+                        entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
+                                                                                     messagedata.SendingPeer,
+                                                                                     messagedata.MessageIdentity,
+                                                                                     _endpoint,
+                                                                                     messagedata.Data,
+                                                                                     messagedata.SequenceNumber);
+                    }
+
+                    //    entry.InitialTransportMessage = receivedTransportMessage;
+                    entry.ForceMessageThrough = false;
+                    entry.IsInfrastructureMessage = false;
+                    entry.IsStrandardMessage = false;
+                    entry.IsCommand = false;
+                    entry.Command = null;
+                    entry.QueuedInboundEntries = null;
+                    // entry.InfrastructureEntry = null;
+                    _ringBuffer.Publish(sequence);
+                }
             }
             catch (Exception e)
             {

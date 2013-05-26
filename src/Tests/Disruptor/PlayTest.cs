@@ -35,6 +35,8 @@ namespace Tests.Disruptor
         {
             public void OnNext(InboundMessageEntry data, long sequence, bool endOfBatch)
             {
+                if(endOfBatch)
+                    Debugger.Break();
                 //  data.NextValue = data.Value+1;
                 //  Assert.AreEqual(data.Value.ToString(), data.ValueString);
                 //Thread.Sleep(100000);
@@ -48,7 +50,6 @@ namespace Tests.Disruptor
                                                                new MultiThreadedClaimStrategy(1024),
                                                                new YieldingWaitStrategy(),
                                                                TaskScheduler.Default);
-
             disruptor.HandleEventsWith(new InboundMessageEntryValueStringProcessor()).Then(
                 new InboundMessageEntryNextValueProcessor());
 

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
 using Bus;
+using Bus.Serializer;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
@@ -25,7 +27,7 @@ namespace Tests.Integration
 
 
         [Test]
-        public void serializationTests()
+        public void serializationTestsProto()
         {
             var fakeTransportConfiguration = new FakeTransportConfiguration();
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
@@ -36,9 +38,31 @@ namespace Tests.Integration
             var messagesInBatch = 1000000;  
             for (int i = 0; i < messagesInBatch; i++)
             {
-                var ser = BusSerializer.Serialize(wireSendingMessage);
-                BusSerializer.DeserializeStruct<WireSendingMessage>(ser);
+                var ser = BusSerializer.Serialize(wireSendingMessage.MessageData);
+                BusSerializer.Deserialize<MessageWireData>(ser);
          //       ser = BusSerializer.Serialize(wireSendingMessage);
+
+            }
+            var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
+            Console.WriteLine(" FPS : " + fps.ToString("N2"));
+        }
+
+        [Test]
+        public void serializationTestsCustom()
+        {
+            var fakeTransportConfiguration = new FakeTransportConfiguration();
+            var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
+            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[10]), endpoint);
+            var serializer = new MessageWireDataSerializer();
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            var messagesInBatch = 1000000;
+            for (int i = 0; i < messagesInBatch; i++)
+            {
+                var ser = serializer.Serialize(wireSendingMessage.MessageData);
+                using(var stream = new MemoryStream(ser))
+                serializer.Deserialize(stream);
+                //       ser = BusSerializer.Serialize(wireSendingMessage);
 
             }
             var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
@@ -113,7 +137,7 @@ namespace Tests.Integration
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
             var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 14)), 
+                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)), 
                                                                          new SleepingWaitStrategy(),
                                                                          TaskScheduler.Default);
             disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest2());
@@ -123,7 +147,7 @@ namespace Tests.Integration
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
-            var messagesCountTotal = 2600000;
+            var messagesCountTotal = 260000;
             for (int i = 0; i < messagesCountTotal; i++)
             {
                 wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);

@@ -6,7 +6,7 @@ using Shared;
 
 namespace PgmTransport
 {
-    class FrameStream : Stream
+    public class FrameStream : Stream
     {
         private List<Frame> _frames;
         private int _currentFrameIndex = 0;
@@ -89,10 +89,10 @@ namespace PgmTransport
             {
                 Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesToCopyToBuffer);
                 copiedBytes += leftBytesToCopyToBuffer;
-                leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
                 currentoffset += leftBytesToCopyToBuffer;
-                _currentPositionFromFrameStart += leftBytesToCopyToBuffer;
-                if (_currentPositionFromFrameStart - offset + 1 == currentFrame.Count) //  if frame exhausted, point to the next;
+                leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
+                _currentPositionFromFrameStart += currentoffset;
+                if (_currentPositionFromFrameStart - offset == currentFrame.Count) //  if frame exhausted, point to the next;
                     _currentFrameIndex++;
             }
 

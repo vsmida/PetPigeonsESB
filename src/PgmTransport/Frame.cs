@@ -3,7 +3,7 @@ using Shared;
 
 namespace PgmTransport
 {
-    struct Frame : IDisposable
+    public struct Frame : IDisposable
     {
         public readonly Pool<byte[]> BufferPool;
 
