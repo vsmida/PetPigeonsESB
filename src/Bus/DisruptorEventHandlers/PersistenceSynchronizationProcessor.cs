@@ -65,7 +65,7 @@ namespace Bus.DisruptorEventHandlers
             if (data.ForceMessageThrough && _isInitialized)
                 return; //sync message should be discarded
 
-            if (!_sequenceNumberVerifier.IsSequenceNumberValid(data, _isInitialized))
+            if (!_sequenceNumberVerifier.IsSequenceNumberValid(data.InitialTransportMessage, _isInitialized))
                 SetUninitializedAndSync();
 
             var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
@@ -127,7 +127,7 @@ namespace Bus.DisruptorEventHandlers
             for (int i = 0; i < count; i++)
             {
                 InboundMessageProcessingEntry item = _waitingMessages.Dequeue();
-                if (!_sequenceNumberVerifier.IsSequenceNumberValid(item, _isInitialized))
+                if (!_sequenceNumberVerifier.IsSequenceNumberValid(item.InitialTransportMessage, _isInitialized))
                 {
                     SetUninitializedAndSync();
                     return;

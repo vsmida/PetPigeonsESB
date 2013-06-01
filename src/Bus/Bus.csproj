@@ -30,6 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -145,6 +146,7 @@
     <Compile Include="MessageInterfaces\IMessageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BusSerializer.cs" />
+    <Compile Include="Serializer\IMessageSerializer.cs" />
     <Compile Include="Serializer\MessageWireDataSerializer.cs" />
     <Compile Include="Startup\BusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\IBusBootstrapper.cs" />

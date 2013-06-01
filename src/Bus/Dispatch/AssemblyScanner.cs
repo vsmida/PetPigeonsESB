@@ -58,25 +58,12 @@ namespace Bus.Dispatch
         }
 
 
-        public  List<MessageOptions> GetHandledMessageOptions()
+        public List<MessageOptions> GetMessageOptions(IEnumerable<Assembly> assembliesToScan = null)
         {
             var options = new List<MessageOptions>();
-            var typeToFilter = new Dictionary<Type, ISubscriptionFilter>();
-            var assemblies = GetAssemblies();
-            foreach (var assembly in assemblies)
-            {
-                foreach (var type in assembly.GetTypes())
-                {
-                    var filterAttribute = type.GetCustomAttributes(typeof (ActiveSubscriptionFilterAttribute), true).SingleOrDefault() as ActiveSubscriptionFilterAttribute;
-                    if(filterAttribute != null)
-                    {
-                        var typeGenericParameter = type.GetGenericArguments()[0];
-                        typeToFilter[typeGenericParameter] = Activator.CreateInstance(type,true) as ISubscriptionFilter;
-                    }
+            var assemblies = assembliesToScan ?? GetAssemblies();
 
-
-                }
-            }
+            var typeToFilter = GetSubscriptionFilters(assemblies);
 
             foreach (var assembly in assemblies)
             {
@@ -85,29 +72,41 @@ namespace Bus.Dispatch
                     if (type.IsInterface || type.IsAbstract || (!typeof(IMessage).IsAssignableFrom(type)))
                         continue;
                     var reliability = type.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
-                    if(options.All(x => x.MessageType != type))
+                    if (options.All(x => x.MessageType != type))
                         options.Add(new MessageOptions(type, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
                                                                     reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
                                                                     typeToFilter.GetValueOrDefault(type)));
-                    //var messageHandlingInterfaces = type.GetInterfaces()
-                    //                                    .Where(x => x.IsGenericType 
-                    //                                    && (x.GetGenericTypeDefinition() == typeof(ICommandHandler<>) || x.GetGenericTypeDefinition() == typeof(IBusEventHandler<>)));
-                    //foreach (var messageHandlingInterface in messageHandlingInterfaces)
-                    //{
-                    //    var reliability = messageHandlingInterface.GetCustomAttributes(typeof(BusOptionsAttribute), true).SingleOrDefault() as BusOptionsAttribute;
-                    //    var genericType = messageHandlingInterface.GetGenericArguments()[0];
-                    //    if(!options.Any(x => x.MessageType == genericType))
-                    //    options.Add(new MessageOptions(genericType, reliability == null ? ReliabilityLevel.FireAndForget : reliability.ReliabilityLevel,
-                    //                                                reliability == null ? WireTransportType.ZmqPushPullTransport : reliability.TransportType,
-                    //                                                typeToFilter.GetValueOrDefault(type)));
-                    //}
                 }
             }
 
             return options;
         }
 
-        public virtual  List<Type> GetHandledCommands()
+        private static Dictionary<Type, ISubscriptionFilter> GetSubscriptionFilters(IEnumerable<Assembly> assemblies)
+        {
+            var typeToFilter = new Dictionary<Type, ISubscriptionFilter>();
+            foreach (var assembly in assemblies)
+            {
+                foreach (
+                    var type in
+                        assembly.GetTypes().Where(
+                            type =>
+                            typeof (ISubscriptionFilter).IsAssignableFrom(type)  && !type.IsAbstract))
+                {
+                    var filterAttribute =
+                        type.GetCustomAttributes(typeof (SubscriptionFilterAttributeActive), true).SingleOrDefault() as
+                        SubscriptionFilterAttributeActive;
+                    if (filterAttribute == null || filterAttribute.Active)
+                    {
+                        var typeGenericParameter = type.GetInterfaces().Single(x => x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>) && x.IsGenericType).GetGenericArguments()[0];
+                        typeToFilter[typeGenericParameter] = Activator.CreateInstance(type, true) as ISubscriptionFilter;
+                    }
+                }
+            }
+            return typeToFilter;
+        }
+
+        public virtual List<Type> GetHandledCommands()
         {
             var handledCommands = new HashSet<Type>();
             var assemblies = GetAssemblies();

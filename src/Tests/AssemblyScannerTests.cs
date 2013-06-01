@@ -1,9 +1,15 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Bus;
+using Bus.Attributes;
 using Bus.Dispatch;
 using Bus.MessageInterfaces;
+using Bus.Subscriptions;
+using Bus.Transport.Network;
 using NUnit.Framework;
 using ProtoBuf;
+using Shared;
 
 namespace Tests
 {
@@ -12,6 +18,14 @@ namespace Tests
     {
         private AssemblyScanner _scanner;
 
+        [SubscriptionFilterAttributeActive(true)]
+        private class FakeSubscriptionFilter : ISubscriptionFilter<FakeCommand>
+        {
+            public bool Matches(IMessage item)
+            {
+                return false;
+            }
+        }
 
         [ProtoContract]
         private class FakeEvent : IEvent
@@ -64,6 +78,7 @@ namespace Tests
         }
 
         [ProtoContract]
+        [BusOptions(ReliabilityLevel.Persisted, WireTransportType.ZmqPushPullTransport)]
         private class FakeCommand : ICommand
         {
             [ProtoMember(1, IsRequired = true)]
@@ -97,6 +112,23 @@ namespace Tests
             Assert.AreEqual(1, handleMethods.Count);
             var method = typeof(FakeEventHandler).GetMethod("Handle", new[]{typeof(FakeEvent)});
             Assert.AreEqual(method, handleMethods.Single());
+        }
+
+        [Test]
+        public void should_find_messages_options()
+        {
+            var options = _scanner.GetMessageOptions();
+            var fakeCommandOptions = options.Single(x => x.MessageType == typeof (FakeCommand));
+            var fakeEventOptions = options.Single(x => x.MessageType == typeof (FakeEvent));
+
+            Assert.AreEqual(ReliabilityLevel.Persisted, fakeCommandOptions.ReliabilityLevel);
+            Assert.AreEqual(WireTransportType.ZmqPushPullTransport, fakeCommandOptions.TransportType);
+            Assert.AreEqual(typeof(FakeSubscriptionFilter), fakeCommandOptions.SubscriptionFilter.GetType());
+
+            Assert.AreEqual(ReliabilityLevel.FireAndForget, fakeEventOptions.ReliabilityLevel);
+            Assert.AreEqual(WireTransportType.ZmqPushPullTransport, fakeEventOptions.TransportType);
+            Assert.AreEqual(null, fakeEventOptions.SubscriptionFilter);
+
         }
 
         [Test]

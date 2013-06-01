@@ -45,10 +45,10 @@ namespace Bus.Startup
         {
             var handledTypes = new HashSet<Type>(_assemblyScanner.GetHandledCommands().Union(_assemblyScanner.GetHandledEvents()));
 
-            var messageSubscriptions = _assemblyScanner.GetHandledMessageOptions().Where(x => handledTypes.Contains(x.MessageType))
+            var messageSubscriptions = _assemblyScanner.GetMessageOptions().Where(x => handledTypes.Contains(x.MessageType))
                 .Select(x => new MessageSubscription(x.MessageType, _peerConfiguration.PeerName,
                                             new ZmqEndpoint(_zmqTransportConfiguration.GetConnectEndpoint()),
-                                            x.SubscriptionFilter, x.ReliabilityLevel));
+                                            GetSubscription(x), x.ReliabilityLevel));
 
 
 
@@ -108,11 +108,11 @@ namespace Bus.Startup
 
         }
 
-        private ISubscriptionFilter GetSubscription(Type type)
+        private ISubscriptionFilter GetSubscription(MessageOptions options)
         {
-            if (type == typeof(SynchronizeWithBrokerCommand) || type == typeof(StopSynchWithBrokerCommand))
-                return new SynchronizeWithBrokerFilter(_peerConfiguration.ShadowedPeers);
-            return null;
+            if (options.MessageType == typeof(SynchronizeWithBrokerCommand) || options.MessageType == typeof(StopSynchWithBrokerCommand))
+                return new SynchronizeWithBrokerFilter(_peerConfiguration.ShadowedPeers); // todo: implement dynamic subscriptions
+            return options.SubscriptionFilter;
 
 
         }

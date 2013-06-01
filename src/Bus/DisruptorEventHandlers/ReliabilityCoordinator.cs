@@ -29,7 +29,7 @@ namespace Bus.DisruptorEventHandlers
             _assemblyScanner = assemblyScanner;
             _peerManager.PeerConnected += OnPeerChange;
 
-            var messageOptionses = _assemblyScanner.GetHandledMessageOptions();
+            var messageOptionses = _assemblyScanner.GetMessageOptions();
             foreach (var messageOptionse in messageOptionses)
             {
                 _messageOptions.Add(messageOptionse.MessageType.FullName, messageOptionse);

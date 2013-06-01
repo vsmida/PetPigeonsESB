@@ -7,16 +7,6 @@ using ProtoBuf;
 namespace Bus.Subscriptions
 {
     [ProtoContract]
-    public class DummySubscriptionFilter : ISubscriptionFilter
-    {
-        public bool Matches(IMessage item)
-        {
-            return true;
-        }
-    }
-
-
-    [ProtoContract]
     public class SynchronizeWithBrokerFilter : ISubscriptionFilter
     {
         [ProtoMember(1, IsRequired = true)]

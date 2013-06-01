@@ -48,9 +48,9 @@ namespace Tests.Transport
             //return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) });
         }
 
-        public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null)
+        public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null, int sequenceNumber = 0, string peer = "Peer")
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", id ?? Guid.NewGuid(), null,new byte[0],0);
+            return new ReceivedTransportMessage(typeof(T).FullName, peer, id ?? Guid.NewGuid(), null, new byte[0], sequenceNumber);
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
