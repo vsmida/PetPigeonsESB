@@ -10,7 +10,7 @@ namespace Bus.DisruptorEventHandlers
 {
     interface ISequenceNumberVerifier
     {
-        bool IsSequenceNumberValid(InboundMessageProcessingEntry data, bool syncProcessorInitialized);
+        bool IsSequenceNumberValid(ReceivedTransportMessage data, bool syncProcessorInitialized);
         void ResetSequenceNumbersForPeer(string peer);
     }
 
@@ -36,18 +36,18 @@ namespace Bus.DisruptorEventHandlers
             public override bool Equals(object obj)
             {
                 if (ReferenceEquals(null, obj)) return false;
-                return obj is PeerTransportKey && Equals((PeerTransportKey) obj);
+                return obj is PeerTransportKey && Equals((PeerTransportKey)obj);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return ((Peer != null ? Peer.GetHashCode() : 0)*397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
+                    return ((Peer != null ? Peer.GetHashCode() : 0) * 397) ^ (Endpoint != null ? Endpoint.GetHashCode() : 0);
                 }
             }
         }
-        
+
 
         private readonly Dictionary<PeerTransportKey, int> _sequenceNumber = new Dictionary<PeerTransportKey, int>();
         private readonly IPeerConfiguration _peerConfiguration;
@@ -58,12 +58,12 @@ namespace Bus.DisruptorEventHandlers
             _peerConfiguration = peerConfiguration;
         }
 
-        public bool IsSequenceNumberValid(InboundMessageProcessingEntry data, bool syncProcessorInitialized)
+        public bool IsSequenceNumberValid(ReceivedTransportMessage data, bool syncProcessorInitialized)
         {
-            var transportMessageSequenceNumber = data.InitialTransportMessage.SequenceNumber;
+            var transportMessageSequenceNumber = data.SequenceNumber;
             if (!transportMessageSequenceNumber.HasValue)
                 return true;
-            var peerKey = new PeerTransportKey(data.InitialTransportMessage.PeerName, data.InitialTransportMessage.Endpoint);
+            var peerKey = new PeerTransportKey(data.PeerName, data.Endpoint);
             int currentSeqNum;
             if (!_sequenceNumber.TryGetValue(peerKey, out currentSeqNum))
             {
@@ -81,8 +81,10 @@ namespace Bus.DisruptorEventHandlers
                                           currentSeqNum + 1,
                                           transportMessageSequenceNumber,
                                           peerKey.Endpoint));
+#if DEBUG
                         Debugger.Break();
                         //we missed a message
+#endif
                         return false;
                     }
 
