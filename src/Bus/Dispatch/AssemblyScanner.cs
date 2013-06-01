@@ -98,7 +98,7 @@ namespace Bus.Dispatch
                         SubscriptionFilterAttributeActive;
                     if (filterAttribute == null || filterAttribute.Active)
                     {
-                        var typeGenericParameter = type.GetInterfaces().Single(x => x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>) && x.IsGenericType).GetGenericArguments()[0];
+                        var typeGenericParameter = type.GetInterfaces().Single(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>)).GetGenericArguments()[0];
                         typeToFilter[typeGenericParameter] = Activator.CreateInstance(type, true) as ISubscriptionFilter;
                     }
                 }
