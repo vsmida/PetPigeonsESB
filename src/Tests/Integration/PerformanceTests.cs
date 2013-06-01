@@ -26,48 +26,6 @@ namespace Tests.Integration
         private ILog _logger = LogManager.GetLogger(typeof(PerformanceTests));
 
 
-        [Test]
-        public void serializationTestsProto()
-        {
-            var fakeTransportConfiguration = new FakeTransportConfiguration();
-            var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[10]), endpoint);
-
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-            var messagesInBatch = 1000000;  
-            for (int i = 0; i < messagesInBatch; i++)
-            {
-                var ser = BusSerializer.Serialize(wireSendingMessage.MessageData);
-                BusSerializer.Deserialize<MessageWireData>(ser);
-         //       ser = BusSerializer.Serialize(wireSendingMessage);
-
-            }
-            var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps.ToString("N2"));
-        }
-
-        [Test]
-        public void serializationTestsCustom()
-        {
-            var fakeTransportConfiguration = new FakeTransportConfiguration();
-            var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt", Guid.NewGuid(), "tt", new byte[10]), endpoint);
-            var serializer = new MessageWireDataSerializer();
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-            var messagesInBatch = 1000000;
-            for (int i = 0; i < messagesInBatch; i++)
-            {
-                var ser = serializer.Serialize(wireSendingMessage.MessageData);
-                using(var stream = new MemoryStream(ser))
-                serializer.Deserialize(stream);
-                //       ser = BusSerializer.Serialize(wireSendingMessage);
-
-            }
-            var fps = messagesInBatch / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps.ToString("N2"));
-        }
 
         [Test]
         public void disruptorTests()
@@ -127,44 +85,7 @@ namespace Tests.Integration
             }
         }
 
-        [Test]
-        public void transport_test()
-        {
-            var transportSend = new ZmqPushWireSendingTransport(ZmqContext.Create());
-            transportSend.Initialize();
-            var fakeTransportConfiguration = new FakeTransportConfiguration();
-            var transportReceive= new ZmqPullWireDataReceiver(ZmqContext.Create(), fakeTransportConfiguration);
-            var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
-            var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)), 
-                                                                         new SleepingWaitStrategy(),
-                                                                         TaskScheduler.Default);
-            disruptor.HandleEventsWith(new eventprocessorTest()).Then(new eventprocessorTest2());
-            disruptor.Start();
-            transportReceive.Initialize(disruptor.RingBuffer);
-            transportSend.SendMessage(wireSendingMessage,endpoint);
-
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-            var messagesCountTotal = 260000;
-            for (int i = 0; i < messagesCountTotal; i++)
-            {
-                wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
-                transportSend.SendMessage(wireSendingMessage, endpoint);                
-            }
-            SpinWait wait = new SpinWait();
-            while(eventprocessorTest2.MessageCount <messagesCountTotal)
-            {
-                wait.SpinOnce();
-            }
-            watch.Stop();
-            var fps = messagesCountTotal / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps.ToString("N2"));
-
-            transportSend.Dispose();
-            transportReceive.Dispose();
-        }
+       
 
         [Test, Repeat(10)]
         public void should_send_messages()
