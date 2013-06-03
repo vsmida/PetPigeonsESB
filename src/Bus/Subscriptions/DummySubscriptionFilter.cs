@@ -7,7 +7,7 @@ using ProtoBuf;
 namespace Bus.Subscriptions
 {
     [ProtoContract]
-    public class SynchronizeWithBrokerFilter : ISubscriptionFilter
+    public class SynchronizeWithBrokerFilter : ISubscriptionFilter<SynchronizeWithBrokerCommand>, ISubscriptionFilter<StopSynchWithBrokerCommand>
     {
         [ProtoMember(1, IsRequired = true)]
         private readonly List<string> _acceptedPeers;

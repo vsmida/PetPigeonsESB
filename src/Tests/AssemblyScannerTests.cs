@@ -132,6 +132,14 @@ namespace Tests
         }
 
         [Test]
+        public void should_find_subscription_filters()
+        {
+            var filterTypes = _scanner.GetSubscriptionFilterTypes();
+            var fakeFilter = filterTypes.SingleOrDefault(x => x == typeof (FakeSubscriptionFilter));
+            Assert.IsNotNull(fakeFilter);
+        }
+
+        [Test]
         public void should_find_handled_commands()
         {
             var types = _scanner.GetHandledCommands();

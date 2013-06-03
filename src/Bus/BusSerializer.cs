@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.Serialization;
 using System.Threading;
+using Bus.Dispatch;
 using Bus.Subscriptions;
 using Bus.Transport.Network;
 using ProtoBuf.Meta;
@@ -16,12 +17,21 @@ namespace Bus
         static BusSerializer()
         {
             _model = RuntimeTypeModel.Default;
-
             _model.Add(typeof(IEndpoint), false).AddSubType(1, typeof(ZmqEndpoint));
-            _model.Add(typeof(ISubscriptionFilter), false).AddSubType(1, typeof(SynchronizeWithBrokerFilter));
-            _model.AutoCompile = true;
-            _model.CompileInPlace();
-            
+            var scanner = new AssemblyScanner();
+            var subscriptionFilters = scanner.GetSubscriptionFilterTypes();
+            int i = 0;
+            foreach (var subscriptionFilter in subscriptionFilters)
+            {
+                _model.Add(typeof(ISubscriptionFilter), false).AddSubType(i+1, subscriptionFilter);
+                i++;
+            }
+
+        }
+
+        public static void AddSubType(Type type, Type subType, int fieldNumber)
+        {
+            _model.Add(type, false).AddSubType(fieldNumber, subType);
         }
 
         public static byte[] Serialize(object instance)

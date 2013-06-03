@@ -13,5 +13,6 @@ namespace Bus.Dispatch
         List<MessageOptions> GetMessageOptions(IEnumerable<Assembly> assembliesToScan = null);
         List<Type> GetHandledCommands();
         List<Type> GetHandledEvents();
+        List<Type> GetSubscriptionFilterTypes(IEnumerable<Assembly> assemblies = null);
     }
 }

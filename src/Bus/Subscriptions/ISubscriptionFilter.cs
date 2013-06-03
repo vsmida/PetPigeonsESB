@@ -1,5 +1,6 @@
 using System;
 using Bus.MessageInterfaces;
+using ProtoBuf;
 
 namespace Bus.Subscriptions
 {
@@ -10,6 +11,6 @@ namespace Bus.Subscriptions
 
     public interface ISubscriptionFilter<T> : ISubscriptionFilter
     {
-        
+
     }
 }

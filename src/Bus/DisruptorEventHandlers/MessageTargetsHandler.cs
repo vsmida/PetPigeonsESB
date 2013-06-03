@@ -80,7 +80,6 @@ namespace Bus.DisruptorEventHandlers
             }
 
          //   SendToConcernedPeers(concernedSubscriptions, data, messageData);
-
             _reliabilityCoordinator.EnsureReliability(data, data.MessageTargetHandlerData.Message, concernedSubscriptions, messageData);
 
         }

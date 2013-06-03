@@ -91,15 +91,18 @@ namespace Bus.Dispatch
                     var type in
                         assembly.GetTypes().Where(
                             type =>
-                            typeof (ISubscriptionFilter).IsAssignableFrom(type)  && !type.IsAbstract))
+                            typeof(ISubscriptionFilter).IsAssignableFrom(type) && !type.IsAbstract && type.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>))))
                 {
                     var filterAttribute =
-                        type.GetCustomAttributes(typeof (SubscriptionFilterAttributeActive), true).SingleOrDefault() as
+                        type.GetCustomAttributes(typeof(SubscriptionFilterAttributeActive), true).SingleOrDefault() as
                         SubscriptionFilterAttributeActive;
                     if (filterAttribute == null || filterAttribute.Active)
                     {
-                        var typeGenericParameter = type.GetInterfaces().Single(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>)).GetGenericArguments()[0];
-                        typeToFilter[typeGenericParameter] = Activator.CreateInstance(type, true) as ISubscriptionFilter;
+                        var types = type.GetInterfaces().Where(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(ISubscriptionFilter<>)).Select(x => x.GetGenericArguments()[0]);
+                        foreach (var t in types)
+                        {
+                            typeToFilter[t] = Activator.CreateInstance(type, true) as ISubscriptionFilter;
+                        }
                     }
                 }
             }
@@ -146,6 +149,12 @@ namespace Bus.Dispatch
                 }
             }
             return handledEvents.ToList();
+        }
+
+        public List<Type> GetSubscriptionFilterTypes(IEnumerable<Assembly> assemblies = null)
+        {
+            assemblies = assemblies ?? GetAssemblies();
+            return GetSubscriptionFilters(assemblies).Select(x => x.Value.GetType()).ToList();
         }
     }
 }

@@ -113,7 +113,7 @@ namespace Tests.Integration
 
             //small micro-benchmark
 
-            for (int j = 0; j < 50; j++)
+            for (int j = 0; j < 10; j++)
             {
                 var gc0 = GC.CollectionCount(0);
                 var gc1 = GC.CollectionCount(1);

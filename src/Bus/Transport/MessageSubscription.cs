@@ -5,7 +5,6 @@ using ProtoBuf;
 using Shared;
 namespace Bus.Transport
 {
-
     [ProtoContract]
     public class MessageSubscription
     {
@@ -16,7 +15,7 @@ namespace Bus.Transport
         public string Peer { get; private set; }
         [ProtoMember(3, IsRequired = true)]
         public readonly IEndpoint Endpoint;
-        [ProtoMember(4, IsRequired = true)]
+        [ProtoMember(4, IsRequired = true)] 
         public readonly ISubscriptionFilter SubscriptionFilter;
         [ProtoMember(5, IsRequired = true)]
         public readonly ReliabilityLevel ReliabilityLevel;
@@ -26,10 +25,10 @@ namespace Bus.Transport
             MessageType = messageType;
             Peer = peer;
             Endpoint = endpoint;
-            SubscriptionFilter = subscriptionFilter;
+            SubscriptionFilter = (subscriptionFilter);
             ReliabilityLevel = reliabilityLevel;
         }
 
-        private MessageSubscription(){}
+        private MessageSubscription() { }
     }
 }
