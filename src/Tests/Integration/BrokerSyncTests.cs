@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using Bus;
 using Bus.Handlers;
+using Bus.Transport;
 using Bus.Transport.Network;
 using NUnit.Framework;
 using Shared;
@@ -36,7 +37,7 @@ namespace Tests.Integration
             var brokerContainer = new Container();
             var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
                                               new SimpleMessageExchange.FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<string> { busName2 }), container: brokerContainer);
+                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }), container: brokerContainer);
 
             bus1.Initialize();
             brokerForBus2.Initialize(); //todo: this is wrong, broker should be able to start at any time, should implement retry or abandon and say we are initialized after a timeout
@@ -67,8 +68,9 @@ namespace Tests.Integration
             Console.WriteLine("initializing bus2 again");
             bus2.Initialize(); //alive again
 
-            var completionCallback = bus1.Send(new FakePersistingCommand(2002)); // send it as soon as possible so without proper ordering it should be processed before message 2
-
+            var completionCallback = bus1.Send(new FakePersistingCommand(2002)); 
+            // send it as soon as possible so without proper ordering it should be processed before message 2
+            //todo: hook something so that we are sure it arrives first, peer connection in the broker?
             completionCallback.WaitForCompletion();
 
             bus1.Dispose();
@@ -93,7 +95,7 @@ namespace Tests.Integration
             var brokerContainer = new Container();
             var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
                                               new SimpleMessageExchange.FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<string> { busName2 }), container: brokerContainer);
+                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }), container: brokerContainer);
 
             bus1.Initialize();
             brokerForBus2.Initialize();

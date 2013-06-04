@@ -96,7 +96,7 @@ namespace Tests.Integration
             }
         }
 
-        [Test, Timeout(200000000), Repeat(10)]
+        [Test, Timeout(200000000), Repeat(3)]
         public void should_be_able_persist_message()
         {
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
@@ -109,7 +109,7 @@ namespace Tests.Integration
             var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
                                               new FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<string> { busName2 }));
+                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }));
 
             bus1.Initialize();
             brokerForBus2.Initialize();

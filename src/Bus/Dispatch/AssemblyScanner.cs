@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Bus.Attributes;
 using Bus.MessageInterfaces;
+using Bus.Serializer;
 using Bus.Subscriptions;
 using Bus.Transport.Network;
 using Shared;
@@ -155,6 +156,22 @@ namespace Bus.Dispatch
         {
             assemblies = assemblies ?? GetAssemblies();
             return GetSubscriptionFilters(assemblies).Select(x => x.Value.GetType()).ToList();
+        }
+
+        public Dictionary<Type, Type> FindMessageSerializers(IEnumerable<Assembly> assemblies = null)
+        {
+            assemblies = assemblies ?? GetAssemblies();
+            var result = new Dictionary<Type, Type>();
+            foreach (var assembly in assemblies)
+            {
+                Type genericType = null;
+                foreach (var type in assembly.GetTypes().Where(type =>!type.IsAbstract && TypeUtils.IsSubclassOfRawGeneric(typeof(BusMessageSerializer<>),type, out genericType)))
+                {
+                    var genericTypeArgument = genericType.GetGenericArguments()[0];
+                    result.Add(genericTypeArgument, type);
+                }
+            }
+            return result;
         }
     }
 }

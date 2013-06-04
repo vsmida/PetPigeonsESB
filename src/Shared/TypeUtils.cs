@@ -9,7 +9,24 @@ namespace Shared
     public static class TypeUtils
     {
         [ThreadStatic]
-        private static Dictionary<string, Type> _cache; 
+        private static Dictionary<string, Type> _cache;
+
+
+        public static bool IsSubclassOfRawGeneric(Type generic, Type toCheck, out Type actualGeneric)
+        {
+            while (toCheck != null && toCheck != typeof(object))
+            {
+                var cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+                if (generic == cur)
+                {
+                    actualGeneric = toCheck;
+                    return true;
+                }
+                toCheck = toCheck.BaseType;
+            }
+            actualGeneric = null;
+            return false;
+        }
 
         public static Type Resolve(string fullName)
         {

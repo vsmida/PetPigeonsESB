@@ -113,7 +113,7 @@ namespace Tests.Integration
 
             //small micro-benchmark
 
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < 100; j++)
             {
                 var gc0 = GC.CollectionCount(0);
                 var gc1 = GC.CollectionCount(1);
@@ -147,7 +147,7 @@ namespace Tests.Integration
             watch.Start();
 
             IBlockableUntilCompletion resetEvent = null;
-            var messagesInBatch = 20000;
+            var messagesInBatch = 50000;
             var fakeCommand = new TestData.FakeCommand();
             for (int i = 0; i < messagesInBatch; i++)
             {

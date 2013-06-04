@@ -3,6 +3,25 @@ using ProtoBuf;
 
 namespace Bus.Transport
 {
+    [ProtoContract]
+    public class ShadowedPeerConfiguration
+    {
+        [ProtoMember(1, IsRequired = true)]
+        public readonly string PeerName;
+        [ProtoMember(2, IsRequired = true)]
+        public readonly bool IsPersistenceProvider;
+
+        public ShadowedPeerConfiguration(string name, bool isPersistenceProvider)
+        {
+            PeerName = name;
+            IsPersistenceProvider = isPersistenceProvider;
+        }
+
+        private ShadowedPeerConfiguration()
+        {
+            
+        }
+    }
 
     [ProtoContract]
     public class ServicePeer
@@ -12,9 +31,9 @@ namespace Bus.Transport
         [ProtoMember(2, IsRequired = true)]
         public readonly List<MessageSubscription> HandledMessages;
         [ProtoMember(3, IsRequired = true)]
-        public readonly List<string> ShadowedPeers;
+        public readonly List<ShadowedPeerConfiguration> ShadowedPeers;
 
-        public ServicePeer(string peerName, List<MessageSubscription> handledMessages, List<string> shadowedPeers)
+        public ServicePeer(string peerName, List<MessageSubscription> handledMessages, List<ShadowedPeerConfiguration> shadowedPeers)
         {
             PeerName = peerName;
             HandledMessages = handledMessages;
@@ -35,7 +54,7 @@ namespace Bus.Transport
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((ServicePeer) obj);
+            return Equals((ServicePeer)obj);
         }
 
         public override int GetHashCode()

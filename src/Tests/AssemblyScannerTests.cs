@@ -1,15 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Bus;
 using Bus.Attributes;
 using Bus.Dispatch;
 using Bus.MessageInterfaces;
+using Bus.Serializer;
 using Bus.Subscriptions;
 using Bus.Transport.Network;
 using NUnit.Framework;
 using ProtoBuf;
 using Shared;
+using Tests.Transport;
 
 namespace Tests
 {
@@ -77,6 +80,7 @@ namespace Tests
             }
         }
 
+
         [ProtoContract]
         [BusOptions(ReliabilityLevel.Persisted, WireTransportType.ZmqPushPullTransport)]
         private class FakeCommand : ICommand
@@ -94,6 +98,14 @@ namespace Tests
         public void setup()
         {
             _scanner = new AssemblyScanner();
+        }
+
+        [Test]
+        public void should_find_serializers()
+        {
+            var serializers = _scanner.FindMessageSerializers();
+            var fakeSerializer = serializers.SingleOrDefault(x => x.Key == typeof (TestData.FakeCommand) && x.Value == typeof (TestData.FakeCommandSerializer));
+            Assert.AreEqual(typeof(TestData.FakeCommandSerializer), fakeSerializer.Value);
         }
 
         [Test]

@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Bus.Attributes;
 using Bus.BusEventProcessorCommands;
+using Bus.Dispatch;
 using Bus.InfrastructureMessages;
 using Bus.MessageInterfaces;
+using Bus.Serializer;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
@@ -26,15 +28,21 @@ namespace Bus.DisruptorEventHandlers
         private readonly IMessageSender _messageSender;
         private readonly ISequenceNumberVerifier _sequenceNumberVerifier;
         private readonly IPeerManager _peerManager;
+        private readonly Dictionary<Type, IMessageSerializer> _typeToCustomSerializer = new Dictionary<Type, IMessageSerializer>();
 
 
-        public PersistenceSynchronizationProcessor(IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier, IPeerManager peerManager)
+        public PersistenceSynchronizationProcessor(IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier, IPeerManager peerManager, IAssemblyScanner scanner)
         {
             _peerConfiguration = peerConfiguration;
             _messageSender = messageSender;
             _sequenceNumberVerifier = sequenceNumberVerifier;
             _peerManager = peerManager;
             _peerManager.PeerConnected += OnPeerConnected;
+            var serializers = scanner.FindMessageSerializers();
+            foreach (var typeToSerializerType in serializers ?? new Dictionary<Type, Type>())
+            {
+                _typeToCustomSerializer.Add(typeToSerializerType.Key, Activator.CreateInstance(typeToSerializerType.Value) as IMessageSerializer);
+            }
         }
 
         private void OnPeerConnected(ServicePeer obj)
@@ -59,7 +67,7 @@ namespace Bus.DisruptorEventHandlers
             }
 
             var type = TypeUtils.Resolve(data.InitialTransportMessage.MessageType);
-             MessageSubscription options;
+            MessageSubscription options;
             _options.TryGetValue(type.FullName, out options);
 
             if (data.ForceMessageThrough && _isInitialized)
@@ -68,7 +76,12 @@ namespace Bus.DisruptorEventHandlers
             if (!_sequenceNumberVerifier.IsSequenceNumberValid(data.InitialTransportMessage, _isInitialized))
                 SetUninitializedAndSync();
 
-            var deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
+            IMessageSerializer customSerializer = null;
+            IMessage deserializedMessage;
+            if (_typeToCustomSerializer.TryGetValue(type, out customSerializer))
+                deserializedMessage = customSerializer.Deserialize(data.InitialTransportMessage.Data);
+            else
+                deserializedMessage = BusSerializer.Deserialize(data.InitialTransportMessage.Data, type) as IMessage;
 
             if (IsInfrastructureMessage(type))
             {
@@ -133,7 +146,13 @@ namespace Bus.DisruptorEventHandlers
                     return;
                 }
                 var itemType = TypeUtils.Resolve(item.InitialTransportMessage.MessageType);
-                var deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
+
+                IMessageSerializer customSerializer = null;
+                IMessage deserializedSavedMessage;
+                if (_typeToCustomSerializer.TryGetValue(itemType, out customSerializer))
+                    deserializedSavedMessage = customSerializer.Deserialize(item.InitialTransportMessage.Data);
+                else
+                    deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
                 PublishQueuedMessageToStandardDispatch(deserializedSavedMessage, item.InitialTransportMessage.MessageIdentity,
                                                                            item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerName, data);
             }
@@ -153,7 +172,7 @@ namespace Bus.DisruptorEventHandlers
             inboundEntry.MessageIdentity = messageId;
             inboundEntry.Endpoint = endpoint;
             inboundEntry.SendingPeer = peerName;
-            if(data.QueuedInboundEntries == null)
+            if (data.QueuedInboundEntries == null)
                 data.QueuedInboundEntries = new List<InboundBusinessMessageEntry>();
             data.QueuedInboundEntries.Add(inboundEntry);
             data.IsStrandardMessage = true;

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Bus.Dispatch;
 using Bus.MessageInterfaces;
+using Bus.Serializer;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
@@ -18,9 +20,9 @@ namespace Bus.DisruptorEventHandlers
 
         private Dictionary<string, List<MessageSubscription>> _messageTypesToSubscriptions;
         private readonly IReliabilityCoordinator _reliabilityCoordinator;
+        private readonly Dictionary<Type, IMessageSerializer> _typeToCustomSerializer = new Dictionary<Type, IMessageSerializer>();
 
-
-        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator)
+        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator, IAssemblyScanner scanner)
         {
             _callbackRepository = callbackRepository;
             _peerManager = peerManager;
@@ -28,6 +30,11 @@ namespace Bus.DisruptorEventHandlers
             _reliabilityCoordinator = reliabilityCoordinator;
             _peerManager.PeerConnected += OnPeerChange;
             _peerManager.EndpointStatusUpdated += OnEndpointStatusUpdated;
+            var serializers = scanner.FindMessageSerializers();
+            foreach (var typeToSerializerType in serializers ?? new Dictionary<Type, Type>())
+            {
+                _typeToCustomSerializer.Add(typeToSerializerType.Key, Activator.CreateInstance(typeToSerializerType.Value) as IMessageSerializer);
+            }
 
         }
 
@@ -76,17 +83,22 @@ namespace Bus.DisruptorEventHandlers
                     var wireMessage = new WireSendingMessage(messageData, endpoint);
                     data.NetworkSenderData.WireMessages.Add(wireMessage);
                 }
-                    
+
             }
 
-         //   SendToConcernedPeers(concernedSubscriptions, data, messageData);
+            //   SendToConcernedPeers(concernedSubscriptions, data, messageData);
             _reliabilityCoordinator.EnsureReliability(data, data.MessageTargetHandlerData.Message, concernedSubscriptions, messageData);
 
         }
 
         private MessageWireData CreateMessageWireData(IMessage message)
         {
-            var serializedMessage = BusSerializer.Serialize(message);
+            IMessageSerializer customSerializer = null;
+            byte[] serializedMessage;
+            if (_typeToCustomSerializer.TryGetValue(message.GetType(), out customSerializer))
+                serializedMessage = customSerializer.Serialize(message);
+            else
+                serializedMessage = BusSerializer.Serialize(message);
             var messageId = Guid.NewGuid();
             var messageType = message.GetType().FullName;
             var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerName, serializedMessage);

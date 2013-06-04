@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Configuration;
+using Bus.Transport;
 
 namespace Bus
 {
     public interface IPeerConfiguration
     {
         string PeerName { get; }
-        List<string> ShadowedPeers { get; }
+        List<ShadowedPeerConfiguration> ShadowedPeers { get; }
     }
 
     class PeerConfiguration : IPeerConfiguration
@@ -16,6 +17,6 @@ namespace Bus
             get { return ConfigurationManager.AppSettings["ServiceName"]; }
         }
 
-        public List<string> ShadowedPeers { get; private set; }
+        public List<ShadowedPeerConfiguration> ShadowedPeers { get; private set; }
     }
 }

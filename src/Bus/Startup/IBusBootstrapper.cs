@@ -95,10 +95,11 @@ namespace Bus.Startup
             _messageSender.Publish(new PeerConnected(peer));
 
 
-            if ((_peerManager.PeersThatShadowMe() ?? Enumerable.Empty<ServicePeer>()).Any())
+            var persistenceShadowPeer = (_peerManager.PeersThatShadowMe() ?? Enumerable.Empty<ServicePeerShadowInformation>()).SingleOrDefault(x => x.IsPersistenceProvider);
+            if (persistenceShadowPeer != null)
             {
                 _logger.InfoFormat("Requesting missed messages for {0}", _peerConfiguration.PeerName);
-                _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)).WaitForCompletion();
+                _messageSender.Route(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName), persistenceShadowPeer.ServicePeer.PeerName).WaitForCompletion();
             }
 
             //ask for topo again in case someone connected simulataneously to other node
@@ -111,7 +112,12 @@ namespace Bus.Startup
         private ISubscriptionFilter GetSubscription(MessageOptions options)
         {
             if (options.MessageType == typeof(SynchronizeWithBrokerCommand) || options.MessageType == typeof(StopSynchWithBrokerCommand))
-                return new SynchronizeWithBrokerFilter(_peerConfiguration.ShadowedPeers); // todo: implement dynamic subscriptions
+            {
+                List<string> acceptedPeers = new List<string>();
+                if(_peerConfiguration.ShadowedPeers != null)
+                acceptedPeers = _peerConfiguration.ShadowedPeers.Where(x => x.IsPersistenceProvider).Select(x => x.PeerName).ToList();
+                return new SynchronizeWithBrokerFilter(acceptedPeers); // todo: implement dynamic subscriptions
+            }
             return options.SubscriptionFilter;
 
 

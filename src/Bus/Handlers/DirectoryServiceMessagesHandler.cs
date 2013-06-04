@@ -38,18 +38,18 @@ namespace Bus.Handlers
             _dataReceiver.InjectCommand(new ResetSequenceNumbersForPeer(message.Peer.PeerName));
         }
 
-        private void PublishSavedMessages(string peerName)
-        {
-            if (_peerConfiguration.ShadowedPeers != null && _peerConfiguration.ShadowedPeers.Contains(peerName))
-            {
-                var serializedData = BusSerializer.Serialize(new PublishUnacknowledgedMessagesToPeer(peerName));
-                _dataReceiver.InjectMessage(new ReceivedTransportMessage(typeof(PublishUnacknowledgedMessagesToPeer).FullName,
-                                                                         _peerConfiguration.PeerName,
-                                                                         Guid.NewGuid(),
-                                                                         null,
-                                                                         serializedData, -1));
-            }
-        }
+        //private void PublishSavedMessages(string peerName)
+        //{
+        //    if (_peerConfiguration.ShadowedPeers != null && _peerConfiguration.ShadowedPeers.Contains(peerName))
+        //    {
+        //        var serializedData = BusSerializer.Serialize(new PublishUnacknowledgedMessagesToPeer(peerName));
+        //        _dataReceiver.InjectMessage(new ReceivedTransportMessage(typeof(PublishUnacknowledgedMessagesToPeer).FullName,
+        //                                                                 _peerConfiguration.PeerName,
+        //                                                                 Guid.NewGuid(),
+        //                                                                 null,
+        //                                                                 serializedData, -1));
+        //    }
+        //}
 
         public void Handle(InitializeTopologyAndMessageSettings message)
         {

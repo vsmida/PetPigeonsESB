@@ -84,7 +84,7 @@ namespace Bus.Transport.Network
         {
             _logger.Debug(string.Format("Creating zmq push socket to endpoint {0}", zmqEndpoint));
             var socket = _context.CreateSocket(SocketType.PUSH);
-            socket.SendHighWatermark = 20000;
+            socket.SendHighWatermark = 30000;
             socket.Linger = TimeSpan.FromMilliseconds(200);
             socket.Connect(zmqEndpoint.Endpoint);
             return socket;

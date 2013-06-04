@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Bus.MessageInterfaces;
+using Bus.Serializer;
 using Shared;
 
 namespace Bus.Dispatch
@@ -14,5 +15,6 @@ namespace Bus.Dispatch
         List<Type> GetHandledCommands();
         List<Type> GetHandledEvents();
         List<Type> GetSubscriptionFilterTypes(IEnumerable<Assembly> assemblies = null);
+        Dictionary<Type, Type> FindMessageSerializers(IEnumerable<Assembly> assemblies = null);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using Bus.Serializer;
 using ProtoBuf;
 using Shared;
 using Bus;
@@ -39,6 +40,24 @@ namespace Tests.Transport
             public void Handle(CommandThatThrows item)
             {
                 throw new Exception("throwing");
+            }
+        }
+
+
+        public class FakeCommandSerializer : BusMessageSerializer<FakeCommand>
+        {
+            public static event Action<FakeCommand> SerializeCalled = delegate { };
+            public static event Action<byte[]> DeserializeCalled = delegate { };
+            public override FakeCommand Deserialize(byte[] serializedMessage)
+            {
+                DeserializeCalled(serializedMessage);
+                return new FakeCommand();
+            }
+
+            public override byte[] Serialize(FakeCommand item)
+            {
+                SerializeCalled(item);
+                return new byte[0];
             }
         }
 

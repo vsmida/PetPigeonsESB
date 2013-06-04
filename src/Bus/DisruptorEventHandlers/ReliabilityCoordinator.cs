@@ -38,8 +38,8 @@ namespace Bus.DisruptorEventHandlers
 
         private void OnPeerChange(ServicePeer obj)
         {
-            _peersToShadows = _peerManager.GetAllShadows();
-            _selfShadows = _peerManager.PeersThatShadowMe();
+            _peersToShadows = _peerManager.GetAllShadows().ToDictionary(x => x.Key, x => new HashSet<ServicePeer>(x.Value.Select(y => y.ServicePeer)));
+            _selfShadows = _peerManager.PeersThatShadowMe().Select(x => x.ServicePeer).ToList();
             //if (obj.PeerName == _peerConfiguration.PeerName)
             //{
             //    Dictionary<string, MessageSubscription> newSelfMessageSubscriptions = new Dictionary<string, MessageSubscription>();

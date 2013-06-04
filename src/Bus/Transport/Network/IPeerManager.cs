@@ -5,15 +5,30 @@ using System.Linq;
 
 namespace Bus.Transport.Network
 {
+
+    public class ServicePeerShadowInformation
+    {
+        public readonly ServicePeer ServicePeer;
+        public readonly bool IsPersistenceProvider;
+
+        public ServicePeerShadowInformation(ServicePeer servicePeer, bool isPersistenceProvider)
+        {
+            ServicePeer = servicePeer;
+            IsPersistenceProvider = isPersistenceProvider;
+        }
+
+
+    }
+
     public interface IPeerManager
     {
         event Action<ServicePeer> PeerConnected;
         event Action<EndpointStatus> EndpointStatusUpdated;
         void RegisterPeerConnection(ServicePeer peer);
         List<ServicePeer> GetAllPeers();
-        IEnumerable<ServicePeer> PeersThatShadowMe();
+        IEnumerable<ServicePeerShadowInformation> PeersThatShadowMe();
         Dictionary<string, List<MessageSubscription>> GetAllSubscriptions();
-        Dictionary<string, HashSet<ServicePeer>> GetAllShadows();
+        Dictionary<string, HashSet<ServicePeerShadowInformation>> GetAllShadows();
         string Self { get; }
         Dictionary<IEndpoint, EndpointStatus> GetEndpointStatuses();
     }
@@ -26,7 +41,7 @@ namespace Bus.Transport.Network
         private readonly ConcurrentDictionary<string, ServicePeer> _peers = new ConcurrentDictionary<string, ServicePeer>();
         private readonly ConcurrentDictionary<string, List<MessageSubscription>> _messagesToEndpoints = new ConcurrentDictionary<string, List<MessageSubscription>>();
         private readonly ConcurrentDictionary<IEndpoint, EndpointStatus> _endpointToStatus = new ConcurrentDictionary<IEndpoint, EndpointStatus>();
-        private readonly ConcurrentDictionary<string, HashSet<ServicePeer>> _peersToShadows = new ConcurrentDictionary<string, HashSet<ServicePeer>>();
+        private readonly ConcurrentDictionary<string, HashSet<ServicePeerShadowInformation>> _peersToTheirShadows = new ConcurrentDictionary<string, HashSet<ServicePeerShadowInformation>>();
         private readonly IPeerConfiguration _peerConfig;
         private readonly IHeartbeatManager _heartbeatManager;
 
@@ -92,30 +107,31 @@ namespace Bus.Transport.Network
 
         private void UpdateShadows(ServicePeer peer)
         {
-            foreach (var shadowedPeer in peer.ShadowedPeers ?? Enumerable.Empty<string>())
+            foreach (var shadowedPeer in peer.ShadowedPeers ?? Enumerable.Empty<ShadowedPeerConfiguration>())
             {
-                _peersToShadows.AddOrUpdate(shadowedPeer,
-                                            new HashSet<ServicePeer> { peer },
+                _peersToTheirShadows.AddOrUpdate(shadowedPeer.PeerName,
+                                            new HashSet<ServicePeerShadowInformation> { new ServicePeerShadowInformation(peer, shadowedPeer.IsPersistenceProvider) },
                                             (key, oldValue) =>
                                             {
-                                                oldValue.Add(peer);
+                                                oldValue.Add(new ServicePeerShadowInformation(peer, shadowedPeer.IsPersistenceProvider));
                                                 return oldValue;
                                             });
             }
 
-            foreach (var pair in _peersToShadows)
+            foreach (var pair in _peersToTheirShadows)
             {
-                if (pair.Value.Contains(peer) && !peer.ShadowedPeers.Contains(pair.Key))
-                    pair.Value.Remove(peer);
+                var previousEntry = pair.Value.SingleOrDefault(x => x.ServicePeer == peer);
+                if (previousEntry != null && !peer.ShadowedPeers.Select(x => x.PeerName).Contains(pair.Key))
+                    pair.Value.Remove(previousEntry);
             }
         }
 
 
-        public IEnumerable<ServicePeer> PeersThatShadowMe()
+        public IEnumerable<ServicePeerShadowInformation> PeersThatShadowMe()
         {
-            HashSet<ServicePeer> shadows;
-            _peersToShadows.TryGetValue(_peerConfig.PeerName, out shadows);
-            return shadows;
+            HashSet<ServicePeerShadowInformation> shadows;
+            _peersToTheirShadows.TryGetValue(_peerConfig.PeerName, out shadows);
+            return shadows ?? Enumerable.Empty<ServicePeerShadowInformation>();
         }
 
         public Dictionary<string, List<MessageSubscription>> GetAllSubscriptions()
@@ -123,9 +139,9 @@ namespace Bus.Transport.Network
             return _messagesToEndpoints.ToDictionary(x => x.Key, x => x.Value);
         }
 
-        public Dictionary<string, HashSet<ServicePeer>> GetAllShadows()
+        public Dictionary<string, HashSet<ServicePeerShadowInformation>> GetAllShadows()
         {
-            return _peersToShadows.ToDictionary(x => x.Key, x => x.Value);
+            return _peersToTheirShadows.ToDictionary(x => x.Key, x => x.Value);
         }
 
         public string Self
