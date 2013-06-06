@@ -105,7 +105,7 @@ namespace Bus.Transport.Network
 
     class DummyHeartbeatingConfig : IHeartbeatingConfiguration
     {
-        private TimeSpan _timeout = TimeSpan.FromSeconds(2);
+        private TimeSpan _timeout = TimeSpan.FromSeconds(2000);
         public TimeSpan HeartbeatInterval { get { return _timeout; } set { _timeout = value; } }
     }
 }
