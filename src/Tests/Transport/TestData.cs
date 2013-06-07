@@ -39,6 +39,19 @@ namespace Tests.Transport
             }
         }
 
+        public class FakeEndpointTypeSerializer: EndpointSerializer<FakeEndpointType>
+        {
+            public override Stream Serialize(FakeEndpointType item)
+            {
+                return new MemoryStream();
+            }
+
+            public override FakeEndpointType Deserialize(Stream item)
+            {
+                return new FakeEndpointType();
+            }
+        }
+
         public class FakeEvent
         { }
 

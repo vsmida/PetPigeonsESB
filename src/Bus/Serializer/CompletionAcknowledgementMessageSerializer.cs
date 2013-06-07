@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Bus.InfrastructureMessages;
 using Bus.Transport.Network;
 using Shared;
@@ -7,6 +8,10 @@ namespace Bus.Serializer
 {
     public class CompletionAcknowledgementMessageSerializer : BusMessageSerializer<CompletionAcknowledgementMessage>
     {
+        public CompletionAcknowledgementMessageSerializer()
+        {
+        }
+
         public override byte[] Serialize(CompletionAcknowledgementMessage item)
         {
             var serializedEndpoint = SerializeEndpoint(item.Endpoint);

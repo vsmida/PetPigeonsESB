@@ -101,6 +101,24 @@ namespace Tests
         }
 
         [Test]
+        public void should_find_iendpoint_types()
+        {
+            var endpointTypes = _scanner.FindIEndpointTypes();
+            var fake = endpointTypes.SingleOrDefault(x => x == typeof (TestData.FakeEndpointType));
+            Assert.IsNotNull(fake);
+
+        }
+
+        [Test]
+        public void should_find_iendpoint_types_and_serializers()
+        {
+            var endpointsToSerializers = _scanner.FindEndpointTypesToSerializers();
+            var fakeEndpointSerializer = endpointsToSerializers[typeof (TestData.FakeEndpointType)];
+            Assert.AreEqual(typeof(TestData.FakeEndpointTypeSerializer), fakeEndpointSerializer);
+
+        }
+
+        [Test]
         public void should_find_serializers()
         {
             var serializers = _scanner.FindMessageSerializers();

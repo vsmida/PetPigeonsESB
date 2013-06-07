@@ -16,5 +16,7 @@ namespace Bus.Dispatch
         List<Type> GetHandledEvents();
         List<Type> GetSubscriptionFilterTypes(IEnumerable<Assembly> assemblies = null);
         Dictionary<Type, Type> FindMessageSerializers(IEnumerable<Assembly> assemblies = null);
+        Dictionary<Type, Type> FindEndpointTypesToSerializers(IEnumerable<Assembly> assemblies = null);
+        List<Type> FindIEndpointTypes(IEnumerable<Assembly> assemblies = null);
     }
 }

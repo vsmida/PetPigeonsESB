@@ -173,5 +173,37 @@ namespace Bus.Dispatch
             }
             return result;
         }
+
+        public Dictionary<Type, Type> FindEndpointTypesToSerializers(IEnumerable<Assembly> assemblies = null)
+        {
+            assemblies = assemblies ?? GetAssemblies();
+            var result = new Dictionary<Type, Type>();
+            foreach (var assembly in assemblies)
+            {
+                Type genericType = null;
+                foreach (var type in assembly.GetTypes().Where(type => !type.IsAbstract && TypeUtils.IsSubclassOfRawGeneric(typeof(EndpointSerializer<>), type, out genericType)))
+                {
+                    var genericTypeArgument = genericType.GetGenericArguments()[0];
+                    result.Add(genericTypeArgument, type);
+                }
+            }
+
+            var iendpointTypes = FindIEndpointTypes(assemblies);
+            if(iendpointTypes.Count != result.Count)
+                throw new ArgumentException("Some IEndpoints have no associated serializers");
+
+            return result;
+        }
+
+        public List<Type> FindIEndpointTypes(IEnumerable<Assembly> assemblies = null)
+        {
+            assemblies = assemblies ?? GetAssemblies();
+            var result = new List<Type>();
+            foreach (var assembly in assemblies)
+            {
+                result.AddRange(assembly.GetTypes().Where(type => !type.IsAbstract && !type.IsInterface && typeof (IEndpoint).IsAssignableFrom(type)));
+            }
+            return result;
+        }
     }
 }
