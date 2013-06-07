@@ -21,10 +21,10 @@ namespace Bus.Transport.Network
         private readonly MessageWireDataSerializer _serializer;
 
 
-        public ZmqPushWireSendingTransport(ZmqContext context, IAssemblyScanner scanner)
+        public ZmqPushWireSendingTransport(ZmqContext context, ISerializationHelper helper)
         {
             _context = context;
-            _serializer = new MessageWireDataSerializer(scanner);
+            _serializer = new MessageWireDataSerializer(helper);
         }
 
 

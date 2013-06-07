@@ -11,26 +11,10 @@ namespace Bus.Serializer
 {
     public class MessageWireDataSerializer
     {
-        private readonly Dictionary<string, int> _messageTypeToId = new Dictionary<string, int>();
-        private readonly Dictionary<int, string> _messageTypeIdToMessageType = new Dictionary<int, string>();
-        public MessageWireDataSerializer(IAssemblyScanner assemblyScanner)
+        private readonly ISerializationHelper _serializationHelper;
+        public MessageWireDataSerializer(ISerializationHelper serializationHelper)
         {
-            var knownMessages = assemblyScanner.GetMessageOptions();
-            foreach (var messageOptionse in knownMessages)
-            {
-                try
-                {
-                    var fullName = messageOptionse.MessageType.FullName;
-                    var idFromString = StringUtils.CreateIdFromString(fullName);
-                    _messageTypeToId.Add(fullName, idFromString);
-                    _messageTypeIdToMessageType.Add(idFromString, fullName);
-
-                }
-                catch(ArgumentException ex)
-                {
-                    throw new ArgumentException("Problem while loading message type to message type id dictionary, two type names might have the same id");
-                }
-            }
+            _serializationHelper = serializationHelper;
         }
 
         public byte[] Serialize(MessageWireData data)
@@ -44,7 +28,7 @@ namespace Bus.Serializer
             var idByteArray = data.MessageIdentity.ToByteArray();
             idByteArray.CopyTo(finalArray, 0);
 
-            ByteUtils.WriteInt(finalArray, guidLength, _messageTypeToId[data.MessageType]);
+            ByteUtils.WriteInt(finalArray, guidLength, _serializationHelper.GetMessageTypeId(data.MessageType));
             ByteUtils.WriteInt(finalArray, guidLength + 4, sendingPeerArray.Length);
             var sendingPeerOffset = guidLength + 4 + 4;
             for (int i = 0; i < data.SendingPeer.Length; i++)
@@ -77,7 +61,7 @@ namespace Bus.Serializer
             if (data.Length > 16 + 4 + 4 + 4 + sendingPeerLength + 4 + dataLength)
                 sequenceNumber = ByteUtils.ReadIntFromStream(data);
 
-            return new MessageWireData(_messageTypeIdToMessageType[messageTypeId], id, sendingPeer, binaryData) { SequenceNumber = sequenceNumber };
+            return new MessageWireData(_serializationHelper.GetMessageTypeFromId(messageTypeId), id, sendingPeer, binaryData) { SequenceNumber = sequenceNumber };
 
         }
     }

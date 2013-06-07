@@ -32,7 +32,7 @@ namespace Tests.Integration.Performance
         [Test]
         public void serializationTestsCustom()
         {
-            var serializer = new MessageWireDataSerializer(new AssemblyScanner());
+            var serializer = new MessageWireDataSerializer(new SerializationHelper(new AssemblyScanner()));
             using (var perfMeasure = new PerformanceMeasure(() =>
                                                                {
                                                                    var ser = serializer.Serialize(_testData);

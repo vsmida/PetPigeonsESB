@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bus;
 using Bus.Dispatch;
+using Bus.Serializer;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
@@ -31,10 +32,10 @@ namespace Tests.Integration.Performance
         [Test]
         public void transport_test()
         {
-            var transportSend = new ZmqPushWireSendingTransport(ZmqContext.Create(), new AssemblyScanner());
+            var transportSend = new ZmqPushWireSendingTransport(ZmqContext.Create(), new SerializationHelper(new AssemblyScanner()));
             transportSend.Initialize();
             var fakeTransportConfiguration = new FakeTransportConfiguration();
-            var transportReceive = new ZmqPullWireDataReceiver(ZmqContext.Create(), fakeTransportConfiguration, new AssemblyScanner());
+            var transportReceive = new ZmqPullWireDataReceiver(ZmqContext.Create(), fakeTransportConfiguration, new SerializationHelper(new AssemblyScanner()));
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
             var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),

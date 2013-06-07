@@ -25,11 +25,11 @@ namespace Bus.Transport.Network
         private ZmqEndpoint _endpoint;
         private readonly MessageWireDataSerializer _serializer;
 
-        public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration, IAssemblyScanner scanner)
+        public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration, ISerializationHelper helper)
         {
             _context = context;
             _configuration = configuration;
-            _serializer = new MessageWireDataSerializer(scanner);
+            _serializer = new MessageWireDataSerializer(helper);
         }
 
 

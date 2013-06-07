@@ -1,7 +1,9 @@
 ﻿using System;
+using Bus.Dispatch;
 using Bus.InfrastructureMessages;
 using Bus.Serializer;
 using Bus.Transport.Network;
+using Moq;
 using NUnit.Framework;
 
 namespace Tests.Serialization
@@ -10,11 +12,13 @@ namespace Tests.Serialization
     public class CompletionAcknowlegementMessageSerializerTests
     {
         private CompletionAcknowledgementMessageSerializer _serializer;
+        private Mock<IAssemblyScanner> _assemblyScannerMock;
 
         [SetUp]
         public void setup()
         {
-            _serializer = new CompletionAcknowledgementMessageSerializer();
+            _assemblyScannerMock = new Mock<IAssemblyScanner>();
+            _serializer = new CompletionAcknowledgementMessageSerializer(_assemblyScannerMock.Object);
         }
 
         [Test]

@@ -149,6 +149,7 @@
     <Compile Include="Serializer\CompletionAcknowledgementMessageSerializer.cs" />
     <Compile Include="Serializer\IMessageSerializer.cs" />
     <Compile Include="Serializer\MessageWireDataSerializer.cs" />
+    <Compile Include="Serializer\SerializationHelper.cs" />
     <Compile Include="Startup\BusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\IBusBootstrapper.cs" />
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />

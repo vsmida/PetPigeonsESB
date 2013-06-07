@@ -1,6 +1,7 @@
 ﻿using Bus.Dispatch;
 using Bus.DisruptorEventHandlers;
 using Bus.Handlers;
+using Bus.Serializer;
 using Bus.Subscriptions;
 using Bus.Transport;
 using Bus.Transport.Network;
@@ -41,7 +42,8 @@ namespace Bus.Startup
              ForSingletonOf<IBusBootstrapperConfiguration>().Use<BusBootstrapperConfiguration>();
              ForSingletonOf<IBus>().Use<InternalBus>();
              ForSingletonOf<IReplier>().Use(ctx => ctx.GetInstance<InternalBus>());
-            
+             ForSingletonOf<ISerializationHelper>().Use<SerializationHelper>();
+
 
          }
     }

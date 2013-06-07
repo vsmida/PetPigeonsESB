@@ -17,7 +17,7 @@ namespace Tests.Serialization
         [SetUp]
         public void setup()
         {
-            _serializer = new MessageWireDataSerializer(new AssemblyScanner());
+            _serializer = new MessageWireDataSerializer(new SerializationHelper(new AssemblyScanner()));
         }
 
         [Test]

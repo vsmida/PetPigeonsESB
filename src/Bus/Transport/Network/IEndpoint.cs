@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using ProtoBuf;
+using Shared;
 
 namespace Bus.Transport.Network
 {
@@ -23,8 +25,10 @@ namespace Bus.Transport.Network
         IEndpoint Deserialize(Stream stream);
     }
 
-    public abstract class EndpointSerializer<T> : IEndpointSerializer where T: IEndpoint
+    public abstract class EndpointSerializer<T> : IEndpointSerializer where T : IEndpoint
     {
+        public int SerializerId { get { return StringUtils.CreateIdFromString(typeof (T).FullName); } }
+
         public Stream Serialize(IEndpoint item)
         {
             return Serialize((T)item);

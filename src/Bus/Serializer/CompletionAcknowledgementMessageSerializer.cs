@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Bus.Dispatch;
 using Bus.InfrastructureMessages;
 using Bus.Transport.Network;
 using Shared;
@@ -8,8 +9,14 @@ namespace Bus.Serializer
 {
     public class CompletionAcknowledgementMessageSerializer : BusMessageSerializer<CompletionAcknowledgementMessage>
     {
-        public CompletionAcknowledgementMessageSerializer()
+        private Dictionary<Type, IEndpointSerializer> _endpointSerializersByType = new Dictionary<Type, IEndpointSerializer>();
+
+        public CompletionAcknowledgementMessageSerializer(IAssemblyScanner scanner)
         {
+            foreach (var pair in scanner.FindEndpointTypesToSerializers())
+            {
+                _endpointSerializersByType.Add(pair.Key, Activator.CreateInstance(pair.Value) as IEndpointSerializer);
+            }
         }
 
         public override byte[] Serialize(CompletionAcknowledgementMessage item)
