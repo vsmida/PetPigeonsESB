@@ -99,6 +99,7 @@
     <Compile Include="ReliabilityLevel.cs" />
     <Compile Include="Serializer.cs" />
     <Compile Include="SingleProducerSingleConsumerConcurrentQueue.cs" />
+    <Compile Include="StringUtils.cs" />
     <Compile Include="TypeUtils.cs" />
   </ItemGroup>
   <ItemGroup>

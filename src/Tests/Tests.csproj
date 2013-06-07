@@ -142,6 +142,7 @@
     <Compile Include="TestTools\ExtendMock.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />
     <Compile Include="Transport\TestData.cs" />
+    <Compile Include="Transport\ZmqEndpointSerializerTests.cs" />
     <Compile Include="Transport\ZmqTests.cs" />
   </ItemGroup>
   <ItemGroup>

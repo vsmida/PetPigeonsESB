@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Bus.Serializer;
 using ProtoBuf;
 using Shared;
@@ -16,6 +17,26 @@ namespace Tests.Transport
         [ProtoContract]
         public class FakeCommand : ICommand
         {
+        }
+
+        public class FakeEndpointType : IEndpoint
+        {
+            public bool Equals(IEndpoint other)
+            {
+                return true;
+            }
+
+            public WireTransportType WireTransportType { get; private set; }
+            public bool IsMulticast { get; private set; }
+            public Stream Serialize()
+            {
+                return new MemoryStream();
+            }
+
+            public IEndpoint Deserialize(Stream stream)
+            {
+                return new FakeEndpointType();
+            }
         }
 
         public class FakeEvent

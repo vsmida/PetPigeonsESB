@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
@@ -22,12 +23,13 @@ namespace Bus.Transport.Network
         private RingBuffer<InboundMessageProcessingEntry> _ringBuffer;
         private ILog _logger = LogManager.GetLogger(typeof(ZmqPullWireDataReceiver));
         private ZmqEndpoint _endpoint;
-        private readonly MessageWireDataSerializer _serializer = new MessageWireDataSerializer();
+        private readonly MessageWireDataSerializer _serializer;
 
-        public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration)
+        public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration, IAssemblyScanner scanner)
         {
             _context = context;
             _configuration = configuration;
+            _serializer = new MessageWireDataSerializer(scanner);
         }
 
 

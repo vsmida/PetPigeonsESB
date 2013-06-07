@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.SendingPipe;
 using ZeroMQ;
@@ -17,12 +18,13 @@ namespace Bus.Transport.Network
         private readonly ZmqContext _context;
         private readonly ILog _logger = LogManager.GetLogger(typeof(ZmqPushWireSendingTransport));
      //   private Stopwatch _watch = new Stopwatch();
-        private readonly MessageWireDataSerializer _serializer = new MessageWireDataSerializer();
+        private readonly MessageWireDataSerializer _serializer;
 
 
-        public ZmqPushWireSendingTransport(ZmqContext context)
+        public ZmqPushWireSendingTransport(ZmqContext context, IAssemblyScanner scanner)
         {
             _context = context;
+            _serializer = new MessageWireDataSerializer(scanner);
         }
 
 

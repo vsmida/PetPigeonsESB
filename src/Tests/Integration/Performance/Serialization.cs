@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using Bus;
+using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
@@ -14,7 +15,7 @@ namespace Tests.Integration.Performance
     [TestFixture]
     public class Serialization
     {
-        private MessageWireData _testData = new MessageWireData("tesdddddddddddddddddddddddddddddddddddddddddddddddt",
+        private MessageWireData _testData = new MessageWireData(typeof(TestData.FakeCommand).FullName,
                                                                 Guid.NewGuid(), "tt", new byte[10]);
 
         [Test]
@@ -31,7 +32,7 @@ namespace Tests.Integration.Performance
         [Test]
         public void serializationTestsCustom()
         {
-            var serializer = new MessageWireDataSerializer();
+            var serializer = new MessageWireDataSerializer(new AssemblyScanner());
             using (var perfMeasure = new PerformanceMeasure(() =>
                                                                {
                                                                    var ser = serializer.Serialize(_testData);

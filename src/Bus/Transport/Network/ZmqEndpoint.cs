@@ -1,7 +1,34 @@
+using System.IO;
+using System.Text;
 using ProtoBuf;
+using Shared;
 
 namespace Bus.Transport.Network
 {
+    public class ZmqEndpointSerializer : EndpointSerializer<ZmqEndpoint>
+    {
+        public override Stream Serialize(ZmqEndpoint zmqEndpoint)
+        {
+            var length = new byte[4];
+            var stringEndpoint = zmqEndpoint.Endpoint;
+            ByteUtils.WriteInt(length, 0, stringEndpoint.Length);
+            var memoryStream = new MemoryStream(4 + stringEndpoint.Length);
+            memoryStream.Write(length, 0, 4);
+            var endpoint = Encoding.ASCII.GetBytes(stringEndpoint);
+            memoryStream.Write(endpoint, 0, endpoint.Length);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            return memoryStream;
+        }
+
+        public override ZmqEndpoint Deserialize(Stream stream)
+        {
+            var length = ByteUtils.ReadIntFromStream(stream);
+            var endpointBytes = new byte[length];
+            stream.Read(endpointBytes, 0, length);
+            return new ZmqEndpoint(Encoding.ASCII.GetString(endpointBytes));
+        }
+    }
+
     [ProtoContract]
     public class ZmqEndpoint : IEndpoint
     {
@@ -37,6 +64,8 @@ namespace Bus.Transport.Network
         {
             get { return false; }
         }
+
+
 
         public ZmqEndpoint(string endpoint)
         {

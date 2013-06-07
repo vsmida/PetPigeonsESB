@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.SendingPipe;
 using NUnit.Framework;
 using PgmTransport;
+using Tests.Transport;
 
 namespace Tests.Serialization
 {
@@ -15,13 +17,13 @@ namespace Tests.Serialization
         [SetUp]
         public void setup()
         {
-            _serializer = new MessageWireDataSerializer();
+            _serializer = new MessageWireDataSerializer(new AssemblyScanner());
         }
 
         [Test]
         public void should_serialize_deserialize()
         {
-            var message = new MessageWireData("type", Guid.NewGuid(), "peer", Encoding.ASCII.GetBytes("data"))
+            var message = new MessageWireData(typeof(TestData.FakeCommand).FullName, Guid.NewGuid(), "peer", Encoding.ASCII.GetBytes("data"))
                               {SequenceNumber = 1234567};
             var buffer = _serializer.Serialize(message);
             var stream = new FrameStream(new List<Frame>{new Frame(buffer,0, buffer.Length)});
