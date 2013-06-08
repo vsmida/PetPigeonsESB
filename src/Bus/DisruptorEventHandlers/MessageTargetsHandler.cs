@@ -8,6 +8,7 @@ using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.SendingPipe;
 using Disruptor;
+using StructureMap;
 
 namespace Bus.DisruptorEventHandlers
 {
@@ -21,19 +22,22 @@ namespace Bus.DisruptorEventHandlers
         private Dictionary<string, List<MessageSubscription>> _messageTypesToSubscriptions;
         private readonly IReliabilityCoordinator _reliabilityCoordinator;
         private readonly Dictionary<Type, IMessageSerializer> _typeToCustomSerializer = new Dictionary<Type, IMessageSerializer>();
+        private readonly IContainer _objectFactory;
 
-        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator, IAssemblyScanner scanner)
+
+        public MessageTargetsHandler(ICallbackRepository callbackRepository, IPeerManager peerManager, IPeerConfiguration peerConfiguration, IReliabilityCoordinator reliabilityCoordinator, IAssemblyScanner scanner, IContainer objectFactory)
         {
             _callbackRepository = callbackRepository;
             _peerManager = peerManager;
             _peerConfiguration = peerConfiguration;
             _reliabilityCoordinator = reliabilityCoordinator;
+            _objectFactory = objectFactory;
             _peerManager.PeerConnected += OnPeerChange;
             _peerManager.EndpointStatusUpdated += OnEndpointStatusUpdated;
             var serializers = scanner.FindMessageSerializers();
             foreach (var typeToSerializerType in serializers ?? new Dictionary<Type, Type>())
             {
-                _typeToCustomSerializer.Add(typeToSerializerType.Key, Activator.CreateInstance(typeToSerializerType.Value) as IMessageSerializer);
+                _typeToCustomSerializer.Add(typeToSerializerType.Key, _objectFactory.GetInstance(typeToSerializerType.Value) as IMessageSerializer);
             }
 
         }

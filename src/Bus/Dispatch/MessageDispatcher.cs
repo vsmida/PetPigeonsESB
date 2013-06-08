@@ -13,15 +13,17 @@ namespace Bus.Dispatch
     {
         private class HandlerDispatcher
         {
-            public Type MessageType;
-            public Action<object, IMessage> HandleMethod;
-            public Type HandlerType;
+            public readonly Type MessageType;
+            public readonly Action<object, IMessage> HandleMethod;
+            public readonly Type HandlerType;
+            public readonly object Instance;
 
-            public HandlerDispatcher(Type messageType, Action<object, IMessage> handleMethod, Type handlerType)
+            public HandlerDispatcher(Type messageType, Action<object, IMessage> handleMethod, Type handlerType, object instance)
             {
                 MessageType = messageType;
                 HandleMethod = handleMethod;
                 HandlerType = handlerType;
+                Instance = instance;
             }
         }
 
@@ -74,15 +76,16 @@ namespace Bus.Dispatch
             List<HandlerDispatcher> eventHandlers;
             if (!_messageTypeToEventHandlers.TryGetValue(message.GetType(), out eventHandlers))
             {
-                var methods = _assemblyScanner.FindEventHandlersInAssemblies(message) ?? Enumerable.Empty<MethodInfo>();
-                var handlertype = typeof (IBusEventHandler<>);
-                eventHandlers = methods.Select(x => new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),x.DeclaringType)).ToList();
+                var handlerInfos = _assemblyScanner.FindEventHandlersInAssemblies(message) ?? Enumerable.Empty<HandlerInfo>();
+                var handlertype = typeof(IBusEventHandler<>);
+                eventHandlers = handlerInfos.Select(x => new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),
+                                                                               x.HandleMethod.DeclaringType, x.IsStatic ? _objectFactory.GetInstance(x.HandleMethod.DeclaringType) : null)).ToList();
                 _messageTypeToEventHandlers[message.GetType()] = eventHandlers;
             }
 
             foreach (var eventDispatcher in eventHandlers)
             {
-                var instance = _objectFactory.GetInstance(eventDispatcher.HandlerType);
+                var instance = eventDispatcher.Instance ?? _objectFactory.GetInstance(eventDispatcher.HandlerType);
                 eventDispatcher.HandleMethod(instance, message);
             }
         }
@@ -93,7 +96,7 @@ namespace Bus.Dispatch
             HandlerDispatcher handlerDispatcher;
             if (!_messageTypeToCommandHandler.TryGetValue(message.GetType(), out handlerDispatcher))
             {
-                var handlers = _assemblyScanner.FindCommandHandlersInAssemblies(message) ?? Enumerable.Empty<MethodInfo>();
+                var handlers = _assemblyScanner.FindCommandHandlersInAssemblies(message) ?? Enumerable.Empty<HandlerInfo>();
 
                 if (!handlers.Any())
                     return;
@@ -101,11 +104,12 @@ namespace Bus.Dispatch
                     throw new Exception(string.Format("Multiple handlers present for command type {0} in app domain",
                                                       message.GetType().FullName));
                 var methodInfo = handlers.Single();
-                var handlertype = typeof (ICommandHandler<>);
-                handlerDispatcher = new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())),methodInfo.DeclaringType);
+                var handlertype = typeof(ICommandHandler<>);
+                handlerDispatcher = new HandlerDispatcher(message.GetType(), GenerateHandleAction(handlertype.MakeGenericType(message.GetType())), methodInfo.HandleMethod.DeclaringType,
+                                                                                                  methodInfo.IsStatic ? _objectFactory.GetInstance(methodInfo.HandleMethod.DeclaringType) : null);
                 _messageTypeToCommandHandler[message.GetType()] = handlerDispatcher;
             }
-            var instance = _objectFactory.GetInstance(handlerDispatcher.HandlerType);
+            var instance = handlerDispatcher.Instance ?? _objectFactory.GetInstance(handlerDispatcher.HandlerType);
             handlerDispatcher.HandleMethod(instance, message);
         }
 

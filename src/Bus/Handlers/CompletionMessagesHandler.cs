@@ -1,8 +1,10 @@
-﻿using Bus.InfrastructureMessages;
+﻿using Bus.Attributes;
+using Bus.InfrastructureMessages;
 using Bus.MessageInterfaces;
 
 namespace Bus.Handlers
 {
+    [StatelessHandler]
     class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
     {
         private readonly ICallbackRepository _callbackRepository;

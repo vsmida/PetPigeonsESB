@@ -88,6 +88,7 @@
     <Compile Include="Attributes\ActiveSubscriptionFilterAttribute.cs" />
     <Compile Include="Attributes\BusOptionsAttribute.cs" />
     <Compile Include="Attributes\InfrastructureMessageAttribute.cs" />
+    <Compile Include="Attributes\StatelessHandlerAttribute.cs" />
     <Compile Include="BusEventProcessorCommands\DisconnectEndpoint.cs" />
     <Compile Include="BusEventProcessorCommands\ReleaseCachedMessages.cs" />
     <Compile Include="BusEventProcessorCommands\ResetSequenceNumbersForPeer.cs" />

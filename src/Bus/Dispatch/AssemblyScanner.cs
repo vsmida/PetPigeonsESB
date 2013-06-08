@@ -11,6 +11,19 @@ using Shared;
 
 namespace Bus.Dispatch
 {
+
+    public class HandlerInfo
+    {
+        public readonly MethodInfo HandleMethod;
+        public readonly bool IsStatic;
+
+        public HandlerInfo(MethodInfo handleMethod, bool isStatic)
+        {
+            HandleMethod = handleMethod;
+            IsStatic = isStatic;
+        }
+    }
+
     public class AssemblyScanner : IAssemblyScanner
     {
         private List<MethodInfo> FindMethodsInAssemblyFromTypes(Predicate<Type> typeCondition, string methodName, Func<Type, Type[]> genericTypeArguments)
@@ -34,11 +47,19 @@ namespace Bus.Dispatch
         }
 
 
-        public virtual List<MethodInfo> FindCommandHandlersInAssemblies(IMessage message)
+        public virtual List<HandlerInfo> FindCommandHandlersInAssemblies(IMessage message)
         {
-            return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
+            var result = new List<HandlerInfo>();
+            var methods = FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
                                                            (type.GetInterfaces().SingleOrDefault(
                                                                x => IsCommandHandler(x, message.GetType())) != null)), "Handle", type => new[] { message.GetType() });
+            foreach (var methodInfo in methods)
+            {
+                var declaringType = methodInfo.DeclaringType;
+                var staticAttribute = declaringType.GetCustomAttributes(typeof (StatelessHandlerAttribute), true).SingleOrDefault();
+                result.Add(new HandlerInfo(methodInfo, staticAttribute != null));
+            }
+            return result;
         }
 
         private static bool IsCommandHandler(Type type, Type messageType)
@@ -51,11 +72,19 @@ namespace Bus.Dispatch
             return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IBusEventHandler<>) && type.GetGenericArguments().Single() == messageType;
         }
 
-        public List<MethodInfo> FindEventHandlersInAssemblies(IMessage message)
+        public List<HandlerInfo> FindEventHandlersInAssemblies(IMessage message)
         {
-            return FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
+            var result = new List<HandlerInfo>();
+            var methods = FindMethodsInAssemblyFromTypes(type => ((!type.IsInterface && !type.IsAbstract) &&
                                                            (type.GetInterfaces().SingleOrDefault(
                                                                x => IsEventHandler(x, message.GetType())) != null)), "Handle", type => new[] { message.GetType() });
+            foreach (var methodInfo in methods)
+            {
+                var declaringType = methodInfo.DeclaringType;
+                var staticAttribute = declaringType.GetCustomAttributes(typeof(StatelessHandlerAttribute), true).SingleOrDefault();
+                result.Add(new HandlerInfo(methodInfo, staticAttribute != null));
+            }
+            return result;
         }
 
 

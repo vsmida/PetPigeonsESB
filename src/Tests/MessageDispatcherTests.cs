@@ -31,13 +31,13 @@ namespace Tests
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(TestData.CommandThatThrowsHandler))).Returns(new TestData.CommandThatThrowsHandler());
             _objectFactoryMock.Setup(x => x.GetInstance(typeof(TestData.FakeCommandHandler))).Returns(new TestData.FakeCommandHandler());
             _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand>())).Returns(
-                new List<MethodInfo> { typeof(FakeCommandHandler).GetMethod("Handle") });
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<MethodInfo>());
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.FakeCommand>())).Returns(new List<MethodInfo>{ typeof(TestData.FakeCommandHandler).GetMethod("Handle")});
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.CommandThatThrows>())).Returns(new List<MethodInfo>{ typeof(TestData.CommandThatThrowsHandler).GetMethod("Handle")});
-            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<MethodInfo>());
-            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand2>())).Returns(new List<MethodInfo> { typeof(FakeCommandHandler2_1).GetMethod("Handle"), typeof(FakeCommandHandler2_2).GetMethod("Handle") });
-            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeEvent>())).Returns(new List<MethodInfo> { typeof(FakeEventHandler).GetMethod("Handle"), typeof(FakeEventHandler_2).GetMethod("Handle") });
+                new List<HandlerInfo> {new HandlerInfo(typeof(FakeCommandHandler).GetMethod("Handle"), false)});
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<UnknownCommand>())).Returns(new List<HandlerInfo>());
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.FakeCommand>())).Returns(new List<HandlerInfo> { new HandlerInfo(typeof(TestData.FakeCommandHandler).GetMethod("Handle"), false) });
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<TestData.CommandThatThrows>())).Returns(new List<HandlerInfo> { new HandlerInfo(typeof(TestData.CommandThatThrowsHandler).GetMethod("Handle"), false) });
+            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<UnknownEvent>())).Returns(new List<HandlerInfo>());
+            _assemblyScannerMock.Setup(x => x.FindCommandHandlersInAssemblies(It.IsAny<FakeCommand2>())).Returns(new List<HandlerInfo> { new HandlerInfo(typeof(FakeCommandHandler2_1).GetMethod("Handle"),false), new HandlerInfo( typeof(FakeCommandHandler2_2).GetMethod("Handle"), false) });
+            _assemblyScannerMock.Setup(x => x.FindEventHandlersInAssemblies(It.IsAny<FakeEvent>())).Returns(new List<HandlerInfo> { new HandlerInfo(typeof(FakeEventHandler).GetMethod("Handle"),false),  new HandlerInfo(typeof(FakeEventHandler_2).GetMethod("Handle"), false) });
             _dispatcher = new MessageDispatcher(_objectFactoryMock.Object, _assemblyScannerMock.Object);
             FakeCommandHandler.NumberInMessage = null;
             FakeCommandHandler.NumberSet.WaitOne();

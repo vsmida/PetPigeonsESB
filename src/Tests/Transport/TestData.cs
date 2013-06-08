@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Bus.Attributes;
 using Bus.Serializer;
 using ProtoBuf;
 using Shared;
@@ -55,6 +56,7 @@ namespace Tests.Transport
         public class FakeEvent
         { }
 
+        [StatelessHandler]
         public class FakeCommandHandler : ICommandHandler<FakeCommand>
         {
             public static event Action<FakeCommand> HandlingCommand = delegate { };

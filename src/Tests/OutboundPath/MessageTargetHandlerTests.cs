@@ -13,6 +13,7 @@ using Bus.Transport.SendingPipe;
 using Moq;
 using NUnit.Framework;
 using Shared;
+using StructureMap;
 using Tests.Transport;
 
 namespace Tests.OutboundPath
@@ -63,7 +64,7 @@ namespace Tests.OutboundPath
             _peerConfigurationMock.SetupGet(x => x.PeerName).Returns("Me");
             _callbackRepositoryMock = new Mock<ICallbackRepository>();
             _reliabilityCoordinatorMock = new Mock<IReliabilityCoordinator>();
-            _messageTargetsHandler = new MessageTargetsHandler(_callbackRepositoryMock.Object, _peerManagerMock.Object, _peerConfigurationMock.Object, _reliabilityCoordinatorMock.Object, _assemblyScannerMock.Object);
+            _messageTargetsHandler = new MessageTargetsHandler(_callbackRepositoryMock.Object, _peerManagerMock.Object, _peerConfigurationMock.Object, _reliabilityCoordinatorMock.Object, _assemblyScannerMock.Object, ObjectFactory.Container);
             _peerManagerMock.Raise(x => x.PeerConnected += OnPeerConnected, _otherPeer);
 
         }

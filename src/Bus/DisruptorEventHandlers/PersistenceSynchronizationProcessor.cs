@@ -10,10 +10,11 @@ using Bus.Serializer;
 using Bus.Transport;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
-using Bus.Transport.SendingPipe;
 using Disruptor;
 using Shared;
+using StructureMap;
 using log4net;
+using IMessageSender = Bus.Transport.SendingPipe.IMessageSender;
 
 namespace Bus.DisruptorEventHandlers
 {
@@ -29,19 +30,21 @@ namespace Bus.DisruptorEventHandlers
         private readonly ISequenceNumberVerifier _sequenceNumberVerifier;
         private readonly IPeerManager _peerManager;
         private readonly Dictionary<Type, IMessageSerializer> _typeToCustomSerializer = new Dictionary<Type, IMessageSerializer>();
+        private readonly IContainer _objectFactory;
 
 
-        public PersistenceSynchronizationProcessor(IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier, IPeerManager peerManager, IAssemblyScanner scanner)
+        public PersistenceSynchronizationProcessor(IPeerConfiguration peerConfiguration, IMessageSender messageSender, ISequenceNumberVerifier sequenceNumberVerifier, IPeerManager peerManager, IAssemblyScanner scanner, IContainer objectFactory)
         {
             _peerConfiguration = peerConfiguration;
             _messageSender = messageSender;
             _sequenceNumberVerifier = sequenceNumberVerifier;
             _peerManager = peerManager;
+            _objectFactory = objectFactory;
             _peerManager.PeerConnected += OnPeerConnected;
             var serializers = scanner.FindMessageSerializers();
             foreach (var typeToSerializerType in serializers ?? new Dictionary<Type, Type>())
             {
-                _typeToCustomSerializer.Add(typeToSerializerType.Key, Activator.CreateInstance(typeToSerializerType.Value) as IMessageSerializer);
+                _typeToCustomSerializer.Add(typeToSerializerType.Key, _objectFactory.GetInstance(typeToSerializerType.Value) as IMessageSerializer);
             }
         }
 
