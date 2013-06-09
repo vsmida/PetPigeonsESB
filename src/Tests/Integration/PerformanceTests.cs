@@ -6,6 +6,8 @@ using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
 using Bus;
+using Bus.Attributes;
+using Bus.MessageInterfaces;
 using Bus.Serializer;
 using Bus.Transport.Network;
 using Bus.Transport.ReceptionPipe;
@@ -87,9 +89,46 @@ namespace Tests.Integration
 
        
 
+
+        public class LatencyMessage : ICommand
+        {
+            public readonly long TimeStamp;
+
+            public LatencyMessage(long timeStamp)
+            {
+                TimeStamp = timeStamp;
+            }
+        }
+
+        public class LatencyMessageSerializer : BusMessageSerializer<LatencyMessage>
+        {
+            public override byte[] Serialize(LatencyMessage item)
+            {
+                return BitConverter.GetBytes(item.TimeStamp);
+            }
+
+            public override LatencyMessage Deserialize(byte[] item)
+            {
+                return new LatencyMessage(BitConverter.ToInt64(item, 0));
+            }
+        }
+
+        [StaticHandler]
+        public class LatencyMessageHandler : ICommandHandler<LatencyMessage>
+        {
+            public static List<decimal> _latenciesInMicroSeconds  = new List<decimal>();
+            public static Stopwatch Watch;
+            public void Handle(LatencyMessage item)
+            {
+                _latenciesInMicroSeconds.Add(((decimal)(Watch.ElapsedTicks - item.TimeStamp))/Stopwatch.Frequency * 1000000);
+            }
+        }
+
+
         [Test, Repeat(10)]
         public void should_send_messages()
         {
+            
             GC.Collect();
             var randomPort1 = NetworkUtils.GetRandomUnusedPort();
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
@@ -143,16 +182,20 @@ namespace Tests.Integration
 
         private static void SendMessages(IBus bus1, int loopNumber)
         {
+            Console.WriteLine(" Send Message Loop : ");
+
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
             IBlockableUntilCompletion resetEvent = null;
-            var messagesInBatch = 50000;
+            var messagesInBatch = 20000;
             var fakeCommand = new TestData.FakeCommand();
+            LatencyMessageHandler.Watch = watch;
             for (int i = 0; i < messagesInBatch; i++)
             {
-                  //     resetEvent = bus1.Send(new FakePersistingCommand(i * (loopNumber + 1)));
                 resetEvent = bus1.Send(fakeCommand);
+             //   resetEvent = bus1.Send(new LatencyMessage(watch.ElapsedTicks));
+                //  bus1.Send(new TestData.FakeCommand()).WaitForCompletion();
             }
 
             resetEvent.WaitForCompletion();
@@ -160,6 +203,9 @@ namespace Tests.Integration
             watch.Stop();
             var fps = messagesInBatch/(watch.ElapsedMilliseconds/1000m);
             Console.WriteLine(" FPS : " + fps );
+            Console.WriteLine(" Elapsed : " + watch.ElapsedTicks / (decimal)Stopwatch.Frequency * 1000000 + " us" );
+
+            LatencyMessageHandler._latenciesInMicroSeconds.Clear();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Tests.Integration;
+using Tests.Integration.Performance;
 
 namespace Tests
 {
@@ -7,7 +8,9 @@ namespace Tests
         public static void Main(string[] args)
         {
             var perfTests = new PerformanceTests();
-            perfTests.should_send_messages();
+            var transportTest = new Transports();
+           transportTest.transport_test();
+           //  perfTests.should_send_messages();
         }
     }
 }

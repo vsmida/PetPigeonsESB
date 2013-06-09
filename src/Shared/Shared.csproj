@@ -86,7 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackgroundThread.cs" />
-    <Compile Include="ByteArrayGuid.cs" />
     <Compile Include="ByteUtils.cs" />
     <Compile Include="DisposableAction.cs" />
     <Compile Include="ExtendDictionary.cs" />

@@ -4,7 +4,7 @@ using Bus.MessageInterfaces;
 
 namespace Bus.Handlers
 {
-    [StatelessHandler]
+    [StaticHandler]
     class CompletionMessagesHandler : ICommandHandler<CompletionAcknowledgementMessage>
     {
         private readonly ICallbackRepository _callbackRepository;

@@ -56,7 +56,7 @@ namespace Bus.Transport.Network
         {
             try
             {
-                var receive = _receptionSocket.Receive(TimeSpan.FromMilliseconds(500));
+                var receive = _receptionSocket.Receive();
                 if (receive.Length == 0)
                     return;
 
@@ -115,9 +115,9 @@ namespace Bus.Transport.Network
         public void Dispose()
         {
             _running = false;
+            _context.Dispose();
             if (_pollingReceptionThread != null)
                 _pollingReceptionThread.Join();
-            _context.Dispose();
         }
 
         public void Initialize(RingBuffer<InboundMessageProcessingEntry> ringBuffer)

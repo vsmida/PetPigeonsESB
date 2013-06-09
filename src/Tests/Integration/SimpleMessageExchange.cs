@@ -92,7 +92,7 @@ namespace Tests.Integration
             public override List<Type> GetHandledCommands()
             {
                 var result = base.GetHandledCommands();
-                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand) && x!=typeof(TestData.FakeCommand)).ToList();
+                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand) && x!=typeof(TestData.FakeCommand) && x!=typeof(PerformanceTests.LatencyMessage)).ToList();
             }
         }
 

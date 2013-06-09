@@ -16,7 +16,7 @@ namespace Bus
         {
             get { return ConfigurationManager.AppSettings["ServiceName"]; }
         }
-
+        
         public List<ShadowedPeerConfiguration> ShadowedPeers { get; private set; }
     }
 }

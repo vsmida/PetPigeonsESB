@@ -56,7 +56,7 @@ namespace Bus.Dispatch
             foreach (var methodInfo in methods)
             {
                 var declaringType = methodInfo.DeclaringType;
-                var staticAttribute = declaringType.GetCustomAttributes(typeof (StatelessHandlerAttribute), true).SingleOrDefault();
+                var staticAttribute = declaringType.GetCustomAttributes(typeof (StaticHandlerAttribute), true).SingleOrDefault();
                 result.Add(new HandlerInfo(methodInfo, staticAttribute != null));
             }
             return result;
@@ -81,7 +81,7 @@ namespace Bus.Dispatch
             foreach (var methodInfo in methods)
             {
                 var declaringType = methodInfo.DeclaringType;
-                var staticAttribute = declaringType.GetCustomAttributes(typeof(StatelessHandlerAttribute), true).SingleOrDefault();
+                var staticAttribute = declaringType.GetCustomAttributes(typeof(StaticHandlerAttribute), true).SingleOrDefault();
                 result.Add(new HandlerInfo(methodInfo, staticAttribute != null));
             }
             return result;

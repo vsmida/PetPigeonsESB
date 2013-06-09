@@ -56,7 +56,7 @@ namespace Tests.Transport
         public class FakeEvent
         { }
 
-        [StatelessHandler]
+        [StaticHandler]
         public class FakeCommandHandler : ICommandHandler<FakeCommand>
         {
             public static event Action<FakeCommand> HandlingCommand = delegate { };

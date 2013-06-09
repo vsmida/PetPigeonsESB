@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,13 +20,21 @@ namespace Tests.Integration.Performance
     [TestFixture]
     public class Transports
     {
-       private class EventProcessorInterlockedIncrement : IEventHandler<InboundMessageProcessingEntry>
+        private class EventProcessorInterlockedIncrement : IEventHandler<InboundMessageProcessingEntry>
         {
             public static int MessageCount;
+            public static List<decimal> latenciesInMicrosec = new List<decimal>(260000);
+            public static Stopwatch Watch;
+
+            private static readonly PerformanceTests.LatencyMessageSerializer _serializer = new PerformanceTests.LatencyMessageSerializer();
+
 
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
-                Interlocked.Increment(ref MessageCount);
+                MessageCount++;
+                 var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
+                     latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (decimal)(Stopwatch.Frequency) * 1000000);
+                 Interlocked.Increment(ref MessageCount);
             }
         }
 
@@ -45,25 +54,35 @@ namespace Tests.Integration.Performance
             disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement());
             disruptor.Start();
             transportReceive.Initialize(disruptor.RingBuffer);
-            transportSend.SendMessage(wireSendingMessage, endpoint);
-
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
-            var messagesCountTotal = 260000;
-            for (int i = 0; i < messagesCountTotal; i++)
+           // transportSend.SendMessage(wireSendingMessage, endpoint);
+            for (int t = 0;t < 100; t++)
             {
-                wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
-                transportSend.SendMessage(wireSendingMessage, endpoint);
-            }
-            SpinWait wait = new SpinWait();
-            while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
-            {
-                wait.SpinOnce();
-            }
-            watch.Stop();
-            var fps = messagesCountTotal / (watch.ElapsedMilliseconds / 1000m);
-            Console.WriteLine(" FPS : " + fps.ToString("N2"));
+                
+                Stopwatch watch = new Stopwatch();
+                watch.Start();
+                var messagesCountTotal = 100000;
+               // var messagesCountTotal = 1000;
+                var serializer = new PerformanceTests.LatencyMessageSerializer();
+                EventProcessorInterlockedIncrement.Watch = watch;
+                for (int i = 0; i < messagesCountTotal; i++)
+                {
+                    var data = serializer.Serialize(new PerformanceTests.LatencyMessage(watch.ElapsedTicks));
 
+                    wireSendingMessage =
+                        new WireSendingMessage(
+                            new MessageWireData(typeof (FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", data),
+                            endpoint);
+                    transportSend.SendMessage(wireSendingMessage, endpoint);
+                }
+                SpinWait wait = new SpinWait();
+                while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
+                {
+                    wait.SpinOnce();
+                }
+                watch.Stop();
+                var fps = messagesCountTotal/(watch.ElapsedTicks/ (double)Stopwatch.Frequency);
+                Console.WriteLine(" FPS : " + fps.ToString("N2"));
+            }
             transportSend.Dispose();
             transportReceive.Dispose();
         }
