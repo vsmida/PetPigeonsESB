@@ -38,11 +38,11 @@ namespace Bus.Transport.Network
         {
             _ringBuffer = ringBuffer;
             _ipEndPoint = new IPEndPoint(IPAddress.Loopback,_configuration.Port);
+            _receiver.RegisterCallback(_ipEndPoint, DoReceive);
             _receiver.ListenToEndpoint(_ipEndPoint);
-            _receiver.OnMessageReceived += DoReceive;
         }
 
-        private void DoReceive(IPEndPoint arg1, Stream stream)
+        private void DoReceive(Stream stream)
         {
             var messagedata = _serializer.Deserialize(stream);
 
