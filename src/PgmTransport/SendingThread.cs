@@ -68,14 +68,14 @@ namespace PgmTransport
                         {
                             var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint);
 
-                            var messageCount = pipe.MessageContainer.Count;
+                            var messageCount = pipe.MessageContainerConcurrentQueue.Count;
                             if (messageCount == 0)
                                 continue;
                             var sizeToSend = 0; //todo : use for pgm or avoiding sending too much data at once.
                             for (int i = 0; i < messageCount; i++)
                             {
                                 ArraySegment<byte> message;
-                                pipe.MessageContainer.TryGetNextMessage(out message); // should always work, only one dequeuer
+                                pipe.MessageContainerConcurrentQueue.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
 
                                 if (sizeToSend >= pipe.MaximumBatchSize)
@@ -214,7 +214,7 @@ namespace PgmTransport
             for (int i = 0; i < data.Count; i++)
             {
                 if (i % 2 == 1) //eliminate headers
-                    pipe.MessageContainer.PutBackFailedMessage(data[i]);
+                    pipe.MessageContainerConcurrentQueue.PutBackFailedMessage(data[i]);
             }
         }
 

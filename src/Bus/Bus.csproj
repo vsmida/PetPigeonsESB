@@ -165,7 +165,7 @@
     <Compile Include="Transport\MessageSubscription.cs" />
     <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
     <Compile Include="Transport\Network\CustomTcpTransportWireDataReceiver.cs" />
-    <Compile Include="Transport\Network\CustomTcpWireDataReceiverEndpoint.cs" />
+    <Compile Include="Transport\Network\CustomTcpEndpoint.cs" />
     <Compile Include="Transport\Network\CustomWireSendingTransport.cs" />
     <Compile Include="Transport\Network\EndpointStatus.cs" />
     <Compile Include="Transport\Network\HeartbeatManager.cs" />

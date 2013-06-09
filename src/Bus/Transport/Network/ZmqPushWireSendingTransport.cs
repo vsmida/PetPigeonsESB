@@ -1,15 +1,89 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.SendingPipe;
+using PgmTransport;
 using ZeroMQ;
 using log4net;
 
 namespace Bus.Transport.Network
 {
+
+
+    class CustomTcpWireSendingTransport : IWireSendingTransport
+    {
+        public void Dispose()
+        {
+          _transport.Dispose();
+        }
+
+        public event Action<IEndpoint> EndpointDisconnected;
+        private readonly ILog _logger = LogManager.GetLogger(typeof(CustomTcpWireSendingTransport));
+        public WireTransportType TransportType { get { return WireTransportType.CustomTcpTransport; } }
+        private readonly MessageWireDataSerializer _serializer;
+        private SendingTransport _transport;
+        private readonly Dictionary<CustomTcpEndpoint, TransportPipe> _endpointToPipe = new Dictionary<CustomTcpEndpoint, TransportPipe>();
+
+        public CustomTcpWireSendingTransport(ISerializationHelper helper)
+        {
+            _serializer = new MessageWireDataSerializer(helper);
+
+        }
+
+        public void Initialize()
+        {
+            _transport = new SendingTransport(1);
+        }
+
+        public void SendMessage(WireSendingMessage message, IEndpoint endpoint)
+        {
+            TransportPipe pipe;
+            var customEndpoint = (CustomTcpEndpoint) endpoint;
+            if (!_endpointToPipe.TryGetValue(customEndpoint, out pipe))
+            {
+                pipe = new TcpTransportPipeMultiThread(20000,
+                                                           HighWaterMarkBehavior.Block,
+                                                           customEndpoint.EndPoint,
+                                                           _transport);
+                _endpointToPipe.Add(customEndpoint, pipe);
+            }
+            var wait = default(SpinWait);
+            var sent = false;
+            bool first = true;
+            var buffer = _serializer.Serialize(message.MessageData);
+            do
+            {
+                sent = pipe.Send(new ArraySegment<byte>(buffer, 0, buffer.Length), true);
+                if (!first)
+                    wait.SpinOnce();
+                else
+                    first = false;
+            } while (!sent && wait.Count < 1000);
+
+            if (!sent) //peer is disconnected (or underwater from too many message), raise some event?
+            {
+                _logger.Info(string.Format("disconnect of endpoint {0}", customEndpoint.EndPoint));
+                EndpointDisconnected(endpoint);
+                pipe.Dispose();
+                _endpointToPipe.Remove(customEndpoint);
+            }
+        }
+
+        public void DisconnectEndpoint(IEndpoint endpoint)
+        {
+            _logger.Debug(string.Format("custom tcp endpoint {0}", endpoint));
+            TransportPipe pipe;
+            if (_endpointToPipe.TryGetValue((CustomTcpEndpoint)endpoint, out pipe))
+            {
+                pipe.Dispose();
+            }
+        }
+    }
+
     class ZmqPushWireSendingTransport : IWireSendingTransport
     {
         public event Action<IEndpoint> EndpointDisconnected = delegate { };
@@ -44,7 +118,7 @@ namespace Bus.Transport.Network
             var status = SendStatus.TryAgain;
             var wait = default(SpinWait);
             bool first = true;
-          //  _watch.Start();
+            //  _watch.Start();
 
             var buffer = _serializer.Serialize(message.MessageData);
             do
@@ -55,7 +129,7 @@ namespace Bus.Transport.Network
                     wait.SpinOnce();
                 else
                     first = false;
-            } while (status == SendStatus.TryAgain && wait.Count <1000);
+            } while (status == SendStatus.TryAgain && wait.Count < 1000);
 
             if (socket.SendStatus != SendStatus.Sent) //peer is disconnected (or underwater from too many message), raise some event?
             {

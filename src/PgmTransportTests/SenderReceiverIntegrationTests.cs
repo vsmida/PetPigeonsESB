@@ -40,7 +40,7 @@ namespace PgmTransportTests
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), port);
             var transport = new SendingTransport();
            // var sender = new TcpSender();
-            var sender = new TcpTransportPipe(100000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
+            var sender = new TcpTransportPipeMultiThread(100000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
             var receiver = new TcpReceiver();
 
             var waitHandle = new AutoResetEvent(false);
@@ -142,7 +142,7 @@ namespace PgmTransportTests
             //var receiver = new PgmReceiver();
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
             var transport = new SendingTransport();
-            var sender = new TcpTransportPipe(600000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
+            var sender = new TcpTransportPipeMultiThread(600000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
             var receiver = new TcpReceiver();
 
 

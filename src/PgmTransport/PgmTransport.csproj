@@ -59,7 +59,7 @@
     <Compile Include="Frame.cs" />
     <Compile Include="FrameAccumulator.cs" />
     <Compile Include="FrameStream.cs" />
-    <Compile Include="MessageContainer.cs" />
+    <Compile Include="MessageContainerConcurrentQueue.cs" />
     <Compile Include="SendingTransport.cs" />
     <Compile Include="SendingThread.cs" />
     <Compile Include="PgmConstants.cs" />

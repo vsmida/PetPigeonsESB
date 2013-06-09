@@ -8,7 +8,7 @@ namespace PgmTransport
 {
     public abstract class TransportPipe : IDisposable
     {
-        internal readonly MessageContainer MessageContainer = new MessageContainer();
+        internal readonly IMessageContainer MessageContainerConcurrentQueue;
         private readonly int _highWaterMark;
         private readonly HighWaterMarkBehavior _highWaterMarkBehavior; //use polymorphism instead?
         public readonly IPEndPoint EndPoint;
@@ -16,19 +16,20 @@ namespace PgmTransport
 
         public abstract int MaximumBatchSize { get; }
 
-        public TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
+        internal TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport,IMessageContainer messageContainer, int sendingThreadNumber = 0)
         {
             _transport = transport;
             _highWaterMarkBehavior = highWaterMarkBehavior;
             EndPoint = endPoint;
             _highWaterMark = highWaterMark;
             transport.AttachToIoThread(this, sendingThreadNumber);
+            MessageContainerConcurrentQueue = messageContainer;
         }
 
-        public bool Send(ArraySegment<byte> data)
+        public bool Send(ArraySegment<byte> data, bool dontWait = false)
         {
-            if (MessageContainer.Count < _highWaterMark)
-                MessageContainer.InsertMessage(data);
+            if (MessageContainerConcurrentQueue.Count < _highWaterMark)
+                MessageContainerConcurrentQueue.InsertMessage(data);
             else
             {
                 switch (_highWaterMarkBehavior)
@@ -37,12 +38,20 @@ namespace PgmTransport
                         return false;
                     case HighWaterMarkBehavior.Block:
                         {
-                            var wait = new SpinWait();
-                            while (MessageContainer.Count >= _highWaterMark)
+                            if(MessageContainerConcurrentQueue.Count >= _highWaterMark)
                             {
-                                wait.SpinOnce();
+                                if (dontWait)
+                                    return false;
+                                var wait = new SpinWait();
+                                while (MessageContainerConcurrentQueue.Count >= _highWaterMark)
+                                {
+                                    wait.SpinOnce();
+                                }
                             }
-                            MessageContainer.InsertMessage(data);
+                            else
+                            {
+                                MessageContainerConcurrentQueue.InsertMessage(data);                                
+                            }
                             break;
                         }
                     default:
@@ -59,13 +68,13 @@ namespace PgmTransport
         }
     }
 
-    public class TcpTransportPipe : TransportPipe
+    public class TcpTransportPipeMultiThread : TransportPipe
     {
-        private readonly ILog _logger = LogManager.GetLogger(typeof(TcpTransportPipe));
+        private readonly ILog _logger = LogManager.GetLogger(typeof(TcpTransportPipeMultiThread));
 
 
-        public TcpTransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
-            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
+        public TcpTransportPipeMultiThread(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
+            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport,new MessageContainerConcurrentQueue(), sendingThreadNumber)
         {
         }
 

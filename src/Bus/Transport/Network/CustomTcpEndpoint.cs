@@ -6,16 +6,16 @@ using Shared;
 
 namespace Bus.Transport.Network
 {
-    public class CustomTcpWireDataReceiverEndpoint : IEndpoint
+    public class CustomTcpEndpoint : IEndpoint
     {
         public readonly IPEndPoint EndPoint;
 
-        public CustomTcpWireDataReceiverEndpoint(IPEndPoint endPoint)
+        public CustomTcpEndpoint(IPEndPoint endPoint)
         {
             EndPoint = endPoint;
         }
 
-        public bool Equals(CustomTcpWireDataReceiverEndpoint other)
+        public bool Equals(CustomTcpEndpoint other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
@@ -32,7 +32,7 @@ namespace Bus.Transport.Network
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((CustomTcpWireDataReceiverEndpoint) obj);
+            return Equals((CustomTcpEndpoint) obj);
         }
 
         public override int GetHashCode()
@@ -40,12 +40,12 @@ namespace Bus.Transport.Network
             return (EndPoint != null ? EndPoint.GetHashCode() : 0);
         }
 
-        public static bool operator ==(CustomTcpWireDataReceiverEndpoint left, CustomTcpWireDataReceiverEndpoint right)
+        public static bool operator ==(CustomTcpEndpoint left, CustomTcpEndpoint right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(CustomTcpWireDataReceiverEndpoint left, CustomTcpWireDataReceiverEndpoint right)
+        public static bool operator !=(CustomTcpEndpoint left, CustomTcpEndpoint right)
         {
             return !Equals(left, right);
         }
@@ -54,9 +54,9 @@ namespace Bus.Transport.Network
         public bool IsMulticast { get { return false; } }
     }
 
-    public class CustomTcpWireDataReceiverEndpointSerializer : EndpointSerializer<CustomTcpWireDataReceiverEndpoint>
+    public class CustomTcpWireDataReceiverEndpointSerializer : EndpointSerializer<CustomTcpEndpoint>
     {
-        public override Stream Serialize(CustomTcpWireDataReceiverEndpoint item)
+        public override Stream Serialize(CustomTcpEndpoint item)
         {
             var ipBuffer = item.EndPoint.Address.GetAddressBytes();
             var buffer = new byte[1 + 16 + 4];
@@ -72,7 +72,7 @@ namespace Bus.Transport.Network
             return new MemoryStream(buffer);
         }
 
-        public override CustomTcpWireDataReceiverEndpoint Deserialize(Stream item)
+        public override CustomTcpEndpoint Deserialize(Stream item)
         {
             var isIpV6 = Convert.ToBoolean(item.ReadByte());
             IPAddress address;
@@ -93,7 +93,7 @@ namespace Bus.Transport.Network
             }
             var port = ByteUtils.ReadIntFromStream(item);
 
-            return new CustomTcpWireDataReceiverEndpoint(new IPEndPoint(address, port));
+            return new CustomTcpEndpoint(new IPEndPoint(address, port));
         }
     }
 }

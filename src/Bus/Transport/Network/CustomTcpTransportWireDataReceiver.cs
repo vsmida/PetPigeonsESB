@@ -18,13 +18,13 @@ namespace Bus.Transport.Network
         private readonly MessageWireDataSerializer _serializer;
         private readonly TcpReceiver _receiver = new TcpReceiver();
         private IPEndPoint _ipEndPoint;
-        private CustomTcpWireDataReceiverEndpoint _endpoint;
+        private CustomTcpEndpoint _endpoint;
 
         public CustomTcpTransportWireDataReceiver(ICustomTcpTransportConfiguration configuration, ISerializationHelper helper)
         {
             _configuration = configuration;
             _serializer = new MessageWireDataSerializer(helper);
-            _endpoint = new CustomTcpWireDataReceiverEndpoint(new IPEndPoint(NetworkUtils.GetOwnIp(), _configuration.Port));
+            _endpoint = new CustomTcpEndpoint(new IPEndPoint(NetworkUtils.GetOwnIp(), _configuration.Port));
         }
 
 

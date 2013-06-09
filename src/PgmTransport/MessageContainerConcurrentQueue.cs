@@ -4,17 +4,25 @@ using System.Collections.Generic;
 
 namespace PgmTransport
 {
-    internal class MessageContainer
+    internal interface IMessageContainer
+    {
+        void InsertMessage(ArraySegment<byte> message);
+        bool TryGetNextMessage(out ArraySegment<byte> message);
+        void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
+        int Count { get; }
+    }
+
+    internal class MessageContainerConcurrentQueue : IMessageContainer
     {
         private readonly ConcurrentQueue<ArraySegment<byte>> _frames = new ConcurrentQueue<ArraySegment<byte>>();
         private readonly Queue<ArraySegment<byte>> _failedFrames = new Queue<ArraySegment<byte>>();
 
-        internal void InsertMessage(ArraySegment<byte> message)
+        public void InsertMessage(ArraySegment<byte> message)
         {
             _frames.Enqueue(message);
         }
 
-        internal bool TryGetNextMessage(out ArraySegment<byte> message)
+        public bool TryGetNextMessage(out ArraySegment<byte> message)
         {
             if (_failedFrames.Count > 0)
             {
@@ -24,12 +32,12 @@ namespace PgmTransport
             return _frames.TryDequeue(out message);
         }
 
-        internal void PutBackFailedMessage(ArraySegment<byte> unsentMessage)
+        public void PutBackFailedMessage(ArraySegment<byte> unsentMessage)
         {
             _failedFrames.Enqueue(unsentMessage);
         }
 
-        internal int Count
+        public int Count
         {
             get { return _failedFrames.Count + _frames.Count; }
         }
