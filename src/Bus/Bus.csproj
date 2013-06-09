@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Bus</RootNamespace>
     <AssemblyName>Bus</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -22,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>false</UseVSHostingProcess>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,6 +32,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>true</UseVSHostingProcess>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -41,6 +43,7 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
@@ -50,6 +53,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Atomic">
@@ -157,8 +161,11 @@
     <Compile Include="Startup\IBusBootstrapperConfiguration.cs" />
     <Compile Include="Startup\BusRegistry.cs" />
     <Compile Include="Subscriptions\DummySubscriptionFilter.cs" />
+    <Compile Include="Transport\ICustomTcpTransportConfiguration.cs" />
     <Compile Include="Transport\MessageSubscription.cs" />
     <Compile Include="Subscriptions\ISubscriptionFilter.cs" />
+    <Compile Include="Transport\Network\CustomTcpTransportWireDataReceiver.cs" />
+    <Compile Include="Transport\Network\CustomTcpWireDataReceiverEndpoint.cs" />
     <Compile Include="Transport\Network\CustomWireSendingTransport.cs" />
     <Compile Include="Transport\Network\EndpointStatus.cs" />
     <Compile Include="Transport\Network\HeartbeatManager.cs" />
@@ -186,6 +193,10 @@
     <Compile Include="Transport\ServicePeer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PgmTransport\PgmTransport.csproj">
+      <Project>{c99a5f30-965c-4c38-b888-1ab584166d62}</Project>
+      <Name>PgmTransport</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Shared\Shared.csproj">
       <Project>{7DF08A0E-D508-443A-88CA-F85568D5BF55}</Project>
       <Name>Shared</Name>

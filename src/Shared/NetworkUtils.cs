@@ -15,17 +15,23 @@ namespace Shared
             listener.Stop();
             return port;
         }
- 
-        public static string GetOwnIp()
+
+        public static IPAddress GetOwnIp()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (IPAddress ip in host.AddressList)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    return ip.ToString();
+                    return ip;
                 }
             }
+            throw new Exception("Cannot find IP");
+        }
+ 
+        public static string GetOwnIpString()
+        {
+            return GetOwnIp().ToString();
             throw new Exception("Cannot find IP");
         }
     }

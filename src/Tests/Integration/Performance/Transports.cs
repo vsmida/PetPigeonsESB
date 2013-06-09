@@ -32,9 +32,12 @@ namespace Tests.Integration.Performance
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
                 MessageCount++;
-                 var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
+                Watch.Stop();
+                var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
                      latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (decimal)(Stopwatch.Frequency) * 1000000);
-                 Interlocked.Increment(ref MessageCount);
+                     Watch.Start();
+
+
             }
         }
 
@@ -61,17 +64,19 @@ namespace Tests.Integration.Performance
                 Stopwatch watch = new Stopwatch();
                 watch.Start();
                 var messagesCountTotal = 100000;
-               // var messagesCountTotal = 1000;
+               // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
                 for (int i = 0; i < messagesCountTotal; i++)
                 {
+                    watch.Stop();
                     var data = serializer.Serialize(new PerformanceTests.LatencyMessage(watch.ElapsedTicks));
 
                     wireSendingMessage =
                         new WireSendingMessage(
                             new MessageWireData(typeof (FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(44), data),
                             endpoint);
+                    watch.Start();
                     transportSend.SendMessage(wireSendingMessage, endpoint);
                 }
                 SpinWait wait = new SpinWait();
@@ -82,6 +87,7 @@ namespace Tests.Integration.Performance
                 watch.Stop();
                 var fps = messagesCountTotal/(watch.ElapsedTicks/ (double)Stopwatch.Frequency);
                 Console.WriteLine(" FPS : " + fps.ToString("N2"));
+                EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();
             transportReceive.Dispose();

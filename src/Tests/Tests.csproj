@@ -138,6 +138,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SequenceNumberVerifierTests.cs" />
     <Compile Include="Serialization\CompletionAcknowlegementMessageSerializerTests.cs" />
+    <Compile Include="Serialization\CustomTcpTransportWireDataReceiverEndpointSerializerTests.cs" />
     <Compile Include="Serialization\MessageWireDataSerializationTests.cs" />
     <Compile Include="TestTools\ExtendMock.cs" />
     <Compile Include="Transport\FakeTransportConfiguration.cs" />

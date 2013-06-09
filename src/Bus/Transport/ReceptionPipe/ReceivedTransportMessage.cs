@@ -35,7 +35,7 @@ namespace Bus.Transport.ReceptionPipe
             
         }
 
-        public void Reinitialize(string messageType, PeerId peerId, Guid messageIdentity, ZmqEndpoint endpoint, byte[] data, int? sequenceNumber)
+        public void Reinitialize(string messageType, PeerId peerId, Guid messageIdentity, IEndpoint endpoint, byte[] data, int? sequenceNumber)
         {
             PeerId = peerId;
             MessageIdentity = messageIdentity;

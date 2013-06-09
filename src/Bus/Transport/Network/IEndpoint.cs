@@ -9,7 +9,8 @@ namespace Bus.Transport.Network
     [ProtoContract]
     public enum WireTransportType
     {
-        ZmqPushPullTransport = 0
+        ZmqPushPullTransport = 0,
+        CustomTcpTransport = 1
     }
     [ProtoInclude(1, typeof(ZmqEndpoint))]
     public interface IEndpoint : IEquatable<IEndpoint>

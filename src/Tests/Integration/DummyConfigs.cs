@@ -29,4 +29,9 @@ namespace Tests.Integration
             get { return "tcp"; }
         }
     }
+
+    public class DummyCustomTcpTransportConfig : ICustomTcpTransportConfiguration
+    {
+        public int Port { get; set; }
+    }
 }
