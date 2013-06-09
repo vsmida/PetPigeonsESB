@@ -11,18 +11,18 @@ namespace Bus.Transport.SendingPipe
         [ProtoMember(2, IsRequired = true)]
         public Guid MessageIdentity { get; private set; }
         [ProtoMember(3, IsRequired = true)]
-        public string SendingPeer { get; private set; }
+        public PeerId SendingPeerId { get; private set; }
         [ProtoMember(4, IsRequired = true)]
         public byte[] Data { get; private set; }
         [ProtoMember(5, IsRequired = true)]
         public int? SequenceNumber { get; set; }
 
-        public MessageWireData(string messageType, Guid messageIdentity, string sendingPeer, byte[] data)
+        public MessageWireData(string messageType, Guid messageIdentity, PeerId sendingPeer, byte[] data)
         {
             MessageType = messageType;
             MessageIdentity = messageIdentity;
             Data = data;
-            SendingPeer = sendingPeer;
+            SendingPeerId = sendingPeer;
         }
 
         private MessageWireData()

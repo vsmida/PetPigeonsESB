@@ -11,14 +11,14 @@ namespace Bus.Handlers
     {
         private class PeerMessageQueue
         {
-            public readonly string PeerName;
+            public readonly PeerId PeerId;
             private readonly Dictionary<IEndpoint, Queue<ShadowMessageCommand>> _messagesByEndpoint = new Dictionary<IEndpoint, Queue<ShadowMessageCommand>>();
             private Queue<ShadowMessageCommand> _messagesGlobal = new Queue<ShadowMessageCommand>();
             private Dictionary<Guid, ShadowCompletionMessage> _acksReceivedBeforeMessages = new Dictionary<Guid, ShadowCompletionMessage>();
 
-            public PeerMessageQueue(string peerName)
+            public PeerMessageQueue(PeerId peerId)
             {
-                PeerName = peerName;
+                PeerId = peerId;
             }
 
 
@@ -42,7 +42,7 @@ namespace Bus.Handlers
             }
         }
 
-        private readonly Dictionary<string, PeerMessageQueue> _savedMessages = new Dictionary<string, PeerMessageQueue>();
+        private readonly Dictionary<PeerId, PeerMessageQueue> _savedMessages = new Dictionary<PeerId, PeerMessageQueue>();
 
         public void SaveMessage(ShadowMessageCommand shadowMessage)
         {
@@ -102,7 +102,7 @@ namespace Bus.Handlers
             }
         }
 
-        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, int? maxCount)
+        public IEnumerable<ShadowMessageCommand> GetFirstMessages(PeerId peer, int? maxCount)
         {
             Queue<ShadowMessageCommand> newQueue = new Queue<ShadowMessageCommand>();
             PeerMessageQueue queue;
@@ -124,7 +124,7 @@ namespace Bus.Handlers
             queue.GlobalQueue = newQueue;
         }
 
-        public IEnumerable<ShadowMessageCommand> GetFirstMessages(string peer, IEndpoint endpoint, int maxCount)
+        public IEnumerable<ShadowMessageCommand> GetFirstMessages(PeerId peer, IEndpoint endpoint, int maxCount)
         {
             PeerMessageQueue queue;
             if (!_savedMessages.TryGetValue(peer, out queue))

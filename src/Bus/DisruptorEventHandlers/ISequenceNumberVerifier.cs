@@ -11,7 +11,7 @@ namespace Bus.DisruptorEventHandlers
     interface ISequenceNumberVerifier
     {
         bool IsSequenceNumberValid(ReceivedTransportMessage data, bool syncProcessorInitialized);
-        void ResetSequenceNumbersForPeer(string peer);
+        void ResetSequenceNumbersForPeer(PeerId peer);
     }
 
     class SequenceNumberVerifier : ISequenceNumberVerifier
@@ -19,10 +19,10 @@ namespace Bus.DisruptorEventHandlers
 
         private struct PeerTransportKey
         {
-            public readonly string Peer;
+            public readonly PeerId Peer;
             public readonly IEndpoint Endpoint;
 
-            public PeerTransportKey(string peer, IEndpoint endpoint)
+            public PeerTransportKey(PeerId peer, IEndpoint endpoint)
             {
                 Peer = peer;
                 Endpoint = endpoint;
@@ -63,7 +63,7 @@ namespace Bus.DisruptorEventHandlers
             var transportMessageSequenceNumber = data.SequenceNumber;
             if (!transportMessageSequenceNumber.HasValue)
                 return true;
-            var peerKey = new PeerTransportKey(data.PeerName, data.Endpoint);
+            var peerKey = new PeerTransportKey(data.PeerId, data.Endpoint);
             int currentSeqNum;
             if (!_sequenceNumber.TryGetValue(peerKey, out currentSeqNum))
             {
@@ -72,7 +72,7 @@ namespace Bus.DisruptorEventHandlers
             }
             if (syncProcessorInitialized)
             {
-                if (_peerConfiguration.PeerName != peerKey.Peer)
+                if (_peerConfiguration.PeerId != peerKey.Peer)
                 {
                     if (transportMessageSequenceNumber != (currentSeqNum + 1))
                     {
@@ -98,7 +98,7 @@ namespace Bus.DisruptorEventHandlers
             return true;
         }
 
-        public void ResetSequenceNumbersForPeer(string peer)
+        public void ResetSequenceNumbersForPeer(PeerId peer)
         {
             var keysToRemove = _sequenceNumber.Keys.Where(x => x.Peer == peer).ToList();
             foreach (var key in keysToRemove)

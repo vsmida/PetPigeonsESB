@@ -6,13 +6,13 @@ namespace Bus.Dispatch
     public static class MessageContext
     {
         [ThreadStatic]
-        private static string _peerName;
+        private static PeerId _peerId;
         [ThreadStatic]
         private static IEndpoint _originatingEndpoint;
 
-        public static string PeerName
+        public static PeerId PeerId
         {
-            get { return _peerName; }
+            get { return _peerId; }
         }
 
         public static IEndpoint OriginatingEndpoint
@@ -20,22 +20,22 @@ namespace Bus.Dispatch
             get { return _originatingEndpoint; }
         }
 
-        public static IDisposable SetContext(string peerName, IEndpoint transportType)
+        public static IDisposable SetContext(PeerId peerName, IEndpoint transportType)
         {
             return new Scope(peerName, transportType);
         }
 
         private class Scope :IDisposable
         {
-            public Scope(string peerName, IEndpoint endpoint)
+            public Scope(PeerId peerId, IEndpoint endpoint)
             {
-                _peerName = peerName;
+                _peerId = peerId;
                 _originatingEndpoint = endpoint;
             }
 
             public void Dispose()
             {
-                _peerName = null;
+                _peerId = null;
                 _originatingEndpoint = null;
             }
         }

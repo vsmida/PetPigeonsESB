@@ -9,7 +9,7 @@ namespace Tests.Integration
 {
     public class FakeBusFactory
     {
-        public static IBus CreateFakeBus(int busReceptionPort, string busName, int directoryServicePort, string directoryServiceName, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null, IContainer container = null)
+        public static IBus CreateFakeBus(int busReceptionPort, string busName, PeerId busId, int directoryServicePort, string directoryServiceName,PeerId directoryServiceId, IAssemblyScanner assemblyScanner = null, IPeerConfiguration peerconfig = null, IContainer container = null)
         {
             container = container ?? new Container();
             return BusFactory.CreateBus(container, containerConfigurationExpression: ctx =>
@@ -29,12 +29,13 @@ namespace Tests.Integration
                                 directoryServicePort,
                             DirectoryServiceName
                                 =
-                                directoryServiceName
+                                directoryServiceName,
+                                DirectoryServiceId =  directoryServiceId
 
                         });
 
                 ctx.For<IPeerConfiguration>().Use(
-                   peerconfig ?? new DummyPeerConfig(busName, null));
+                   peerconfig ?? new DummyPeerConfig(busName,busId, null));
 
                 ctx.For<IAssemblyScanner>().Use(
                     assemblyScanner ?? new AssemblyScanner());

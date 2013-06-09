@@ -7,9 +7,9 @@ namespace Bus.InfrastructureMessages
     public class StopSynchWithBrokerCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly string PeerName;
+        public readonly PeerId PeerName;
 
-        public StopSynchWithBrokerCommand(string peerName)
+        public StopSynchWithBrokerCommand(PeerId peerName)
         {
             PeerName = peerName;
         }

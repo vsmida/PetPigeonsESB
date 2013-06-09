@@ -19,7 +19,7 @@ namespace Bus.Handlers
         private readonly ISavedMessagesStore _messagesStore;
         private readonly IMessageSender _messageSender;
         private readonly ILog _logger = LogManager.GetLogger(typeof (PersistenceShadowMessagesHandler));
-        private static readonly Dictionary<string, bool> _peersInitializing = new Dictionary<string, bool>();
+        private static readonly Dictionary<PeerId, bool> _peersInitializing = new Dictionary<PeerId, bool>();
         public PersistenceShadowMessagesHandler(ISavedMessagesStore messagesStore, IMessageSender messageSender)
         {
             _messagesStore = messagesStore;
@@ -35,7 +35,7 @@ namespace Bus.Handlers
             _peersInitializing.TryGetValue(item.PrimaryRecipient, out isInitializing);
             if(isInitializing)
             {
-                var receivedTransportMessage = new ReceivedTransportMessage(item.Message.MessageType, item.Message.SendingPeer,
+                var receivedTransportMessage = new ReceivedTransportMessage(item.Message.MessageType, item.Message.SendingPeerId,
                                                             item.Message.MessageIdentity, item.TargetEndpoint,
                                                             item.Message.Data, item.Message.SequenceNumber);
                 _messageSender.Route(new ProcessMessageCommand(receivedTransportMessage), item.PrimaryRecipient);
@@ -54,7 +54,7 @@ namespace Bus.Handlers
             var messages = _messagesStore.GetFirstMessages(item.Peer, null);
             foreach (var shadowMessageCommand in messages)
             {
-                var receivedTransportMessage = new ReceivedTransportMessage(shadowMessageCommand.Message.MessageType, shadowMessageCommand.Message.SendingPeer,
+                var receivedTransportMessage = new ReceivedTransportMessage(shadowMessageCommand.Message.MessageType, shadowMessageCommand.Message.SendingPeerId,
                                                                             shadowMessageCommand.Message.MessageIdentity, shadowMessageCommand.TargetEndpoint,
                                                                             shadowMessageCommand.Message.Data, -1);
                 _messageSender.Route(new ProcessMessageCommand(receivedTransportMessage), item.Peer);
@@ -70,7 +70,7 @@ namespace Bus.Handlers
             _logger.DebugFormat("Synchronizing with peer {0}, message count = {1}", item.PeerName, messages.Count());
             foreach (var shadowMessageCommand in messages)
             {
-                var receivedTransportMessage = new ReceivedTransportMessage(shadowMessageCommand.Message.MessageType, shadowMessageCommand.Message.SendingPeer,
+                var receivedTransportMessage = new ReceivedTransportMessage(shadowMessageCommand.Message.MessageType, shadowMessageCommand.Message.SendingPeerId,
                                                                             shadowMessageCommand.Message.MessageIdentity, shadowMessageCommand.TargetEndpoint,
                                                                             shadowMessageCommand.Message.Data, shadowMessageCommand.Message.SequenceNumber);
                 _messageSender.Route(new ProcessMessageCommand(receivedTransportMessage), item.PeerName);

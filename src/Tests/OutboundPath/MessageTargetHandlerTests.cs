@@ -35,7 +35,7 @@ namespace Tests.OutboundPath
         private Mock<IPeerConfiguration> _peerConfigurationMock;
         private Mock<ICallbackRepository> _callbackRepositoryMock;
         private Mock<IReliabilityCoordinator> _reliabilityCoordinatorMock;
-        private ServicePeer _otherPeer = new ServicePeer("S1", new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeCommand), "S1", new ZmqEndpoint("toto"), null, ReliabilityLevel.Persisted) }, null);
+        private ServicePeer _otherPeer = new ServicePeer("S1",new PeerId(1), new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeCommand), new PeerId(1), new ZmqEndpoint("toto"), null, ReliabilityLevel.Persisted) }, null);
         private MessageTargetsHandler _messageTargetsHandler;
         private MessageTargetHandlerData _messageTargetHandlerData = new MessageTargetHandlerData() { Callback = null, IsAcknowledgement = false, Message = new TestData.FakeCommand(), TargetPeer = null };
 
@@ -86,7 +86,7 @@ namespace Tests.OutboundPath
         [Test]
         public void should_send_to_the_peers_with_a_subscription()
         {
-            var wrongPeer = new ServicePeer("S2", new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeEvent), "S1", new ZmqEndpoint("toto"), null, ReliabilityLevel.Persisted) }, null);
+            var wrongPeer = new ServicePeer("S2",new PeerId(2), new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeEvent), new PeerId(1), new ZmqEndpoint("toto"), null, ReliabilityLevel.Persisted) }, null);
             _peerManagerMock.Raise(x => x.PeerConnected += OnPeerConnected, wrongPeer);
             var outboundDisruptorEntry = new OutboundDisruptorEntry() { MessageTargetHandlerData = _messageTargetHandlerData };
 
@@ -96,7 +96,7 @@ namespace Tests.OutboundPath
             Assert.AreEqual(1, outboundDisruptorEntry.NetworkSenderData.WireMessages.Count);
             Assert.AreEqual(_otherPeer.HandledMessages[0].Endpoint, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].Endpoint);
             Assert.AreEqual(null, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SequenceNumber);
-            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeer);
+            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeerId);
             Assert.AreEqual(typeof(TestData.FakeCommand).FullName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageType);
             Assert.AreEqual(BusSerializer.Serialize(new TestData.FakeCommand()), outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.Data);
             Assert.AreNotEqual(Guid.Empty, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageIdentity);
@@ -128,7 +128,7 @@ namespace Tests.OutboundPath
         [Test]
         public void should_filter_subscriptions()
         {
-            var wrongPeer = new ServicePeer("S2", new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeCommand), "S1", new ZmqEndpoint("toto"), new CannotPassFilter(), ReliabilityLevel.Persisted) }, null);
+            var wrongPeer = new ServicePeer("S2",new PeerId(2), new List<MessageSubscription> { new MessageSubscription(typeof(TestData.FakeCommand), new PeerId(1), new ZmqEndpoint("toto"), new CannotPassFilter(), ReliabilityLevel.Persisted) }, null);
             _peerManagerMock.Raise(x => x.PeerConnected += OnPeerConnected, wrongPeer);
             var outboundDisruptorEntry = new OutboundDisruptorEntry() { MessageTargetHandlerData = _messageTargetHandlerData };
 
@@ -138,7 +138,7 @@ namespace Tests.OutboundPath
             Assert.AreEqual(1, outboundDisruptorEntry.NetworkSenderData.WireMessages.Count);
             Assert.AreEqual(_otherPeer.HandledMessages[0].Endpoint, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].Endpoint);
             Assert.AreEqual(null, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SequenceNumber);
-            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeer);
+            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeerId);
             Assert.AreEqual(typeof(TestData.FakeCommand).FullName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageType);
             Assert.AreEqual(BusSerializer.Serialize(new TestData.FakeCommand()), outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.Data);
             Assert.AreNotEqual(Guid.Empty, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageIdentity);
@@ -155,7 +155,7 @@ namespace Tests.OutboundPath
             Assert.AreEqual(1, outboundDisruptorEntry.NetworkSenderData.WireMessages.Count);
             Assert.AreEqual(_otherPeer.HandledMessages[0].Endpoint, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].Endpoint);
             Assert.AreEqual(null, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SequenceNumber);
-            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeer);
+            Assert.AreEqual(_peerConfigurationMock.Object.PeerName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.SendingPeerId);
             Assert.AreEqual(typeof(TestData.FakeCommand).FullName, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageType);
             Assert.AreEqual(BusSerializer.Serialize(new TestData.FakeCommand()), outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.Data);
             Assert.AreNotEqual(Guid.Empty, outboundDisruptorEntry.NetworkSenderData.WireMessages[0].MessageData.MessageIdentity);

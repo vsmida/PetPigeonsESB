@@ -70,7 +70,7 @@ namespace Bus.Transport.Network
                     var entry = _ringBuffer[sequence];
                     if (entry.InitialTransportMessage != null)
                         entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
-                                                                   messagedata.SendingPeer,
+                                                                   messagedata.SendingPeerId,
                                                                    messagedata.MessageIdentity,
                                                                    _endpoint,
                                                                    messagedata.Data,
@@ -78,7 +78,7 @@ namespace Bus.Transport.Network
                     else
                     {
                         entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
-                                                                                     messagedata.SendingPeer,
+                                                                                     messagedata.SendingPeerId,
                                                                                      messagedata.MessageIdentity,
                                                                                      _endpoint,
                                                                                      messagedata.Data,

@@ -103,14 +103,14 @@ namespace Tests.Transport
             //return new ServicePeer("peerName", "reception", "publication", new List<Type> { typeof(FakeCommand) });
         }
 
-        public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null, int sequenceNumber = 0, string peer = "Peer")
+        public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(Guid? id = null, int sequenceNumber = 0, PeerId peer = null)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, peer, id ?? Guid.NewGuid(), null, new byte[0], sequenceNumber);
+            return new ReceivedTransportMessage(typeof(T).FullName, peer ?? new PeerId(3), id ?? Guid.NewGuid(), null, new byte[0], sequenceNumber);
         }
 
         public static ReceivedTransportMessage GenerateDummyReceivedMessage<T>(T item)
         {
-            return new ReceivedTransportMessage(typeof(T).FullName, "Peer", Guid.NewGuid(), null, BusSerializer.Serialize(item), 0);
+            return new ReceivedTransportMessage(typeof(T).FullName, new PeerId(3), Guid.NewGuid(), null, BusSerializer.Serialize(item), 0);
         }
 
         public static ServicePeer CreatePeerThatHandles<T>(string receptionEndpoint, string peerName = null)

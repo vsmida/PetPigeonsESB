@@ -18,14 +18,14 @@ using log4net;
 
 namespace Tests.Integration
 {
- 
+
 
     [TestFixture]
     public class SimpleMessageExchange
     {
         private AutoResetEvent _waitForCommandToBeHandled;
         private int _persitentMessageNumber;
-        private ILog _logger = LogManager.GetLogger(typeof (SimpleMessageExchange));
+        private ILog _logger = LogManager.GetLogger(typeof(SimpleMessageExchange));
 
         [Test, Timeout(800000), Repeat(2)]
         public void should_be_able_to_exchange_messages()
@@ -34,8 +34,8 @@ namespace Tests.Integration
             var randomPort2 = NetworkUtils.GetRandomUnusedPort();
             var busName1 = "Service1";
             var busName2 = "Service2";
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
-            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, new PeerId(1), randomPort1, busName1, new PeerId(1), assemblyScanner: new FakeAssemblyScanner());
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
 
             bus1.Initialize();
             bus2.Initialize();
@@ -60,8 +60,8 @@ namespace Tests.Integration
             var busName1 = "Service1";
             var busName2 = "Service2";
             var containerBus1 = new Container();
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner(), container:containerBus1);
-            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, new PeerId(1), randomPort1, busName1, new PeerId(1), assemblyScanner: new FakeAssemblyScanner(), container: containerBus1);
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
 
             var heartbeatConfig = containerBus1.GetInstance<IHeartbeatingConfiguration>();
             var sender = containerBus1.GetInstance<ZmqPushWireSendingTransport>();
@@ -77,22 +77,22 @@ namespace Tests.Integration
             for (int i = 0; i < 20000; i++)
             {
                 bus1.Send(new FakeNumberCommand(1));
-                
+
             }
-            
+
             Assert.AreEqual(numberOfTimesDisconnectedRaisedByTransport, 0);  //would have been raised due to message pressure getting too high, test should be refactored
             bus1.Send(new FakeNumberCommand(5)).WaitForCompletion();
-            
+
             bus1.Dispose();
         }
 
         public class FakeAssemblyScanner : AssemblyScanner
         {
-             
+
             public override List<Type> GetHandledCommands()
             {
                 var result = base.GetHandledCommands();
-                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand) && x!=typeof(TestData.FakeCommand) && x!=typeof(PerformanceTests.LatencyMessage)).ToList();
+                return result.Where(x => x != typeof(FakeNumberCommand) && x != typeof(FakePersistingCommand) && x != typeof(TestData.FakeCommand) && x != typeof(PerformanceTests.LatencyMessage)).ToList();
             }
         }
 
@@ -105,11 +105,11 @@ namespace Tests.Integration
             var busName1 = "Service1";
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new FakeAssemblyScanner());
-            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
-            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, new PeerId(1), randomPort1, busName1, new PeerId(1), assemblyScanner: new FakeAssemblyScanner());
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, new PeerId(3), randomPort1, busName1, new PeerId(1),
                                               new FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }));
+                                              new DummyPeerConfig(brokerName, new PeerId(1), new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(new PeerId(2), true) }));
 
             bus1.Initialize();
             brokerForBus2.Initialize();
@@ -130,10 +130,10 @@ namespace Tests.Integration
 
             bus1.Send(new FakePersistingCommand(2)); //message sent while bus2 out
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
-            bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             Console.WriteLine("initializing bus2 again");
             bus2.Initialize(); //alive again
-            
+
             bus1.Send(new FakePersistingCommand(3)); // send it as soon as possible so without proper ordering it should be processed before message 2
 
             _waitForCommandToBeHandled.WaitOne();
@@ -145,7 +145,7 @@ namespace Tests.Integration
             bus1.Dispose();
             bus2.Dispose();
             brokerForBus2.Dispose();
-             Console.WriteLine("end of test");
+            Console.WriteLine("end of test");
 
         }
 
@@ -159,7 +159,7 @@ namespace Tests.Integration
         }
 
 
-      
+
 
 
 

@@ -14,7 +14,7 @@ namespace Bus.Transport.SendingPipe
         public IMessage Message;
         public bool IsAcknowledgement;
         public ICompletionCallback Callback;
-        public string TargetPeer;
+        public PeerId TargetPeer;
     }
 
     class NetworkSenderData

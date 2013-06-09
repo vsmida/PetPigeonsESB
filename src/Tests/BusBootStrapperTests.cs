@@ -29,6 +29,7 @@ namespace Tests
         {
             public string DirectoryServiceEndpoint { get { return "command"; } }
             public string DirectoryServiceName { get { return "name"; } }
+            public PeerId DirectoryServiceId { get { return new PeerId(11); } }
         }
 
         private BusBootstrapper _bootstrapper;

@@ -4,11 +4,11 @@ namespace Bus.BusEventProcessorCommands
 {
     class ResetSequenceNumbersForPeer : IBusEventProcessorCommand
     {
-        public readonly string PeerName;
+        public readonly PeerId PeerId;
 
-        public ResetSequenceNumbersForPeer(string peerName)
+        public ResetSequenceNumbersForPeer(PeerId peerId)
         {
-            PeerName = peerName;
+            PeerId = peerId;
         }
     }
 }

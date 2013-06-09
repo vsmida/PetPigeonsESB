@@ -17,7 +17,7 @@ namespace Bus.DisruptorEventHandlers
         private readonly IPeerManager _peerManager;
         private Dictionary<string, MessageOptions> _messageOptions = new Dictionary<string, MessageOptions>();
         private IEnumerable<ServicePeer> _selfShadows;
-        private Dictionary<string, HashSet<ServicePeer>> _peersToShadows;
+        private Dictionary<PeerId, HashSet<ServicePeer>> _peersToShadows;
         private readonly IPeerConfiguration _peerConfiguration;
         private readonly Dictionary<IEndpoint, int> _endpointToSequenceNumber = new Dictionary<IEndpoint, int>();
         private readonly IAssemblyScanner _assemblyScanner;
@@ -120,12 +120,12 @@ namespace Bus.DisruptorEventHandlers
             }
         }
 
-        private void SendToSelfShadows(Guid messageId, bool processSuccessful, string originatingPeer, IEndpoint originalEndpoint, string originalMessageType, OutboundDisruptorEntry data)
+        private void SendToSelfShadows(Guid messageId, bool processSuccessful, PeerId originatingPeer, IEndpoint originalEndpoint, string originalMessageType, OutboundDisruptorEntry data)
         {
             var selfShadows = _selfShadows ?? Enumerable.Empty<ServicePeer>();
             if (selfShadows.Any())
             {
-                var message = new ShadowCompletionMessage(messageId, originatingPeer, _peerConfiguration.PeerName, processSuccessful, originalEndpoint, originalMessageType);
+                var message = new ShadowCompletionMessage(messageId, originatingPeer, _peerConfiguration.PeerId, processSuccessful, originalEndpoint, originalMessageType);
                 var endpoints = selfShadows.Select(x => x.HandledMessages.Single(y => y.MessageType == typeof(ShadowCompletionMessage)).Endpoint).Distinct();
                 foreach (var shadowEndpoint in endpoints)
                 {
@@ -142,7 +142,7 @@ namespace Bus.DisruptorEventHandlers
             var serializedMessage = BusSerializer.Serialize(message);
             var messageId = Guid.NewGuid();
             var messageType = message.GetType().FullName;
-            var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerName, serializedMessage);
+            var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerId, serializedMessage);
             return messageData;
         }
     }

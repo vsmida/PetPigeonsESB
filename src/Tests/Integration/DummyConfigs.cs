@@ -1,4 +1,5 @@
-﻿using Bus.Startup;
+﻿using Bus;
+using Bus.Startup;
 using Bus.Transport;
 
 namespace Tests.Integration
@@ -7,6 +8,7 @@ namespace Tests.Integration
     {
         public string DirectoryServiceEndpoint { get; set; }
         public string DirectoryServiceName { get; set; }
+        public PeerId DirectoryServiceId { get; set; }
     }
 
     public class DummyTransportConfig : ZmqTransportConfiguration

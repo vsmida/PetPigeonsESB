@@ -10,9 +10,9 @@ namespace Bus.Subscriptions
     public class SynchronizeWithBrokerFilter : ISubscriptionFilter<SynchronizeWithBrokerCommand>, ISubscriptionFilter<StopSynchWithBrokerCommand>
     {
         [ProtoMember(1, IsRequired = true)]
-        private readonly List<string> _acceptedPeers;
+        private readonly List<PeerId> _acceptedPeers;
 
-        public SynchronizeWithBrokerFilter(List<string> acceptedPeers)
+        public SynchronizeWithBrokerFilter(List<PeerId> acceptedPeers)
         {
             _acceptedPeers = acceptedPeers;
         }

@@ -7,13 +7,13 @@ namespace Bus.Transport
     public class ShadowedPeerConfiguration
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly string PeerName;
+        public readonly PeerId PeerPeerId;
         [ProtoMember(2, IsRequired = true)]
         public readonly bool IsPersistenceProvider;
 
-        public ShadowedPeerConfiguration(string name, bool isPersistenceProvider)
+        public ShadowedPeerConfiguration(PeerId peerId, bool isPersistenceProvider)
         {
-            PeerName = name;
+            PeerPeerId = peerId;
             IsPersistenceProvider = isPersistenceProvider;
         }
 
@@ -29,13 +29,16 @@ namespace Bus.Transport
         [ProtoMember(1, IsRequired = true)]
         public string PeerName { get; private set; }
         [ProtoMember(2, IsRequired = true)]
-        public readonly List<MessageSubscription> HandledMessages;
+        public PeerId PeerId { get; private set; }
         [ProtoMember(3, IsRequired = true)]
+        public readonly List<MessageSubscription> HandledMessages;
+        [ProtoMember(4, IsRequired = true)]
         public readonly List<ShadowedPeerConfiguration> ShadowedPeers;
 
-        public ServicePeer(string peerName, List<MessageSubscription> handledMessages, List<ShadowedPeerConfiguration> shadowedPeers)
+        public ServicePeer(string peerName, PeerId peerId, List<MessageSubscription> handledMessages, List<ShadowedPeerConfiguration> shadowedPeers)
         {
             PeerName = peerName;
+            PeerId = peerId;
             HandledMessages = handledMessages;
             ShadowedPeers = shadowedPeers;
         }

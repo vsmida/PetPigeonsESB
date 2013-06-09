@@ -35,7 +35,7 @@ namespace Bus.Handlers
 
         private void ResetInboundPeerSequenceNumbers(PeerConnected message)
         {
-            _dataReceiver.InjectCommand(new ResetSequenceNumbersForPeer(message.Peer.PeerName));
+            _dataReceiver.InjectCommand(new ResetSequenceNumbersForPeer(message.Peer.PeerId));
         }
 
         //private void PublishSavedMessages(string peerName)

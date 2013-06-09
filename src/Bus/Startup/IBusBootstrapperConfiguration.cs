@@ -4,5 +4,6 @@ namespace Bus.Startup
     {
         string DirectoryServiceEndpoint { get; }
         string DirectoryServiceName { get; }
+        PeerId DirectoryServiceId { get; }
     }
 }

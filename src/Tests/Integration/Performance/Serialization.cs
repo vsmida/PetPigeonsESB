@@ -16,7 +16,7 @@ namespace Tests.Integration.Performance
     public class Serialization
     {
         private MessageWireData _testData = new MessageWireData(typeof(TestData.FakeCommand).FullName,
-                                                                Guid.NewGuid(), "tt", new byte[10]);
+                                                                Guid.NewGuid(), new PeerId(1), new byte[10]);
 
         [Test]
         public void serializationTestsProto()

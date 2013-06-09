@@ -8,11 +8,10 @@ namespace Bus.Transport
     [ProtoContract]
     public class MessageSubscription
     {
-
         [ProtoMember(1, IsRequired = true)]
         public Type MessageType { get; private set; }
         [ProtoMember(2, IsRequired = true)]
-        public string Peer { get; private set; }
+        public PeerId Peer { get; private set; }
         [ProtoMember(3, IsRequired = true)]
         public readonly IEndpoint Endpoint;
         [ProtoMember(4, IsRequired = true)] 
@@ -20,7 +19,7 @@ namespace Bus.Transport
         [ProtoMember(5, IsRequired = true)]
         public readonly ReliabilityLevel ReliabilityLevel;
 
-        public MessageSubscription(Type messageType, string peer, IEndpoint endpoint, ISubscriptionFilter subscriptionFilter, ReliabilityLevel reliabilityLevel)
+        public MessageSubscription(Type messageType, PeerId peer, IEndpoint endpoint, ISubscriptionFilter subscriptionFilter, ReliabilityLevel reliabilityLevel)
         {
             MessageType = messageType;
             Peer = peer;

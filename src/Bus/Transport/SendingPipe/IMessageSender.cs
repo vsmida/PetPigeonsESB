@@ -9,8 +9,8 @@ namespace Bus.Transport.SendingPipe
     {
         ICompletionCallback Send(ICommand command, ICompletionCallback callback = null);
         void Publish(IEvent message);
-        ICompletionCallback Route(IMessage message, string peerName);
-        void Acknowledge(Guid messageId,string messageType, bool processSuccessful, string originatingPeer, IEndpoint endpoint);
+        ICompletionCallback Route(IMessage message, PeerId peerName);
+        void Acknowledge(Guid messageId, string messageType, bool processSuccessful, PeerId originatingPeer, IEndpoint endpoint);
         void SendHeartbeat(IEndpoint endpoint);
         void Initialize(RingBuffer<OutboundDisruptorEntry> buffer );
         void InjectNetworkSenderCommand(IBusEventProcessorCommand command);

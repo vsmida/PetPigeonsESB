@@ -94,16 +94,16 @@ namespace Bus.DisruptorEventHandlers
 
             if (data.ForceMessageThrough)
             {
-                _logger.DebugFormat("Forcing message type {0} from {1} with seqNum = {2}", data.InitialTransportMessage.MessageType, data.InitialTransportMessage.PeerName, data.InitialTransportMessage.SequenceNumber);
+                _logger.DebugFormat("Forcing message type {0} from {1} with seqNum = {2}", data.InitialTransportMessage.MessageType, data.InitialTransportMessage.PeerId, data.InitialTransportMessage.SequenceNumber);
                 if (_waitingMessages.Count != 0)
                 {
                     var message = _waitingMessages.Peek();
                     if (message.InitialTransportMessage.MessageIdentity == data.InitialTransportMessage.MessageIdentity)
                     {
-                        _messageSender.Send(new StopSynchWithBrokerCommand(_peerConfiguration.PeerName));
+                        _messageSender.Send(new StopSynchWithBrokerCommand(_peerConfiguration.PeerId));
                         _waitingMessages.Dequeue();
                         PublishQueuedMessageToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
-                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data);
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerId, data);
                         ReleaseCachedMessages(data);
                         return;
                     }
@@ -113,7 +113,7 @@ namespace Bus.DisruptorEventHandlers
 
             if (_isInitialized || options == null || options.ReliabilityLevel == ReliabilityLevel.FireAndForget || data.ForceMessageThrough)
                 PublishToStandardDispatch(deserializedMessage, data.InitialTransportMessage.MessageIdentity,
-                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerName, data);
+                                                         data.InitialTransportMessage.Endpoint, data.InitialTransportMessage.PeerId, data);
 
             else
                 _waitingMessages.Enqueue(data);
@@ -129,8 +129,8 @@ namespace Bus.DisruptorEventHandlers
             if (command is ResetSequenceNumbersForPeer)
             {
                 var typedCommand = command as ResetSequenceNumbersForPeer;
-                _logger.DebugFormat("Resetting sequence numbers for peer {0}", typedCommand.PeerName);
-                _sequenceNumberVerifier.ResetSequenceNumbersForPeer(typedCommand.PeerName);
+                _logger.DebugFormat("Resetting sequence numbers for peer {0}", typedCommand.PeerId);
+                _sequenceNumberVerifier.ResetSequenceNumbersForPeer(typedCommand.PeerId);
 
             }
         }
@@ -157,7 +157,7 @@ namespace Bus.DisruptorEventHandlers
                 else
                     deserializedSavedMessage = BusSerializer.Deserialize(item.InitialTransportMessage.Data, itemType) as IMessage;
                 PublishQueuedMessageToStandardDispatch(deserializedSavedMessage, item.InitialTransportMessage.MessageIdentity,
-                                                                           item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerName, data);
+                                                                           item.InitialTransportMessage.Endpoint, item.InitialTransportMessage.PeerId, data);
             }
         }
 
@@ -165,16 +165,16 @@ namespace Bus.DisruptorEventHandlers
         {
             _logger.Info("Re-syncing");
             _isInitialized = false;
-            _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerName)); //resync
+            _messageSender.Send(new SynchronizeWithBrokerCommand(_peerConfiguration.PeerId)); //resync
         }
 
-        private void PublishQueuedMessageToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, InboundMessageProcessingEntry data)
+        private void PublishQueuedMessageToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, PeerId peerId, InboundMessageProcessingEntry data)
         {
             var inboundEntry = new InboundBusinessMessageEntry();
             inboundEntry.DeserializedMessage = deserializedMessage;
             inboundEntry.MessageIdentity = messageId;
             inboundEntry.Endpoint = endpoint;
-            inboundEntry.SendingPeer = peerName;
+            inboundEntry.SendingPeer = peerId;
             if (data.QueuedInboundEntries == null)
                 data.QueuedInboundEntries = new List<InboundBusinessMessageEntry>();
             data.QueuedInboundEntries.Add(inboundEntry);
@@ -182,12 +182,12 @@ namespace Bus.DisruptorEventHandlers
 
         }
 
-        private void PublishToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, string peerName, InboundMessageProcessingEntry entry)
+        private void PublishToStandardDispatch(IMessage deserializedMessage, Guid messageId, IEndpoint endpoint, PeerId peerId, InboundMessageProcessingEntry entry)
         {
             entry.InboundBusinessMessageEntry.DeserializedMessage = deserializedMessage;
             entry.InboundBusinessMessageEntry.MessageIdentity = messageId;
             entry.InboundBusinessMessageEntry.Endpoint = endpoint;
-            entry.InboundBusinessMessageEntry.SendingPeer = peerName;
+            entry.InboundBusinessMessageEntry.SendingPeer = peerId;
             entry.IsStrandardMessage = true;
 
         }
@@ -210,7 +210,7 @@ namespace Bus.DisruptorEventHandlers
             data.InfrastructureEntry.DeserializedMessage = deserializedMessage;
             data.InfrastructureEntry.MessageIdentity = data.InitialTransportMessage.MessageIdentity;
             data.InfrastructureEntry.Endpoint = data.InitialTransportMessage.Endpoint;
-            data.InfrastructureEntry.SendingPeer = data.InitialTransportMessage.PeerName;
+            data.InfrastructureEntry.SendingPeer = data.InitialTransportMessage.PeerId;
         }
     }
 }

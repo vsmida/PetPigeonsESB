@@ -7,7 +7,7 @@ namespace Bus.Transport.ReceptionPipe
     public class InboundBusinessMessageEntry
     {
         public IMessage DeserializedMessage;
-        public string SendingPeer;
+        public PeerId SendingPeer;
         public Guid MessageIdentity;
         public IEndpoint Endpoint;
     }

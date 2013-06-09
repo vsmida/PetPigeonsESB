@@ -46,7 +46,7 @@ namespace Tests.Integration.Performance
             var fakeTransportConfiguration = new FakeTransportConfiguration();
             var transportReceive = new ZmqPullWireDataReceiver(ZmqContext.Create(), fakeTransportConfiguration, new SerializationHelper(new AssemblyScanner()));
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
-            var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), "bus2", BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
+            var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(4), BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
                                                                          new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)),
                                                                          new SleepingWaitStrategy(),
@@ -70,7 +70,7 @@ namespace Tests.Integration.Performance
 
                     wireSendingMessage =
                         new WireSendingMessage(
-                            new MessageWireData(typeof (FakePersistingCommand).FullName, Guid.NewGuid(), "bu7s2", data),
+                            new MessageWireData(typeof (FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(44), data),
                             endpoint);
                     transportSend.SendMessage(wireSendingMessage, endpoint);
                 }

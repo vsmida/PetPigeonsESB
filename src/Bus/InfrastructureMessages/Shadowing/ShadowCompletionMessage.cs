@@ -11,9 +11,9 @@ namespace Bus.InfrastructureMessages.Shadowing
         [ProtoMember(1, IsRequired = true)]
         public readonly Guid MessageId;
         [ProtoMember(2, IsRequired = true)]
-        public readonly string FromPeer;
+        public readonly PeerId FromPeer;
         [ProtoMember(3, IsRequired = true)]
-        public readonly string ToPeer;
+        public readonly PeerId ToPeer;
         [ProtoMember(4, IsRequired = true)]
         public readonly bool ProcessingSuccessful;
         [ProtoMember(5, IsRequired = true)]
@@ -21,7 +21,7 @@ namespace Bus.InfrastructureMessages.Shadowing
         [ProtoMember(6, IsRequired = true)]
         public readonly string MessageType;
 
-        public ShadowCompletionMessage(Guid messageId, string fromPeer, string toPeer, bool processingSuccessful, IEndpoint endpoint, string messageType)
+        public ShadowCompletionMessage(Guid messageId, PeerId fromPeer, PeerId toPeer, bool processingSuccessful, IEndpoint endpoint, string messageType)
         {
             MessageId = messageId;
             FromPeer = fromPeer;

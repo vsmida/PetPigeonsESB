@@ -26,7 +26,7 @@ namespace Bus.Transport.SendingPipe
             data.MessageTargetHandlerData = new MessageTargetHandlerData();
             var heartbeatRequest = new HeartbeatRequest(DateTime.UtcNow, endpoint);
             var serializedMessage = BusSerializer.Serialize(heartbeatRequest);
-            var messageWireData = new MessageWireData(typeof(HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerName, serializedMessage);
+            var messageWireData = new MessageWireData(typeof(HeartbeatRequest).FullName, Guid.NewGuid(), _peerConfiguration.PeerId, serializedMessage);
             data.NetworkSenderData.WireMessages = new List<WireSendingMessage>();
             data.NetworkSenderData.WireMessages.Add(new WireSendingMessage(messageWireData, endpoint));
 
@@ -76,7 +76,7 @@ namespace Bus.Transport.SendingPipe
             SendInternal(message, null);
         }
 
-        public ICompletionCallback Route(IMessage message, string peerName)
+        public ICompletionCallback Route(IMessage message, PeerId peerName)
         {
             var callback = new DefaultCompletionCallback();
 
@@ -95,7 +95,7 @@ namespace Bus.Transport.SendingPipe
             return callback;
         }
 
-        public void Acknowledge(Guid messageId, string messageType, bool processSuccessful, string originatingPeer, IEndpoint endpoint)
+        public void Acknowledge(Guid messageId, string messageType, bool processSuccessful, PeerId originatingPeer, IEndpoint endpoint)
         {
             var acknowledgementMessage = new CompletionAcknowledgementMessage(messageId, messageType, processSuccessful, endpoint);
             var sequence = _ringBuffer.Next();

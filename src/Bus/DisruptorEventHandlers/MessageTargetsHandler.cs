@@ -105,7 +105,7 @@ namespace Bus.DisruptorEventHandlers
                 serializedMessage = BusSerializer.Serialize(message);
             var messageId = Guid.NewGuid();
             var messageType = message.GetType().FullName;
-            var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerName, serializedMessage);
+            var messageData = new MessageWireData(messageType, messageId, _peerConfiguration.PeerId, serializedMessage);
             return messageData;
         }
     }

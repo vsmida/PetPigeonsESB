@@ -28,7 +28,7 @@ namespace Bus.Transport.Network
         List<ServicePeer> GetAllPeers();
         IEnumerable<ServicePeerShadowInformation> PeersThatShadowMe();
         Dictionary<string, List<MessageSubscription>> GetAllSubscriptions();
-        Dictionary<string, HashSet<ServicePeerShadowInformation>> GetAllShadows();
+        Dictionary<PeerId, HashSet<ServicePeerShadowInformation>> GetAllShadows();
         string Self { get; }
         Dictionary<IEndpoint, EndpointStatus> GetEndpointStatuses();
     }
@@ -38,10 +38,10 @@ namespace Bus.Transport.Network
     {
         public event Action<ServicePeer> PeerConnected = delegate { };
         public event Action<EndpointStatus> EndpointStatusUpdated = delegate { };
-        private readonly ConcurrentDictionary<string, ServicePeer> _peers = new ConcurrentDictionary<string, ServicePeer>();
+        private readonly ConcurrentDictionary<PeerId, ServicePeer> _peers = new ConcurrentDictionary<PeerId, ServicePeer>();
         private readonly ConcurrentDictionary<string, List<MessageSubscription>> _messagesToEndpoints = new ConcurrentDictionary<string, List<MessageSubscription>>();
         private readonly ConcurrentDictionary<IEndpoint, EndpointStatus> _endpointToStatus = new ConcurrentDictionary<IEndpoint, EndpointStatus>();
-        private readonly ConcurrentDictionary<string, HashSet<ServicePeerShadowInformation>> _peersToTheirShadows = new ConcurrentDictionary<string, HashSet<ServicePeerShadowInformation>>();
+        private readonly ConcurrentDictionary<PeerId, HashSet<ServicePeerShadowInformation>> _peersToTheirShadows = new ConcurrentDictionary<PeerId, HashSet<ServicePeerShadowInformation>>();
         private readonly IPeerConfiguration _peerConfig;
         private readonly IHeartbeatManager _heartbeatManager;
 
@@ -77,7 +77,7 @@ namespace Bus.Transport.Network
 
         private void UpdatePeerList(ServicePeer peer)
         {
-            _peers.AddOrUpdate(peer.PeerName, peer, (key, oldValue) => { return peer; });
+            _peers.AddOrUpdate(peer.PeerId, peer, (key, oldValue) => { return peer; });
         }
 
         private void UpdateSubscriptions(ServicePeer peer)
@@ -90,7 +90,7 @@ namespace Bus.Transport.Network
                                                  {
                                                      var list =
                                                          new List<MessageSubscription>(
-                                                             oldValue.Where(x => x.Peer != peer.PeerName));
+                                                             oldValue.Where(x => x.Peer != peer.PeerId));
                                                      //dont keep previous message subscription from peer
                                                      list.Add(messageToEndpoint);
                                                      return list;
@@ -101,7 +101,7 @@ namespace Bus.Transport.Network
             foreach (var pair in _messagesToEndpoints) //remove messages that are no longer handled
             {
                 if (peer.HandledMessages.All(x => x.MessageType.FullName != pair.Key))
-                    pair.Value.RemoveAll(x => x.Peer == peer.PeerName);
+                    pair.Value.RemoveAll(x => x.Peer == peer.PeerId);
             }
         }
 
@@ -109,7 +109,7 @@ namespace Bus.Transport.Network
         {
             foreach (var shadowedPeer in peer.ShadowedPeers ?? Enumerable.Empty<ShadowedPeerConfiguration>())
             {
-                _peersToTheirShadows.AddOrUpdate(shadowedPeer.PeerName,
+                _peersToTheirShadows.AddOrUpdate(shadowedPeer.PeerPeerId,
                                             new HashSet<ServicePeerShadowInformation> { new ServicePeerShadowInformation(peer, shadowedPeer.IsPersistenceProvider) },
                                             (key, oldValue) =>
                                             {
@@ -121,7 +121,7 @@ namespace Bus.Transport.Network
             foreach (var pair in _peersToTheirShadows)
             {
                 var previousEntry = pair.Value.SingleOrDefault(x => x.ServicePeer == peer);
-                if (previousEntry != null && !peer.ShadowedPeers.Select(x => x.PeerName).Contains(pair.Key))
+                if (previousEntry != null && !peer.ShadowedPeers.Select(x => x.PeerPeerId).Contains(pair.Key))
                     pair.Value.Remove(previousEntry);
             }
         }
@@ -130,7 +130,7 @@ namespace Bus.Transport.Network
         public IEnumerable<ServicePeerShadowInformation> PeersThatShadowMe()
         {
             HashSet<ServicePeerShadowInformation> shadows;
-            _peersToTheirShadows.TryGetValue(_peerConfig.PeerName, out shadows);
+            _peersToTheirShadows.TryGetValue(_peerConfig.PeerId, out shadows);
             return shadows ?? Enumerable.Empty<ServicePeerShadowInformation>();
         }
 
@@ -139,7 +139,7 @@ namespace Bus.Transport.Network
             return _messagesToEndpoints.ToDictionary(x => x.Key, x => x.Value);
         }
 
-        public Dictionary<string, HashSet<ServicePeerShadowInformation>> GetAllShadows()
+        public Dictionary<PeerId, HashSet<ServicePeerShadowInformation>> GetAllShadows()
         {
             return _peersToTheirShadows.ToDictionary(x => x.Key, x => x.Value);
         }

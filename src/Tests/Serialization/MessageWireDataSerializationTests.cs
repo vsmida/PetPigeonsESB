@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Bus;
 using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.SendingPipe;
@@ -23,7 +24,7 @@ namespace Tests.Serialization
         [Test]
         public void should_serialize_deserialize()
         {
-            var message = new MessageWireData(typeof(TestData.FakeCommand).FullName, Guid.NewGuid(), "peer", Encoding.ASCII.GetBytes("data"))
+            var message = new MessageWireData(typeof(TestData.FakeCommand).FullName, Guid.NewGuid(), new PeerId(3), Encoding.ASCII.GetBytes("data"))
                               {SequenceNumber = 1234567};
             var buffer = _serializer.Serialize(message);
             var stream = new FrameStream(new List<Frame>{new Frame(buffer,0, buffer.Length)});
@@ -32,7 +33,7 @@ namespace Tests.Serialization
             Assert.AreEqual(message.Data, deserializedMessage.Data);
             Assert.AreEqual(message.MessageIdentity, deserializedMessage.MessageIdentity);
             Assert.AreEqual(message.MessageType, deserializedMessage.MessageType);
-            Assert.AreEqual(message.SendingPeer, deserializedMessage.SendingPeer);
+            Assert.AreEqual(message.SendingPeerId, deserializedMessage.SendingPeerId);
             Assert.AreEqual(message.SequenceNumber, deserializedMessage.SequenceNumber);
         }
     }

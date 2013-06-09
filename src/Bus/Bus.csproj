@@ -145,6 +145,7 @@
     <Compile Include="MessageInterfaces\IEvent.cs" />
     <Compile Include="MessageInterfaces\IMessage.cs" />
     <Compile Include="MessageInterfaces\IMessageHandler.cs" />
+    <Compile Include="PeerId.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BusSerializer.cs" />
     <Compile Include="Serializer\CompletionAcknowledgementMessageSerializer.cs" />

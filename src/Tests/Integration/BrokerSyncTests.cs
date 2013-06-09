@@ -32,12 +32,12 @@ namespace Tests.Integration
             var busName1 = "Service1";
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner());
-            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1,new  PeerId(1), randomPort1, busName1,new PeerId(1), assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner());
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             var brokerContainer = new Container();
-            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, new PeerId(3), randomPort1, busName1, new PeerId(1),
                                               new SimpleMessageExchange.FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }), container: brokerContainer);
+                                              new DummyPeerConfig(brokerName,new PeerId(1), new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(new PeerId(2), true) }), container: brokerContainer);
 
             bus1.Initialize();
             brokerForBus2.Initialize(); //todo: this is wrong, broker should be able to start at any time, should implement retry or abandon and say we are initialized after a timeout
@@ -64,7 +64,7 @@ namespace Tests.Integration
             }
 
             var randomPort3 = NetworkUtils.GetRandomUnusedPort();
-            bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            bus2 = FakeBusFactory.CreateFakeBus(randomPort3, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             Console.WriteLine("initializing bus2 again");
             bus2.Initialize(); //alive again
 
@@ -90,12 +90,12 @@ namespace Tests.Integration
             var busName2 = "Service2";
             var brokerName = "Service2Shadow";
             var bus1Container = new Container();
-            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, randomPort1, busName1, assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner(), container: bus1Container);
-            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, randomPort1, busName1); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
+            var bus1 = FakeBusFactory.CreateFakeBus(randomPort1, busName1, new PeerId(1), randomPort1, busName1, new PeerId(1), assemblyScanner: new SimpleMessageExchange.FakeAssemblyScanner(), container: bus1Container);
+            var bus2 = FakeBusFactory.CreateFakeBus(randomPort2, busName2, new PeerId(2), randomPort1, busName1, new PeerId(1)); //bus2 knows bus1 (ie bus1 acts as directory service for bus2
             var brokerContainer = new Container();
-            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, randomPort1, busName1,
+            var brokerForBus2 = FakeBusFactory.CreateFakeBus(randomPortBroker, brokerName, new PeerId(3), randomPort1, busName1, new PeerId(1),
                                               new SimpleMessageExchange.FakeAssemblyScanner(),
-                                              new DummyPeerConfig(brokerName, new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(busName2, true) }), container: brokerContainer);
+                                              new DummyPeerConfig(brokerName,new PeerId(3), new List<ShadowedPeerConfiguration> { new ShadowedPeerConfiguration(new PeerId(2), true) }), container: brokerContainer);
 
             bus1.Initialize();
             brokerForBus2.Initialize();
@@ -125,7 +125,7 @@ namespace Tests.Integration
             brokerForBus2.Dispose();
 
             var messageStore = brokerContainer.GetInstance<ISavedMessagesStore>();
-            var remainingMessages = messageStore.GetFirstMessages(busName2, null).ToList();
+            var remainingMessages = messageStore.GetFirstMessages(new PeerId(2), null).ToList();
             Assert.AreEqual(0, remainingMessages.Count);
             Assert.IsTrue(disconnectOccured);
 

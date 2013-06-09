@@ -7,9 +7,9 @@ namespace Bus.InfrastructureMessages.Shadowing
     class PublishUnacknowledgedMessagesToPeer : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly string Peer;
+        public readonly PeerId Peer;
 
-        public PublishUnacknowledgedMessagesToPeer(string peer)
+        public PublishUnacknowledgedMessagesToPeer(PeerId peer)
         {
             Peer = peer;
         }

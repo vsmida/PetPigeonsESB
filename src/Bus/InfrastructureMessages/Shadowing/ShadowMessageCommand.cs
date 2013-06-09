@@ -11,13 +11,13 @@ namespace Bus.InfrastructureMessages.Shadowing
         [ProtoMember(1, IsRequired = true)]
         public readonly MessageWireData Message;
         [ProtoMember(2, IsRequired = true)]
-        public readonly string PrimaryRecipient;
+        public readonly PeerId PrimaryRecipient;
         [ProtoMember(3, IsRequired = true)]
         public readonly bool PrimaryWasOnline;
         [ProtoMember(4, IsRequired = true)]
         public readonly IEndpoint TargetEndpoint;
 
-        public ShadowMessageCommand(MessageWireData message, string primaryRecipient, bool primaryWasOnline, IEndpoint targetEndpoint)
+        public ShadowMessageCommand(MessageWireData message, PeerId primaryRecipient, bool primaryWasOnline, IEndpoint targetEndpoint)
         {
             Message = message;
             PrimaryRecipient = primaryRecipient;

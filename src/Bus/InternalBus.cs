@@ -72,7 +72,7 @@ namespace Bus
 
         public void Reply(IMessage message)
         {
-            _messageSender.Route(message, MessageContext.PeerName);
+            _messageSender.Route(message, MessageContext.PeerId);
         }
 
         public void Dispose()

@@ -8,7 +8,7 @@ namespace Bus.Transport.ReceptionPipe
     public class ReceivedTransportMessage
     {
         [ProtoMember(1, IsRequired = true)]
-        public string PeerName;
+        public PeerId PeerId;
         [ProtoMember(2, IsRequired = true)]
         public string MessageType;
         [ProtoMember(3, IsRequired = true)]
@@ -20,9 +20,9 @@ namespace Bus.Transport.ReceptionPipe
         [ProtoMember(6, IsRequired = true)]
         public int? SequenceNumber;
 
-        public ReceivedTransportMessage(string messageType, string peerName, Guid messageIdentity, IEndpoint endpoint, byte[] data, int? sequenceNumber)
+        public ReceivedTransportMessage(string messageType, PeerId peerId, Guid messageIdentity, IEndpoint endpoint, byte[] data, int? sequenceNumber)
         {
-            PeerName = peerName;
+            PeerId = peerId;
             MessageIdentity = messageIdentity;
             MessageType = messageType;
             Data = data;
@@ -35,9 +35,9 @@ namespace Bus.Transport.ReceptionPipe
             
         }
 
-        public void Reinitialize(string messageType, string peerName, Guid messageIdentity, ZmqEndpoint endpoint, byte[] data, int? sequenceNumber)
+        public void Reinitialize(string messageType, PeerId peerId, Guid messageIdentity, ZmqEndpoint endpoint, byte[] data, int? sequenceNumber)
         {
-            PeerName = peerName;
+            PeerId = peerId;
             MessageIdentity = messageIdentity;
             MessageType = messageType;
             Data = data;

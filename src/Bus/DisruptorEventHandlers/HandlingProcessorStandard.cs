@@ -43,7 +43,7 @@ namespace Bus.DisruptorEventHandlers
             }
         }
 
-        private void HandleMessage(IMessage deserializedMessage, string sendingPeer, IEndpoint endpoint, Guid messageId)
+        private void HandleMessage(IMessage deserializedMessage, PeerId sendingPeer, IEndpoint endpoint, Guid messageId)
         {
             using (MessageContext.SetContext(sendingPeer, endpoint))
             {

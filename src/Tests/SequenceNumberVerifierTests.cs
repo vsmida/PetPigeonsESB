@@ -15,7 +15,7 @@ namespace Tests
         [SetUp]
         public void setup()
         {
-            _verifier = new SequenceNumberVerifier(new DummyPeerConfig("Me", null));
+            _verifier = new SequenceNumberVerifier(new DummyPeerConfig("Me",new PeerId(1), null));
         }
 
         [Test]
@@ -52,8 +52,8 @@ namespace Tests
         [Test]
         public void should_return_true_if_peer_is_myself()//todo:revise this
         {
-            _verifier.IsSequenceNumberValid(TestData.GenerateDummyReceivedMessage<TestData.FakeCommand>(Guid.NewGuid(),0, "Me"), true);
-            var valid = _verifier.IsSequenceNumberValid(TestData.GenerateDummyReceivedMessage<TestData.FakeCommand>(Guid.NewGuid(), -1, "Me"), true);
+            _verifier.IsSequenceNumberValid(TestData.GenerateDummyReceivedMessage<TestData.FakeCommand>(Guid.NewGuid(),0,new PeerId(11)), true);
+            var valid = _verifier.IsSequenceNumberValid(TestData.GenerateDummyReceivedMessage<TestData.FakeCommand>(Guid.NewGuid(), -1, new PeerId(11)), true);
             Assert.IsTrue(valid); 
         }
 

@@ -8,9 +8,9 @@ namespace Bus.InfrastructureMessages
     public class SynchronizeWithBrokerCommand : ICommand
     {
         [ProtoMember(1, IsRequired = true)]
-        public readonly string PeerName;
+        public readonly PeerId PeerName;
 
-        public SynchronizeWithBrokerCommand(string peerName)
+        public SynchronizeWithBrokerCommand(PeerId peerName)
         {
             PeerName = peerName;
         }
