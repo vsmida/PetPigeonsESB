@@ -19,6 +19,7 @@ namespace Tests.Integration
                     .Use(
                         new DummyTransportConfig(
                             busReceptionPort));
+
                 ctx.For
                     <IBusBootstrapperConfiguration
                         >().Use(new DummyBootstrapperConfig

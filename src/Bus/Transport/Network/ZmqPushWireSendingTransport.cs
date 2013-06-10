@@ -21,7 +21,7 @@ namespace Bus.Transport.Network
           _transport.Dispose();
         }
 
-        public event Action<IEndpoint> EndpointDisconnected;
+        public event Action<IEndpoint> EndpointDisconnected = delegate {};
         private readonly ILog _logger = LogManager.GetLogger(typeof(CustomTcpWireSendingTransport));
         public WireTransportType TransportType { get { return WireTransportType.CustomTcpTransport; } }
         private readonly MessageWireDataSerializer _serializer;

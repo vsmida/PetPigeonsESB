@@ -29,7 +29,7 @@ namespace PgmTransport
             _frames = frames;
             for (int i = 0; i < _frames.Count; i++)
             {
-                _length += _frames[i].Count;
+                _length += _frames[i].Count - _frames[i].Offset;
             }
         }
 
@@ -71,16 +71,16 @@ namespace PgmTransport
             var currentoffset = offset;
             var copiedBytes = 0;
 
-            while (leftBytesFromFrame - leftBytesToCopyToBuffer < 0) // should copy all
+            while (leftBytesFromFrame - leftBytesToCopyToBuffer <= 0) // should copy all
             {
-                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart, buffer, currentoffset, leftBytesFromFrame);
+                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesFromFrame);
                 copiedBytes += leftBytesFromFrame;
                 _currentFrameIndex++;
                 currentFrame = _frames[_currentFrameIndex];
                 leftBytesToCopyToBuffer -= leftBytesFromFrame;
                 currentoffset += leftBytesFromFrame;
-                _currentPositionFromFrameStart = 0;
-                leftBytesFromFrame = currentFrame.Count - _currentPositionFromFrameStart;
+                _currentPositionFromFrameStart = 0 ;
+                leftBytesFromFrame = currentFrame.Count - _currentPositionFromFrameStart - currentFrame.Offset;
                 
             }
 
@@ -90,8 +90,8 @@ namespace PgmTransport
                 Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesToCopyToBuffer);
                 copiedBytes += leftBytesToCopyToBuffer;
                 currentoffset += leftBytesToCopyToBuffer;
-                leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
-                _currentPositionFromFrameStart += currentoffset;
+            //    leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
+                _currentPositionFromFrameStart += leftBytesToCopyToBuffer;
                 if (_currentPositionFromFrameStart - offset == currentFrame.Count) //  if frame exhausted, point to the next;
                     _currentFrameIndex++;
             }

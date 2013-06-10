@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Bus;
@@ -12,6 +13,7 @@ using Bus.Transport.SendingPipe;
 using Disruptor;
 using Disruptor.Dsl;
 using NUnit.Framework;
+using Shared;
 using Tests.Transport;
 using ZeroMQ;
 
@@ -41,8 +43,63 @@ namespace Tests.Integration.Performance
             }
         }
 
+
         [Test]
-        public void transport_test()
+        public void custom_transport_test()
+        {
+
+            var fakeCOnfig = new DummyCustomTcpTransportConfig {Port = NetworkUtils.GetRandomUnusedPort()};
+            var endpoint = new CustomTcpEndpoint(new IPEndPoint(NetworkUtils.GetOwnIp(), fakeCOnfig.Port));
+            var transportReceive = new CustomTcpTransportWireDataReceiver(fakeCOnfig,
+                                                                          new SerializationHelper(new AssemblyScanner()));
+
+            var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
+                                                             new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)),
+                                                             new SleepingWaitStrategy(),
+                                                             TaskScheduler.Default);
+
+            disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement());
+            disruptor.Start();
+            transportReceive.Initialize(disruptor.RingBuffer);
+            var transportSend = new CustomTcpWireSendingTransport(new SerializationHelper(new AssemblyScanner()));
+            transportSend.Initialize();
+
+            Stopwatch watch = new Stopwatch();
+            for (int t = 0; t < 100; t++)
+            {
+                watch.Start();
+                var messagesCountTotal = 10000;
+                // var messagesCountTotal = 10;
+                var serializer = new PerformanceTests.LatencyMessageSerializer();
+                EventProcessorInterlockedIncrement.Watch = watch;
+                for (int i = 0; i < messagesCountTotal; i++)
+                {
+                    watch.Stop();
+                    var data = serializer.Serialize(new PerformanceTests.LatencyMessage(watch.ElapsedTicks));
+
+                    var wireSendingMessage =
+                        new WireSendingMessage(
+                            new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(44), data),
+                            endpoint);
+                    watch.Start();
+                    transportSend.SendMessage(wireSendingMessage, endpoint);
+                }
+                SpinWait wait = new SpinWait();
+                while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
+                {
+                    wait.SpinOnce();
+                }
+                watch.Stop();
+                var fps = messagesCountTotal / (watch.ElapsedTicks / (double)Stopwatch.Frequency);
+                Console.WriteLine(" FPS : " + fps.ToString("N2"));
+                EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
+            }
+            transportSend.Dispose();
+            transportReceive.Dispose();
+        }
+
+        [Test]
+        public void zmq_transport_test()
         {
             var transportSend = new ZmqPushWireSendingTransport(ZmqContext.Create(), new SerializationHelper(new AssemblyScanner()));
             transportSend.Initialize();

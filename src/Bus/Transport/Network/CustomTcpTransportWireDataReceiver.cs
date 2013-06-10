@@ -37,7 +37,7 @@ namespace Bus.Transport.Network
         public void Initialize(RingBuffer<InboundMessageProcessingEntry> ringBuffer)
         {
             _ringBuffer = ringBuffer;
-            _ipEndPoint = new IPEndPoint(IPAddress.Loopback,_configuration.Port);
+            _ipEndPoint = _endpoint.EndPoint;
             _receiver.RegisterCallback(_ipEndPoint, DoReceive);
             _receiver.ListenToEndpoint(_ipEndPoint);
         }

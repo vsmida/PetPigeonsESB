@@ -20,8 +20,7 @@ namespace Bus.Serializer
         public byte[] Serialize(MessageWireData data)
         {
             var guidLength = 16;
-            var length = 4 + data.Data.Length + guidLength + 4 + 4 + 4 +
-                         (data.SequenceNumber == null ? 0 : 4);
+            var length = 4 + data.Data.Length + guidLength + 4 + 4 + 4 + 4;
             var finalArray = new byte[length];
 
             var idByteArray = data.MessageIdentity.ToByteArray();
@@ -36,6 +35,10 @@ namespace Bus.Serializer
 
             if (data.SequenceNumber != null)
                 ByteUtils.WriteInt(finalArray, sendingPeerOffset + 4 + data.Data.Length, data.SequenceNumber.Value);
+            else
+            {
+                ByteUtils.WriteInt(finalArray, sendingPeerOffset + 4 + data.Data.Length, -1);
+            }
 
             return finalArray;
         }
@@ -48,13 +51,15 @@ namespace Bus.Serializer
             var messageTypeId = ByteUtils.ReadIntFromStream(data);
             var sendingPeer = ByteUtils.ReadIntFromStream(data);
             var dataLength = ByteUtils.ReadIntFromStream(data);
+            if (dataLength == -1)
+             dataLength = ByteUtils.ReadIntFromStream(data);
+
             var binaryData = new byte[dataLength];
             data.Read(binaryData, 0, dataLength);
             int? sequenceNumber = null;
-            if (data.Length > 16 + 4 + 4 + 4  + 4 + dataLength)
                 sequenceNumber = ByteUtils.ReadIntFromStream(data);
 
-            return new MessageWireData(_serializationHelper.GetMessageTypeFromId(messageTypeId), id, new PeerId( sendingPeer), binaryData) { SequenceNumber = sequenceNumber };
+            return new MessageWireData(_serializationHelper.GetMessageTypeFromId(messageTypeId), id, new PeerId(sendingPeer), binaryData) { SequenceNumber = sequenceNumber == -1 ? null : sequenceNumber };
 
         }
     }
