@@ -36,6 +36,7 @@ namespace PgmTransport
 
         private void ExecuteElapsedTimers()
         {
+            if(_timers.Count > 0 )
             foreach (var ticks in _timers.Keys.ToList())
             {
                 if (_watch.ElapsedTicks >= ticks)

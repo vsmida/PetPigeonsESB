@@ -15,8 +15,8 @@ namespace PgmTransport
             BufferPool = bufferPool;
         }
 
-        public int Count;
-        public int Offset;
+        public readonly int Count;
+        public readonly int Offset;
         public byte[] Buffer;
 
         public void Dispose()

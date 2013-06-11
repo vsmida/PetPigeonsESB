@@ -72,29 +72,39 @@ namespace Tests.Integration.Performance
                 // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
-                for (int i = 0; i < messagesCountTotal; i++)
-                {
-                    watch.Stop();
-                    var data = serializer.Serialize(new PerformanceTests.LatencyMessage(watch.ElapsedTicks));
+                var performanceMeasure = new PerformanceMeasure(() =>
+                                                                    {
+                                                                        watch.Stop();
+                                                                        var data =
+                                                                            serializer.Serialize(
+                                                                                new PerformanceTests.LatencyMessage(
+                                                                                    watch.ElapsedTicks));
 
-                    var wireSendingMessage =
-                        new WireSendingMessage(
-                            new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.Empty, new PeerId(11), data),
-                            endpoint);
+                                                                        var wireSendingMessage =
+                                                                            new WireSendingMessage(
+                                                                                new MessageWireData(
+                                                                                    typeof (FakePersistingCommand).
+                                                                                        FullName,
+                                                                                    Guid.Empty,
+                                                                                    new PeerId(11),
+                                                                                    data),
+                                                                                endpoint);
 
-                    watch.Start();
+                                                                        watch.Start();
 
-                    transportSend.SendMessage(wireSendingMessage, endpoint);
-                }
+                                                                        transportSend.SendMessage(wireSendingMessage,
+                                                                                                  endpoint);
+
+                                                                    },
+                                                                messagesCountTotal);
+              
                 SpinWait wait = new SpinWait();
                 while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
                 {
                     wait.SpinOnce();
                 }
+                performanceMeasure.Dispose();
                 EventProcessorInterlockedIncrement.MessageCount = 0;
-                watch.Stop();
-                var fps = messagesCountTotal / (watch.ElapsedTicks / (double)Stopwatch.Frequency);
-                Console.WriteLine(" FPS : " + fps.ToString("N2"));
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();
@@ -126,27 +136,37 @@ namespace Tests.Integration.Performance
                // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
-                for (int i = 0; i < messagesCountTotal; i++)
-                {
-                    watch.Stop();
-                    var data = serializer.Serialize(new PerformanceTests.LatencyMessage(watch.ElapsedTicks));
+                var performanceMeasure = new PerformanceMeasure(() =>
+                                                                    {
+                                                                        watch.Stop();
+                                                                        var data =
+                                                                            serializer.Serialize(
+                                                                                new PerformanceTests.LatencyMessage(
+                                                                                    watch.ElapsedTicks));
 
-                    wireSendingMessage =
-                        new WireSendingMessage(
-                            new MessageWireData(typeof (FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(44), data),
-                            endpoint);
-                    watch.Start();
-                    transportSend.SendMessage(wireSendingMessage, endpoint);
-                }
+                                                                        wireSendingMessage =
+                                                                            new WireSendingMessage(
+                                                                                new MessageWireData(
+                                                                                    typeof (FakePersistingCommand).
+                                                                                        FullName,
+                                                                                    Guid.NewGuid(),
+                                                                                    new PeerId(44),
+                                                                                    data),
+                                                                                endpoint);
+                                                                        watch.Start();
+                                                                        transportSend.SendMessage(wireSendingMessage,
+                                                                                                  endpoint);
+                                                                    },
+                                                                messagesCountTotal,
+                                                                watch);
+             
                 SpinWait wait = new SpinWait();
                 while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
                 {
                     wait.SpinOnce();
                 }
-                EventProcessorInterlockedIncrement.MessageCount = 0;
-                watch.Stop();
-                var fps = messagesCountTotal/(watch.ElapsedTicks/ (double)Stopwatch.Frequency);
-                Console.WriteLine(" FPS : " + fps.ToString("N2"));
+               performanceMeasure.Dispose();
+               EventProcessorInterlockedIncrement.MessageCount = 0;
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();

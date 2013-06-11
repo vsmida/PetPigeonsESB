@@ -12,8 +12,8 @@ namespace PgmTransport
         private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool), 10000);
         private int _readMesssageLength;
         private readonly List<Frame> _frames = new List<Frame>(10);
-        private Frame _lengthPrefix = new Frame(new byte[4], 0, 0);
-
+        private Frame _lengthPrefix = new Frame(new byte[4], 0, 4);
+        private int _lengthPrefixReadCount = 0;
 
         public bool Ready { get; private set; }
 
@@ -27,15 +27,15 @@ namespace PgmTransport
             int readFrameBytesForLength = 0;
             if (!_messageLength.HasValue)
             {
-                var lengthPrefixSizeToRead = Math.Min(4 - _lengthPrefix.Count, frame.Count);
-                Array.Copy(frame.Buffer,frame.Offset,_lengthPrefix.Buffer,_lengthPrefix.Offset + _lengthPrefix.Count, lengthPrefixSizeToRead);
-                _lengthPrefix.Count += lengthPrefixSizeToRead;
+                var lengthPrefixSizeToRead = Math.Min(4 - _lengthPrefixReadCount, frame.Count);
+                Array.Copy(frame.Buffer, frame.Offset, _lengthPrefix.Buffer, _lengthPrefix.Offset + _lengthPrefixReadCount, lengthPrefixSizeToRead);
+                _lengthPrefixReadCount += lengthPrefixSizeToRead;
                 //for (int i = 0; i < lengthPrefixSizeToRead; i++)
                 //{
                 //    _lengthPrefix.Buffer[_lengthPrefix.Offset+_lengthPrefix.Count] = frame.Buffer[frame.Offset + i];
                 //    _lengthPrefix.Count++;
                 //}
-                if (_lengthPrefix.Count == 4)
+                if (_lengthPrefixReadCount == 4)
                 {
                     _messageLength = BitConverter.ToInt32(_lengthPrefix.Buffer, _lengthPrefix.Offset);
                     if (_messageLength == 0) //null delimiter?
@@ -75,8 +75,7 @@ namespace PgmTransport
 
         public void Clear()
         {
-            _lengthPrefix.Count = 0;
-            _lengthPrefix.Offset = 0;
+            _lengthPrefixReadCount = 0;
             _readMesssageLength = 0;
             _messageLength = null;
             _frames.Clear();
@@ -90,23 +89,24 @@ namespace PgmTransport
         private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
         private PartialMessage _currentPartialMessage = new PartialMessage();
         public event Action<Stream> MessageReceived = delegate{};
+        private int _frameOffset;
+        private int _frameCount;
 
         public void AddFrame(Frame frame)
         {
-            bool canReturnMessages = false;
-            var originalCount = frame.Count;
-            var originalOffset = frame.Offset;
-            while (frame.Offset < originalCount + originalOffset)
+            var count = frame.Count;
+            var offset = frame.Offset;
+            while (offset < frame.Count +frame.Offset)
             {
-                var readFromFrame = _currentPartialMessage.AddFrame(frame);
+                var readFromFrame = _currentPartialMessage.AddFrame(new Frame(frame.Buffer, offset, count));
 
                 if (_currentPartialMessage.Ready)
                 {
                     MessageReceived(_currentPartialMessage.GetMessage()); 
                     _currentPartialMessage.Clear();
                 }
-                frame.Offset += readFromFrame;
-                frame.Count -= readFromFrame;
+                offset += readFromFrame;
+                count -= readFromFrame;
 
             }
         }

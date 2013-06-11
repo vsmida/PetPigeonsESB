@@ -67,40 +67,41 @@ namespace PgmTransport
             throw new NotImplementedException();
         }
 
-        //public override int ReadByte()
-        //{
-        //    var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
-        //    byte res;
-        //    if(leftBytesFromFrame > 0)
-        //    {
-        //        res = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
-        //        _currentPositionFromFrameStart++;
-        //        if(leftBytesFromFrame -1 == 0 && _currentFrameIndex < _frames.Count - 1) //advance if necessary
-        //        {
-        //              _currentFrameIndex++;
-        //                _currentFrame = _frames[_currentFrameIndex];
-        //        }
-             
-            
-        //    }
-        //    else
-        //    {
-        //        if (_currentFrameIndex == _frames.Count - 1)
-        //        {
-        //            throw new ArgumentException("no longer any byte to read");
-        //        }
-        //        _currentFrameIndex++;
-        //        _currentFrame = _frames[_currentFrameIndex];
-        //        return ReadByte();
 
-        //    }
+        public override int ReadByte()
+        {
+            var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
+            byte res;
+            if (leftBytesFromFrame > 0)
+            {
+                res = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
+                _currentPositionFromFrameStart++;
+                if (leftBytesFromFrame - 1 == 0 && _currentFrameIndex < _frames.Count - 1) //advance if necessary
+                {
+                    _currentFrameIndex++;
+                    _currentFrame = _frames[_currentFrameIndex];
+                    _currentPositionFromFrameStart = 0;
+                }
+
+
+            }
+            else
+            {
+                if (_currentFrameIndex == _frames.Count - 1)
+                {
+                    throw new ArgumentException("no longer any byte to read");
+                }
+                _currentFrameIndex++;
+                _currentFrame = _frames[_currentFrameIndex];
+                return ReadByte();
+
+            }
         //    Position++;
-        //    return res;
-        //}
+            return res;
+        }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            _currentFrame = _frames[_currentFrameIndex];
             var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
             var leftBytesToCopyToBuffer = count;
             var currentoffset = offset;
@@ -135,11 +136,12 @@ namespace PgmTransport
                     {
                         _currentFrameIndex++;
                         _currentFrame = _frames[_currentFrameIndex];
+                        _currentPositionFromFrameStart = 0;
                     }
                 }
             }
 
-            Position += copiedBytes;
+          //  Position += copiedBytes; //getter and setter costly!!
             return copiedBytes;
 
         }
