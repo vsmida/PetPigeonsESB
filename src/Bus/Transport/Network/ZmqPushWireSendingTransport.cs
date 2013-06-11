@@ -45,7 +45,7 @@ namespace Bus.Transport.Network
             var customEndpoint = (CustomTcpEndpoint) endpoint;
             if (!_endpointToPipe.TryGetValue(customEndpoint, out pipe))
             {
-                pipe = new TcpTransportPipeMultiThread(20000,
+                pipe = new TcpTransportPipeMultiThread(30000,
                                                            HighWaterMarkBehavior.Block,
                                                            customEndpoint.EndPoint,
                                                            _transport);

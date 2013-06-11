@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Text;
+using System.Threading;
 using NUnit.Framework;
 using PgmTransport;
 
@@ -11,12 +13,14 @@ namespace PgmTransportTests
         private PartialMessage _partialMessage;
         private string _originalString = "Hello guys";
         private FrameAccumulator _frameAccumulator;
+        private int _messagesReceived = 0;
 
         [SetUp]
         public void setup()
         {
             _partialMessage = new PartialMessage();
             _frameAccumulator = new FrameAccumulator();
+            _messagesReceived = 0;
         }
 
         [Test]
@@ -25,11 +29,93 @@ namespace PgmTransportTests
             var buffer = Encoding.ASCII.GetBytes(_originalString);
             var lengthBuffer = BitConverter.GetBytes(buffer.Length);
 
-            _partialMessage.AddFrame(new Frame(lengthBuffer, 0, 2));
-            _partialMessage.AddFrame(new Frame(lengthBuffer, 2, 2));
-            _partialMessage.AddFrame(new Frame(buffer, 0, buffer.Length));
+            _frameAccumulator.MessageReceived += CheckMessageReceived;
+            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 0, 2));
+            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 2, 2));
+            _frameAccumulator.AddFrame(new Frame(buffer, 0, buffer.Length));
+            Assert.AreEqual(1, _messagesReceived);
 
-            CheckPartialMessage(buffer);
+
+        }
+        
+        [Test]
+        public void should_be_able_to_return_multiple_messages()
+        {
+            var bufferOrig = Encoding.ASCII.GetBytes(_originalString);
+            var lengthBuffer = BitConverter.GetBytes(bufferOrig.Length);
+            var buffer = new byte[32];
+
+            Array.Copy(lengthBuffer,0,buffer,0,4);
+            Array.Copy(bufferOrig,0,buffer,4,10);
+            Array.Copy(lengthBuffer, 0, buffer, 14, 4);
+            Array.Copy(bufferOrig,0,buffer,18,10);
+
+            Array.Copy(lengthBuffer, 0, buffer, 28, 4); //add garbage for next message
+
+
+            _frameAccumulator.MessageReceived += CheckMessageReceived;
+            _frameAccumulator.AddFrame(new Frame(buffer, 0, 32));
+            Assert.AreEqual(2, _messagesReceived);
+            
+        }
+
+        [Test]
+        public void should_be_able_to_return_multiple_messages_double_buffer()
+        {
+            var bufferOrig = Encoding.ASCII.GetBytes(_originalString);
+            var lengthBuffer = BitConverter.GetBytes(bufferOrig.Length);
+            var buffer = new byte[33];
+            var buffer2 = new byte[11];
+
+            Array.Copy(lengthBuffer, 0, buffer, 0, 4);
+            Array.Copy(bufferOrig, 0, buffer, 4, 10);
+            Array.Copy(lengthBuffer, 0, buffer, 14, 4);
+            Array.Copy(bufferOrig, 0, buffer, 18, 10);
+
+            Array.Copy(lengthBuffer, 0, buffer, 28, 4); 
+            Array.Copy(bufferOrig, 0, buffer, 32, 1); 
+            Array.Copy(bufferOrig, 1, buffer2, 0, 9); 
+
+
+
+            _frameAccumulator.MessageReceived += CheckMessageReceived;
+            _frameAccumulator.AddFrame(new Frame(buffer, 0, 33));
+            _frameAccumulator.AddFrame(new Frame(buffer2, 0, 9));
+            Assert.AreEqual(3, _messagesReceived);
+
+        }
+
+        private void CheckMessageReceived(Stream stream)
+        {
+
+            byte[] messageBuffer = new byte[stream.Length];
+            stream.Read(messageBuffer, 0, (int)stream.Length);
+            _messagesReceived++;
+            var stringMessage = Encoding.ASCII.GetString(messageBuffer);
+            Assert.AreEqual(_originalString, stringMessage);
+        }
+
+        [Test]
+        public void should_handle_getting_two_buffers()
+        {
+            var buffer = Encoding.ASCII.GetBytes(_originalString);
+
+            var b1 = new byte[10];
+            var b2 = new byte[5];
+
+            Array.Copy(buffer,0,b1,5,5);
+            Array.Copy(buffer,5,b2,0,5);
+
+            var lengthBuffer = BitConverter.GetBytes(buffer.Length);
+            _frameAccumulator.MessageReceived += CheckMessageReceived;
+
+            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 0, 2));
+            _frameAccumulator.AddFrame(new Frame(lengthBuffer, 2, 2));
+            _frameAccumulator.AddFrame(new Frame(b1, 5, 5));
+            _frameAccumulator.AddFrame(new Frame(b2, 0, b2.Length));
+
+            Assert.AreEqual(1,_messagesReceived);
+
         }
 
         private void CheckPartialMessage(byte[] buffer)

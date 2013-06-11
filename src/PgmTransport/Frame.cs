@@ -21,7 +21,8 @@ namespace PgmTransport
 
         public void Dispose()
         {
-            if(BufferPool != null)
+            if(Offset+Count == Buffer.Length)//todo: awful trick because only disposed as "chunck" frames and not by socket.receive method who also has offset+count=length because it might give whole buffer
+            if(BufferPool != null) //cannot release, who is still using it?
             BufferPool.PutBackItem(Buffer);
         }
     }

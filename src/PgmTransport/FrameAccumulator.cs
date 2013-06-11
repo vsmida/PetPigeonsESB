@@ -28,11 +28,13 @@ namespace PgmTransport
             if (!_messageLength.HasValue)
             {
                 var lengthPrefixSizeToRead = Math.Min(4 - _lengthPrefix.Count, frame.Count);
-                for (int i = 0; i < lengthPrefixSizeToRead; i++)
-                {
-                    _lengthPrefix.Buffer[_lengthPrefix.Offset+_lengthPrefix.Count] = frame.Buffer[frame.Offset + i];
-                    _lengthPrefix.Count++;
-                }
+                Array.Copy(frame.Buffer,frame.Offset,_lengthPrefix.Buffer,_lengthPrefix.Offset + _lengthPrefix.Count, lengthPrefixSizeToRead);
+                _lengthPrefix.Count += lengthPrefixSizeToRead;
+                //for (int i = 0; i < lengthPrefixSizeToRead; i++)
+                //{
+                //    _lengthPrefix.Buffer[_lengthPrefix.Offset+_lengthPrefix.Count] = frame.Buffer[frame.Offset + i];
+                //    _lengthPrefix.Count++;
+                //}
                 if (_lengthPrefix.Count == 4)
                 {
                     _messageLength = BitConverter.ToInt32(_lengthPrefix.Buffer, _lengthPrefix.Offset);
@@ -100,9 +102,7 @@ namespace PgmTransport
 
                 if (_currentPartialMessage.Ready)
                 {
-                    MessageReceived(_currentPartialMessage.GetMessage());
-                  //  _fullMessages.Enqueue(_currentPartialMessage.GetMessage());
-                  //  canReturnMessages = true;
+                    MessageReceived(_currentPartialMessage.GetMessage()); 
                     _currentPartialMessage.Clear();
                 }
                 frame.Offset += readFromFrame;

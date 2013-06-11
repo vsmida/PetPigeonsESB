@@ -13,8 +13,10 @@ namespace PgmTransport
         private int _currentPositionFromFrameStart = 0;
         private int _length;
         private readonly Pool<FrameStream> _frameStreamPool;
+        private Frame _currentFrame;
 
-        public FrameStream(List<Frame> frames, Pool<FrameStream> pool = null) : this(pool)
+        public FrameStream(List<Frame> frames, Pool<FrameStream> pool = null)
+            : this(pool)
         {
             SetFrames(frames);
         }
@@ -29,8 +31,10 @@ namespace PgmTransport
             _frames = frames;
             for (int i = 0; i < _frames.Count; i++)
             {
-                _length += _frames[i].Count - _frames[i].Offset;
+                _length += _frames[i].Count;
             }
+            if (_frames.Count > 0)
+                _currentFrame = _frames[0];
         }
 
         protected override void Dispose(bool disposing)
@@ -43,7 +47,7 @@ namespace PgmTransport
             _currentFrameIndex = 0;
             _currentPositionFromFrameStart = 0;
             _length = 0;
-            if(_frameStreamPool != null)
+            if (_frameStreamPool != null)
                 _frameStreamPool.PutBackItem(this);
 
         }
@@ -63,40 +67,81 @@ namespace PgmTransport
             throw new NotImplementedException();
         }
 
+        //public override int ReadByte()
+        //{
+        //    var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
+        //    byte res;
+        //    if(leftBytesFromFrame > 0)
+        //    {
+        //        res = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
+        //        _currentPositionFromFrameStart++;
+        //        if(leftBytesFromFrame -1 == 0 && _currentFrameIndex < _frames.Count - 1) //advance if necessary
+        //        {
+        //              _currentFrameIndex++;
+        //                _currentFrame = _frames[_currentFrameIndex];
+        //        }
+             
+            
+        //    }
+        //    else
+        //    {
+        //        if (_currentFrameIndex == _frames.Count - 1)
+        //        {
+        //            throw new ArgumentException("no longer any byte to read");
+        //        }
+        //        _currentFrameIndex++;
+        //        _currentFrame = _frames[_currentFrameIndex];
+        //        return ReadByte();
+
+        //    }
+        //    Position++;
+        //    return res;
+        //}
+
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var currentFrame = _frames[_currentFrameIndex];
-            var leftBytesFromFrame = currentFrame.Count - _currentPositionFromFrameStart;
+            _currentFrame = _frames[_currentFrameIndex];
+            var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
             var leftBytesToCopyToBuffer = count;
             var currentoffset = offset;
             var copiedBytes = 0;
 
             while (leftBytesFromFrame - leftBytesToCopyToBuffer <= 0) // should copy all
             {
-                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesFromFrame);
+                Array.Copy(_currentFrame.Buffer, _currentPositionFromFrameStart + _currentFrame.Offset, buffer, currentoffset, leftBytesFromFrame);
                 copiedBytes += leftBytesFromFrame;
+                if (_currentFrameIndex == _frames.Count - 1)
+                    break;
                 _currentFrameIndex++;
-                currentFrame = _frames[_currentFrameIndex];
+                _currentFrame = _frames[_currentFrameIndex];
                 leftBytesToCopyToBuffer -= leftBytesFromFrame;
-                currentoffset += leftBytesFromFrame;
-                _currentPositionFromFrameStart = 0 ;
-                leftBytesFromFrame = currentFrame.Count - _currentPositionFromFrameStart - currentFrame.Offset;
-                
+                currentoffset += copiedBytes;
+                _currentPositionFromFrameStart = 0;
+                leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
+
             }
 
             //last
-            if(leftBytesToCopyToBuffer > 0)
+            if (leftBytesToCopyToBuffer > 0)
             {
-                Array.Copy(currentFrame.Buffer, _currentPositionFromFrameStart+currentFrame.Offset, buffer, currentoffset, leftBytesToCopyToBuffer);
+                Array.Copy(_currentFrame.Buffer, _currentPositionFromFrameStart + _currentFrame.Offset, buffer, currentoffset, leftBytesToCopyToBuffer);
                 copiedBytes += leftBytesToCopyToBuffer;
                 currentoffset += leftBytesToCopyToBuffer;
-            //    leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
+                //    leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
                 _currentPositionFromFrameStart += leftBytesToCopyToBuffer;
-                if (_currentPositionFromFrameStart - offset == currentFrame.Count) //  if frame exhausted, point to the next;
-                    _currentFrameIndex++;
+                if (_currentPositionFromFrameStart - offset == _currentFrame.Count) //  if frame exhausted, point to the next;
+                {
+                    if (_currentFrameIndex < _frames.Count - 1)
+                    {
+                        _currentFrameIndex++;
+                        _currentFrame = _frames[_currentFrameIndex];
+                    }
+                }
             }
 
+            Position += copiedBytes;
             return copiedBytes;
+
         }
 
         public override void Write(byte[] buffer, int offset, int count)

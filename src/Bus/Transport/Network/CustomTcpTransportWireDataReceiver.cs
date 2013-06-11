@@ -74,6 +74,7 @@ namespace Bus.Transport.Network
             entry.QueuedInboundEntries = null;
             // entry.InfrastructureEntry = null;
             _ringBuffer.Publish(sequence);
+            stream.Dispose();
         }
 
         public WireTransportType TransportType { get; private set; }

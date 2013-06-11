@@ -22,8 +22,8 @@ namespace PgmTransport
             _highWaterMarkBehavior = highWaterMarkBehavior;
             EndPoint = endPoint;
             _highWaterMark = highWaterMark;
-            transport.AttachToIoThread(this, sendingThreadNumber);
             MessageContainerConcurrentQueue = messageContainer;
+            transport.AttachToIoThread(this, sendingThreadNumber);
         }
 
         public bool Send(ArraySegment<byte> data, bool dontWait = false)
@@ -80,7 +80,7 @@ namespace PgmTransport
 
         public override int MaximumBatchSize
         {
-            get { return 1024* 512; }
+            get { return 1024* 1024 / 3; }
         }
 
         public override Socket CreateSocket()
@@ -88,7 +88,7 @@ namespace PgmTransport
             try
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SendBufferSize = 1024 * 1024;
+                socket.SendBufferSize = 1024 * 1024 / 3;
                 socket.Connect(EndPoint);
                 return socket;
             }

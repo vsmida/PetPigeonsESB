@@ -158,6 +158,7 @@ namespace PgmTransportTests
                 _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 56).Select(x => x.ToString())));
               //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                 sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
+                _messSentNumber++;
                 Console.WriteLine("after first sends");
 
                 waitForMessage1.WaitOne();
@@ -166,7 +167,7 @@ namespace PgmTransportTests
                 waitForMessage1.Reset();
                 //     waitForMessage2.Reset();
                 //   waitForMessage3.Reset();
-                Thread.Sleep(10000);
+                Thread.Sleep(1000);
 
                 for (int j = 0; j < 10; j++)
                 {
@@ -184,6 +185,7 @@ namespace PgmTransportTests
 
                     }
                     sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
+                    _messSentNumber++;
                   //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
 
                     waitForMessage1.WaitOne();
@@ -192,7 +194,7 @@ namespace PgmTransportTests
                     waitForMessage1.Reset();
                     //       waitForMessage2.Reset();
                     //      waitForMessage3.Reset();
-
+                    Assert.AreEqual(_messSentNumber, _messNumber);
                     watch.Stop();
                     var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
                     Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
@@ -210,8 +212,11 @@ namespace PgmTransportTests
        private void OnIpEndpointMessageReceived(Stream stream, EventWaitHandle waitHandle, IPEndPoint endpoint)
         {
             _messNumber++;
+           while(! (stream.Position >= stream.Length)) //read stream
+            stream.ReadByte();
             if (stream.Length == 4)
             {
+
                 Console.WriteLine("stop on endpoing" + endpoint);
                 waitHandle.Set();
 

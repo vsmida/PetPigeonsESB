@@ -34,7 +34,7 @@ namespace PgmTransport
 
         public SocketReceiver()
         {
-            _bufferPool = new Pool<byte[]>(() => new byte[16384], 2000);
+            _bufferPool = new Pool<byte[]>(() => new byte[1024 * 1024 / 3], 100);
         }
 
         public void ListenToEndpoint(IPEndPoint endpoint)
@@ -133,6 +133,7 @@ namespace PgmTransport
             }
             receiveSocket.ReceiveBufferSize = 1024 * 1024;
             _logger.InfoFormat("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
+            Console.WriteLine("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
 
             lock (_endpointToReceiveSockets)
             {
@@ -201,7 +202,10 @@ namespace PgmTransport
 
         private void DoReceive(Socket socket, SocketAsyncEventArgs e)
         {
-            _receivingSockets[socket].AddFrame(new Frame(e.Buffer, 0, e.BytesTransferred));
+            _receivingSockets[socket].AddFrame(new Frame(e.Buffer, e.Offset, e.BytesTransferred, _bufferPool));
+
+            byte[] buffer = _bufferPool.GetItem();
+            e.SetBuffer(buffer, 0, buffer.Length);
         }
 
         private bool CheckError(Socket socket, SocketAsyncEventArgs e)
@@ -215,7 +219,12 @@ namespace PgmTransport
             if (e.SocketError != SocketError.Success || e.BytesTransferred == 0)
             {
                 _logger.ErrorFormat("Error : {0}", e.SocketError);
+                                 lock (_endpointToReceiveSockets)
+                 {
                 socket.Dispose();
+
+                     _endpointToReceiveSockets[e.UserToken as IPEndPoint].Remove(socket);
+                 }
                 return true;
             }
 

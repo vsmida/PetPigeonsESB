@@ -8,11 +8,22 @@ namespace Shared
     {
         public static int ReadIntFromStream(Stream stream)
         {
-            var firstByte = stream.ReadByte();
-            var first = firstByte << 24;
-            var second = stream.ReadByte() << 16;
-            var third = stream.ReadByte() << 8;
-            var fourth = stream.ReadByte();
+            //var buffer = new byte[4];
+            //stream.Read(buffer, 0, 4);
+
+            //var b1 = buffer[0];
+            //var b2 = buffer[1];
+            //var b3 = buffer[2];
+            //var b4 = buffer[3];
+
+            var b1 = stream.ReadByte();
+            var b2 = stream.ReadByte();
+            var b3 = stream.ReadByte();
+            var b4 = stream.ReadByte();
+            var first = b1 << 24;
+            var second = b2 << 16;
+            var third = b3 << 8;
+            var fourth = b4;
 
             return first + second + third + fourth;
         }

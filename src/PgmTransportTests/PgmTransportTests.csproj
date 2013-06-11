@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="BufferManagerTests.cs" />
     <Compile Include="FrameAccumulatorTest.cs" />
+    <Compile Include="FrameStreamTests.cs" />
     <Compile Include="PlayTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Bus.Dispatch;
@@ -20,7 +21,7 @@ namespace Bus.Serializer
         public byte[] Serialize(MessageWireData data)
         {
             var guidLength = 16;
-            var length = 4 + data.Data.Length + guidLength + 4 + 4 + 4 + 4;
+            var length = data.Data.Length + guidLength + 4 + 4 + 4 + 4;
             var finalArray = new byte[length];
 
             var idByteArray = data.MessageIdentity.ToByteArray();
@@ -51,9 +52,6 @@ namespace Bus.Serializer
             var messageTypeId = ByteUtils.ReadIntFromStream(data);
             var sendingPeer = ByteUtils.ReadIntFromStream(data);
             var dataLength = ByteUtils.ReadIntFromStream(data);
-            if (dataLength == -1)
-             dataLength = ByteUtils.ReadIntFromStream(data);
-
             var binaryData = new byte[dataLength];
             data.Read(binaryData, 0, dataLength);
             int? sequenceNumber = null;

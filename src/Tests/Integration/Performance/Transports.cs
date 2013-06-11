@@ -64,11 +64,11 @@ namespace Tests.Integration.Performance
             var transportSend = new CustomTcpWireSendingTransport(new SerializationHelper(new AssemblyScanner()));
             transportSend.Initialize();
 
-            Stopwatch watch = new Stopwatch();
-            for (int t = 0; t < 100; t++)
+            for (int t = 0; t < 50; t++)
             {
-                watch.Start();
-                var messagesCountTotal = 10000;
+                Stopwatch watch = new Stopwatch();
+                Console.WriteLine("starting loop");
+                var messagesCountTotal = 100000;
                 // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
@@ -79,9 +79,11 @@ namespace Tests.Integration.Performance
 
                     var wireSendingMessage =
                         new WireSendingMessage(
-                            new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(44), data),
+                            new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.Empty, new PeerId(11), data),
                             endpoint);
+
                     watch.Start();
+
                     transportSend.SendMessage(wireSendingMessage, endpoint);
                 }
                 SpinWait wait = new SpinWait();
@@ -89,6 +91,7 @@ namespace Tests.Integration.Performance
                 {
                     wait.SpinOnce();
                 }
+                EventProcessorInterlockedIncrement.MessageCount = 0;
                 watch.Stop();
                 var fps = messagesCountTotal / (watch.ElapsedTicks / (double)Stopwatch.Frequency);
                 Console.WriteLine(" FPS : " + fps.ToString("N2"));
@@ -115,11 +118,10 @@ namespace Tests.Integration.Performance
             disruptor.Start();
             transportReceive.Initialize(disruptor.RingBuffer);
            // transportSend.SendMessage(wireSendingMessage, endpoint);
-            for (int t = 0;t < 100; t++)
+            for (int t = 0;t < 20; t++)
             {
                 
                 Stopwatch watch = new Stopwatch();
-                watch.Start();
                 var messagesCountTotal = 100000;
                // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
@@ -141,6 +143,7 @@ namespace Tests.Integration.Performance
                 {
                     wait.SpinOnce();
                 }
+                EventProcessorInterlockedIncrement.MessageCount = 0;
                 watch.Stop();
                 var fps = messagesCountTotal/(watch.ElapsedTicks/ (double)Stopwatch.Frequency);
                 Console.WriteLine(" FPS : " + fps.ToString("N2"));
