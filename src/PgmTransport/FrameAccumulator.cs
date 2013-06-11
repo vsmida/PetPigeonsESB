@@ -89,8 +89,6 @@ namespace PgmTransport
         private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
         private PartialMessage _currentPartialMessage = new PartialMessage();
         public event Action<Stream> MessageReceived = delegate{};
-        private int _frameOffset;
-        private int _frameCount;
 
         public void AddFrame(Frame frame)
         {

@@ -76,5 +76,42 @@ namespace PgmTransportTests
 
 
         }
+
+
+        [Test]
+        public void should_handle_2_buffers_with_offsets_data_overlapping_read_byte()
+        {
+            var data1 = Guid.NewGuid().ToByteArray();
+            var data2 = Guid.NewGuid().ToByteArray();
+
+            var buffer1 = new byte[200];
+            var buffer2 = new byte[200];
+            var offset1 = buffer1.Length - data1.Length + 4;
+            var offset2 = 0;
+            Array.Copy(data1, 0, buffer1, offset1, data1.Length - 4);
+            Array.Copy(data1, 12, buffer2, offset2, 4);
+            Array.Copy(data2, 0, buffer2, offset2 + 4, data2.Length);
+
+            var frame1 = new Frame(buffer1, offset1, 12);
+            var frame2 = new Frame(buffer2, offset2, 20);
+
+            _stream.SetFrames(new List<Frame> { frame1, frame2 });
+
+            Assert.AreEqual(32, _stream.Length);
+
+            for (int i = 0; i < 16; i++)
+            {
+                Assert.AreEqual(data1[i],(byte)_stream.ReadByte());
+            }
+
+            for (int i = 0; i < 16; i++)
+            {
+                Assert.AreEqual(data2[i], (byte)_stream.ReadByte());
+
+            }
+
+
+
+        }
     }
 }
