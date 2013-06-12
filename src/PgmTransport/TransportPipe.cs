@@ -80,7 +80,7 @@ namespace PgmTransport
 
         public override int MaximumBatchSize
         {
-            get { return 1024* 1024 / 3; }
+            get { return 1024* 1024 ; }
         }
 
         public override Socket CreateSocket()
@@ -88,7 +88,7 @@ namespace PgmTransport
             try
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SendBufferSize = 1024 * 1024 / 3;
+                socket.SendBufferSize = 1024 * 1024 ;
                 socket.Connect(EndPoint);
                 return socket;
             }

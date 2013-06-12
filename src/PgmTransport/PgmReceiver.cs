@@ -29,12 +29,12 @@ namespace PgmTransport
         public readonly ConcurrentDictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new ConcurrentDictionary<IPEndPoint, Action<Stream>>();
         private bool _disposing = false;
         private object _disposeLock = new object();
-
+        private int _bufferLength = 1024 * 1024 / 3;
 
 
         public SocketReceiver()
         {
-            _bufferPool = new Pool<byte[]>(() => new byte[1024 * 1024 / 3], 100);
+            _bufferPool = new Pool<byte[]>(() => new byte[_bufferLength], 100);
         }
 
         public void ListenToEndpoint(IPEndPoint endpoint)
@@ -202,6 +202,9 @@ namespace PgmTransport
 
         private void DoReceive(Socket socket, SocketAsyncEventArgs e)
         {
+            //var buff = new byte[e.Count];
+            //Buffer.BlockCopy(e.Buffer,e.Offset,buff,0,e.BytesTransferred);
+            //_receivingSockets[socket].AddFrame(new Frame(buff, 0, e.BytesTransferred, _bufferPool));
             _receivingSockets[socket].AddFrame(new Frame(e.Buffer, e.Offset, e.BytesTransferred, _bufferPool));
 
             byte[] buffer = _bufferPool.GetItem();

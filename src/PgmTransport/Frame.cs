@@ -17,7 +17,7 @@ namespace PgmTransport
 
         public readonly int Count;
         public readonly int Offset;
-        public byte[] Buffer;
+        public readonly byte[] Buffer;
 
         public void Dispose()
         {

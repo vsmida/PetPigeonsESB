@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Shared
 {
@@ -10,6 +11,17 @@ namespace Shared
             if (!dictionary.TryGetValue(key, out item))
             {
                 item = new U();
+                dictionary[key] = item;
+            }
+            return item;
+        }
+
+        public static U GetOrCreateNew<T, U>(this Dictionary<T, U> dictionary, T key, Func<U> factory)
+        {
+            U item;
+            if (!dictionary.TryGetValue(key, out item))
+            {
+                item = factory();
                 dictionary[key] = item;
             }
             return item;

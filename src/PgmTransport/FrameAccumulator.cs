@@ -12,7 +12,7 @@ namespace PgmTransport
         private static readonly Pool<FrameStream> _streamPool = new Pool<FrameStream>(() => new FrameStream(_streamPool), 10000);
         private int _readMesssageLength;
         private readonly List<Frame> _frames = new List<Frame>(10);
-        private Frame _lengthPrefix = new Frame(new byte[4], 0, 4);
+        private byte[] _lengthPrefix = new byte[4];
         private int _lengthPrefixReadCount = 0;
 
         public bool Ready { get; private set; }
@@ -20,24 +20,25 @@ namespace PgmTransport
 
         public int AddFrame(Frame frame)
         {
-
+#if DEBUG
             if (Ready)
                 throw new ArgumentException("cannot add frame to this message, already ready");
+#endif
 
             int readFrameBytesForLength = 0;
-            if (!_messageLength.HasValue)
+            if (_messageLength == null)
             {
                 var lengthPrefixSizeToRead = Math.Min(4 - _lengthPrefixReadCount, frame.Count);
-                Array.Copy(frame.Buffer, frame.Offset, _lengthPrefix.Buffer, _lengthPrefix.Offset + _lengthPrefixReadCount, lengthPrefixSizeToRead);
-                _lengthPrefixReadCount += lengthPrefixSizeToRead;
-                //for (int i = 0; i < lengthPrefixSizeToRead; i++)
-                //{
-                //    _lengthPrefix.Buffer[_lengthPrefix.Offset+_lengthPrefix.Count] = frame.Buffer[frame.Offset + i];
-                //    _lengthPrefix.Count++;
-                //}
+                //Array.Copy(frame.Buffer, frame.Offset, _lengthPrefix,_lengthPrefixReadCount, lengthPrefixSizeToRead);
+                //_lengthPrefixReadCount += lengthPrefixSizeToRead;
+                for (int i = 0; i < lengthPrefixSizeToRead; i++)
+                {
+                    _lengthPrefix[_lengthPrefixReadCount] = frame.Buffer[frame.Offset + i];
+                    _lengthPrefixReadCount++;
+                }
                 if (_lengthPrefixReadCount == 4)
                 {
-                    _messageLength = BitConverter.ToInt32(_lengthPrefix.Buffer, _lengthPrefix.Offset);
+                    _messageLength = BitConverter.ToInt32(_lengthPrefix, 0);
                     if (_messageLength == 0) //null delimiter?
                         Ready = true;
                 }
@@ -51,7 +52,8 @@ namespace PgmTransport
             var lengthToRead = Math.Min(frame.Count - readFrameBytesForLength, _messageLength.Value - _readMesssageLength);
             if (lengthToRead > 0)
             {
-                _frames.Add(new Frame(frame.Buffer, frame.Offset + readFrameBytesForLength, lengthToRead, frame.BufferPool));
+                var item = new Frame(frame.Buffer, frame.Offset + readFrameBytesForLength, lengthToRead, frame.BufferPool);
+                _frames.Add(item);
                 _readMesssageLength += lengthToRead;
                 if (_readMesssageLength == _messageLength)
                     Ready = true;
@@ -89,15 +91,13 @@ namespace PgmTransport
         private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
         private PartialMessage _currentPartialMessage = new PartialMessage();
         public event Action<Stream> MessageReceived = delegate{};
-
         public void AddFrame(Frame frame)
         {
             var count = frame.Count;
             var offset = frame.Offset;
             while (offset < frame.Count +frame.Offset)
             {
-                var readFromFrame = _currentPartialMessage.AddFrame(new Frame(frame.Buffer, offset, count));
-
+                var readFromFrame = _currentPartialMessage.AddFrame(new Frame(frame.Buffer, offset, count, frame.BufferPool));
                 if (_currentPartialMessage.Ready)
                 {
                     MessageReceived(_currentPartialMessage.GetMessage()); 
@@ -107,6 +107,8 @@ namespace PgmTransport
                 count -= readFromFrame;
 
             }
+
+
         }
 
     }

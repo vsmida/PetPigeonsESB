@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using PgmTransport;
 using Shared;
+using ZeroMQ;
+using ZeroMQ.Interop;
 
 namespace PgmTransportTests
 {
@@ -20,6 +22,7 @@ namespace PgmTransportTests
         private int _messSentNumber;
         private byte[] _sentBuffer;
         private int _currentNumber;
+        private bool _running;
 
         [SetUp]
         public void setup()
@@ -131,6 +134,132 @@ namespace PgmTransportTests
 
         }
 
+        [Test]
+        public void tcp_zmq()
+        {
+            var context1 = ZmqContext.Create();
+            var context2 = ZmqContext.Create();
+            Poller poll = new Poller();
+            var waitForMessage1 = new ManualResetEvent(false);
+            //var sender = new PgmSender();
+            //var receiver = new PgmReceiver();
+            var ipEndPoint = "tcp://*:2000";
+            var sendEndpoint = "tcp://localhost:2000";
+            var sender = context1.CreateSocket(SocketType.PUSH);
+            var receiver = context2.CreateSocket(SocketType.PULL);
+            receiver.Bind(ipEndPoint);
+            sender.Connect(sendEndpoint);
+            receiver.ReceiveReady += (o,s) => OnZmqReceive(o,s, waitForMessage1);
+            poll.AddSocket(receiver);
+
+            //    var ipEndPoint = new IPEndPoint(IPAddress.Parse("224.0.0.1"), 2000);
+            //sender.SendAsync(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+            Thread.Sleep(1000);
+         //   receiver.RegisterCallback(ipEndPoint, s => OnIpEndpointMessageReceived(s, waitForMessage1, ipEndPoint));
+            _running = true;
+            var rThread = new BackgroundThread(() =>
+                                                            {
+                                                                while (_running)
+                                                                {
+                                                                    var received = receiver.Receive();
+                                                                    _messNumber++;
+
+                                                                    if (received.Length == 4)
+                                                                    {
+                                                                        Console.WriteLine("stop on zmq endpoing");
+                                                                        waitForMessage1.Set();
+                                                                    }
+
+
+                                                                    //  stream.Dispose();
+                                                                }
+                                                                // poll.Poll(TimeSpan.FromMilliseconds(500));
+                                                            });
+            rThread.Start();
+
+            Thread senderThread = new Thread(() =>
+            {
+                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 56).Select(x => x.ToString())));
+                //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+                sender.Send(Encoding.ASCII.GetBytes("stop"));
+                
+                _messSentNumber++;
+                Console.WriteLine("after first sends");
+
+                waitForMessage1.WaitOne();
+                //   waitForMessage2.WaitOne();
+                //     waitForMessage3.WaitOne();
+                waitForMessage1.Reset();
+                //     waitForMessage2.Reset();
+                //   waitForMessage3.Reset();
+                Thread.Sleep(1000);
+
+                for (int j = 0; j < 10; j++)
+                {
+                    Console.WriteLine("Entering loop");
+                    var watch = new Stopwatch();
+                    watch.Start();
+                    var batchSize = 500000;
+                    for (int i = 0; i < batchSize; i++)
+                    {
+                        _messSentNumber++;
+                        // //               if (_messSentNumber % 1000 == 0)
+                        //                   Console.WriteLine("sending mess num" + _messSentNumber);
+                        // sender.Send(ipEndPoint, _sentBuffer);
+                        sender.Send(_sentBuffer);
+
+                    }
+                    sender.Send(Encoding.ASCII.GetBytes("stop"));
+                    _messSentNumber++;
+                    //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
+
+                    waitForMessage1.WaitOne();
+                    //   waitForMessage2.WaitOne();
+                    //    waitForMessage3.WaitOne();
+                    waitForMessage1.Reset();
+                    //       waitForMessage2.Reset();
+                    //      waitForMessage3.Reset();
+                    Assert.AreEqual(_messSentNumber, _messNumber);
+                    watch.Stop();
+                    var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
+                    Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
+                }
+            });
+            senderThread.Start();
+            senderThread.Join();
+            _running = false;
+            receiver.Dispose();
+            rThread.Join();
+            sender.Dispose();
+            context1.Dispose();
+            context2.Dispose();
+            Thread.Sleep(1000);
+        }
+
+
+
+        private void OnZmqReceive(object sender, SocketEventArgs e, ManualResetEvent waitForMessage1)
+        {
+            var socket = e.Socket;
+            var received = socket.Receive();
+            //var stream = new MemoryStream(received);
+            _messNumber++;
+            //var position = 0;
+            //while (!(position >= stream.Length))
+            //{
+            //    // stream.ReadByte();
+            //    position++;
+            //}//read stream
+            if (received.Length == 4)
+            {
+
+                Console.WriteLine("stop on zmq endpoing" );
+                waitForMessage1.Set();
+
+            }
+          //  stream.Dispose();
+        }
+
 
         [Test]
         public void tcp()
@@ -194,8 +323,9 @@ namespace PgmTransportTests
                     waitForMessage1.Reset();
                     //       waitForMessage2.Reset();
                     //      waitForMessage3.Reset();
-                    Assert.AreEqual(_messSentNumber, _messNumber);
                     watch.Stop();
+
+                    Assert.AreEqual(_messSentNumber, _messNumber);
                     var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
                     Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
                 }
@@ -212,9 +342,14 @@ namespace PgmTransportTests
        private void OnIpEndpointMessageReceived(Stream stream, EventWaitHandle waitHandle, IPEndPoint endpoint)
         {
             _messNumber++;
-           while(! (stream.Position >= stream.Length)) //read stream
-            stream.ReadByte();
-            if (stream.Length == 4)
+           var position = 0;
+           var length = stream.Length;
+           //while (!(position >= length))
+           //{
+           //    // stream.ReadByte();
+           //    position++;
+           //}//read stream
+            if (length == 4)
             {
 
                 Console.WriteLine("stop on endpoing" + endpoint);

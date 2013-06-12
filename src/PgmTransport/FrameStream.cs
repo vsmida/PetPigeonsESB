@@ -14,7 +14,9 @@ namespace PgmTransport
         private int _length;
         private readonly Pool<FrameStream> _frameStreamPool;
         private Frame _currentFrame;
-        private int _leftBytesFromFrame;
+        private int _leftBytesFromFrame = 0;
+      //  private byte[] _magicArray;
+        //private MemoryStream _magicStream;
 
         public FrameStream(List<Frame> frames, Pool<FrameStream> pool = null)
             : this(pool)
@@ -29,17 +31,30 @@ namespace PgmTransport
 
         public void SetFrames(List<Frame> frames)
         {
+
             _frames = frames;
+
             for (int i = 0; i < _frames.Count; i++)
             {
                 _length += _frames[i].Count;
             }
+
             if (_frames.Count > 0)
             {
                 _currentFrame = _frames[0];
+                int i = 3 + 3;
                 _leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
             }
-            
+
+            //_magicArray = new byte[_length];
+            //int offset = 0;
+            //for (int i = 0; i < _frames.Count; i++)
+            //{
+            //    Array.Copy(_frames[i].Buffer,_frames[i].Offset, _magicArray, offset, _frames[i].Count);
+            //    offset += _frames[i].Count;
+            //}
+            //_magicStream = new MemoryStream(_magicArray);
+
         }
 
         protected override void Dispose(bool disposing)
@@ -76,10 +91,10 @@ namespace PgmTransport
 
         public override int ReadByte()
         {
-            byte res;
+          //  return _magicStream.ReadByte();
             if (_leftBytesFromFrame > 0)
             {
-                res = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
+                var res = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
                 _currentPositionFromFrameStart++;
                 _leftBytesFromFrame--;
                 if (_leftBytesFromFrame == 0 && _currentFrameIndex < _frames.Count - 1) //advance if necessary
@@ -90,14 +105,14 @@ namespace PgmTransport
                     _leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
                 }
 
-
+                return res;
             }
             else
             {
-                if (_currentFrameIndex == _frames.Count - 1)
-                {
-                    throw new ArgumentException("no longer any byte to read");
-                }
+                //if (_currentFrameIndex == _frames.Count - 1)
+                //{
+                //    throw new ArgumentException("no longer any byte to read");
+                //}
                 _currentFrameIndex++;
                 _currentFrame = _frames[_currentFrameIndex];
                 _currentPositionFromFrameStart = 0;
@@ -105,12 +120,12 @@ namespace PgmTransport
                 return ReadByte();
 
             }
-        //    Position++;
-            return res;
+            // Position++;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+        //    return _magicStream.Read(buffer, offset, count);
          //   var leftBytesFromFrame = _currentFrame.Count - _currentPositionFromFrameStart;
             var leftBytesToCopyToBuffer = count;
             var currentoffset = offset;
@@ -118,7 +133,12 @@ namespace PgmTransport
 
             while (_leftBytesFromFrame - leftBytesToCopyToBuffer <= 0) // should copy all
             {
-                Array.Copy(_currentFrame.Buffer, _currentPositionFromFrameStart + _currentFrame.Offset, buffer, currentoffset, _leftBytesFromFrame);
+                //Buffer.BlockCopy();
+                //for (int i = 0; i < _leftBytesFromFrame; i++)
+                //{
+                //    buffer[currentoffset] = _currentFrame.Buffer[_currentPositionFromFrameStart + _currentFrame.Offset];
+                //}
+                Buffer.BlockCopy(_currentFrame.Buffer, _currentPositionFromFrameStart + _currentFrame.Offset, buffer, currentoffset, _leftBytesFromFrame);
                 copiedBytes += _leftBytesFromFrame;
                 if (_currentFrameIndex == _frames.Count - 1)
                     break;
@@ -140,7 +160,7 @@ namespace PgmTransport
                 currentoffset += leftBytesToCopyToBuffer;
                 //    leftBytesToCopyToBuffer -= leftBytesToCopyToBuffer;
                 _currentPositionFromFrameStart += leftBytesToCopyToBuffer;
-                if (_currentPositionFromFrameStart - offset == _currentFrame.Count) //  if frame exhausted, point to the next;
+                if (_leftBytesFromFrame == 0) //  if frame exhausted, point to the next;
                 {
                     if (_currentFrameIndex < _frames.Count - 1)
                     {

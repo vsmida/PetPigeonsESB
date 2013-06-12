@@ -22,6 +22,7 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>true</UseVSHostingProcess>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -40,6 +41,10 @@
   <ItemGroup>
     <Reference Include="Atomic">
       <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Atomic.dll</HintPath>
+    </Reference>
+    <Reference Include="clrzmq, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\ClrZMQ\clrzmq.dll</HintPath>
     </Reference>
     <Reference Include="Disruptor">
       <HintPath>..\packages\Disruptor.1.1.0\lib\net40\Disruptor.dll</HintPath>
