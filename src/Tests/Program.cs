@@ -9,8 +9,8 @@ namespace Tests
         {
             var perfTests = new PerformanceTests();
             var transportTest = new Transports();
-            //  transportTest.custom_transport_test();
-            // transportTest.zmq_transport_test();
+            // transportTest.custom_transport_test();
+             transportTest.zmq_transport_test();
             //  perfTests.should_send_messages();
         }
     }

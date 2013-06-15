@@ -24,6 +24,7 @@ namespace Bus.Transport.Network
         private ILog _logger = LogManager.GetLogger(typeof(ZmqPullWireDataReceiver));
         private ZmqEndpoint _endpoint;
         private readonly MessageWireDataSerializer _serializer;
+        private readonly MutableMemoryStream _stream = new MutableMemoryStream();
 
         public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration, ISerializationHelper helper)
         {
@@ -61,9 +62,10 @@ namespace Bus.Transport.Network
                     return;
 
                 //var messagedata = BusSerializer.Deserialize<MessageWireData>(receive);
-                using (var stream = new MemoryStream(receive))
-                {
-                    var messagedata = _serializer.Deserialize(stream);
+                _stream.SetBuffer(receive,0,receive.Length);
+                //using (var stream = new MutableMemoryStream(receive))
+                //{
+                    var messagedata = _serializer.Deserialize(_stream);
 
 
                     var sequence = _ringBuffer.Next();
@@ -94,7 +96,7 @@ namespace Bus.Transport.Network
                     entry.QueuedInboundEntries = null;
                     // entry.InfrastructureEntry = null;
                     _ringBuffer.Publish(sequence);
-                }
+             //   }
             }
             catch (Exception e)
             {

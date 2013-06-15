@@ -26,7 +26,7 @@ namespace PgmTransport
         private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketReceiver));
         private readonly Pool<byte[]> _bufferPool;
-        public readonly ConcurrentDictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new ConcurrentDictionary<IPEndPoint, Action<Stream>>();
+        public readonly ConcurrentDictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new ConcurrentDictionary<IPEndPoint, Action<Stream>>();//todo : better
         private bool _disposing = false;
         private object _disposeLock = new object();
         private int _bufferLength = 1024 * 1024 / 3;
@@ -145,7 +145,7 @@ namespace PgmTransport
                 }
                 socketsForEndpoint.Add(receiveSocket);
             }
-            var frameAccumulator = new FrameAccumulator();
+            var frameAccumulator = new FrameAccumulator(_bufferLength);
             var localEndPoint = (IPEndPoint)socket.LocalEndPoint;
             frameAccumulator.MessageReceived += (s) =>
                                                     {
@@ -205,7 +205,7 @@ namespace PgmTransport
             //var buff = new byte[e.Count];
             //Buffer.BlockCopy(e.Buffer,e.Offset,buff,0,e.BytesTransferred);
             //_receivingSockets[socket].AddFrame(new Frame(buff, 0, e.BytesTransferred, _bufferPool));
-            _receivingSockets[socket].AddFrame(new Frame(e.Buffer, e.Offset, e.BytesTransferred, _bufferPool));
+            _receivingSockets[socket].AddFrame(e.Buffer, e.Offset, e.BytesTransferred);
 
             byte[] buffer = _bufferPool.GetItem();
             e.SetBuffer(buffer, 0, buffer.Length);

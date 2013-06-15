@@ -68,7 +68,7 @@ namespace Tests.Integration.Performance
             {
                 Stopwatch watch = new Stopwatch();
                 Console.WriteLine("starting loop");
-                var messagesCountTotal = 100000;
+                var messagesCountTotal = 1000000;
                 // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
@@ -132,7 +132,7 @@ namespace Tests.Integration.Performance
             {
                 
                 Stopwatch watch = new Stopwatch();
-                var messagesCountTotal = 100000;
+                var messagesCountTotal = 1000000;
                // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;

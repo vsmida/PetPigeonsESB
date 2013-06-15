@@ -70,7 +70,7 @@ namespace PgmTransport
 
             var stream = _streamPool.GetItem();
             stream.SetFrames(_frames ?? new List<Frame>());
-         //   stream.SetFrames(_frames == null? new List<Frame>():new List<Frame>(_frames));
+            //   stream.SetFrames(_frames == null? new List<Frame>():new List<Frame>(_frames));
             return stream;
         }
 
@@ -85,31 +85,136 @@ namespace PgmTransport
         }
     }
 
+    
 
     class FrameAccumulator
     {
         private readonly ILog _logger = LogManager.GetLogger(typeof(FrameAccumulator));
-        private PartialMessage _currentPartialMessage = new PartialMessage();
-        public event Action<Stream> MessageReceived = delegate{};
-        public void AddFrame(Frame frame)
+        public event Action<Stream> MessageReceived = delegate { };
+        private readonly Pool<byte[]> _bufferPool;
+        private readonly MutableMemoryStream _stream = new MutableMemoryStream();
+        private byte[] _spareBuffer;
+        private int _spareBufferCount;
+        private int _spareLengthBufferCount;
+        private byte[] _spareLengthBuffer = new byte[4];
+        private int _copiedMessageLength = -1;
+        private readonly int _buffersSize;
+
+        public FrameAccumulator(int buffersSize)
         {
-            var count = frame.Count;
-            var offset = frame.Offset;
-            while (offset < frame.Count +frame.Offset)
+            _buffersSize = buffersSize;
+            _bufferPool = new Pool<byte[]>(() => new byte[_buffersSize]);
+            _spareBuffer = _bufferPool.GetItem();
+        }
+
+
+        public void AddFrame(byte[] buffer, int originalOffset, int originalCount)
+        {
+            var offset = originalOffset;
+            var count = originalCount;
+
+            while (offset < originalCount + originalOffset)
             {
-                var readFromFrame = _currentPartialMessage.AddFrame(new Frame(frame.Buffer, offset, count, frame.BufferPool));
-                if (_currentPartialMessage.Ready)
+
+                if (_spareLengthBufferCount != 0) // get length if necesary
                 {
-                    MessageReceived(_currentPartialMessage.GetMessage()); 
-                    _currentPartialMessage.Clear();
+                    while (count > 0 && _spareLengthBufferCount != 4)
+                    {
+                        _spareLengthBuffer[_spareLengthBufferCount] = buffer[offset];
+                        count--;
+                        offset++;
+                        _spareLengthBufferCount++;
+                    }
+
+                    if (_spareLengthBufferCount != 4)//could not get full length again
+                        return;
+
+                    _copiedMessageLength = BitConverter.ToInt32(_spareLengthBuffer, 0);
+                    _spareLengthBufferCount = 0;
+
+                    GetFullMessageOrCopyToSpareBuffer(buffer, ref count, _copiedMessageLength, ref offset);
                 }
-                offset += readFromFrame;
-                count -= readFromFrame;
+                else if (_copiedMessageLength != -1) //we already have a size
+                {
+                    var lengthLeftToCopyForMessage = _copiedMessageLength - _spareBufferCount;
+                    if (count >= lengthLeftToCopyForMessage) 
+                    {
+                        Array.Copy(buffer, offset, _spareBuffer, _spareBufferCount, lengthLeftToCopyForMessage); //finish copying to spare buffer
+                        _stream.SetBuffer(_spareBuffer, 0, _copiedMessageLength);
+                        MessageReceived(_stream);
+                    //    MessageReceived(new MemoryStream(_spareBuffer, 0, _copiedMessageLength));
+                        offset += lengthLeftToCopyForMessage;
+                        count -= lengthLeftToCopyForMessage;
+                        _copiedMessageLength = -1;
+                        _spareBufferCount = 0;
+                    }
+                    else 
+                    {
+                        Array.Copy(buffer, offset, _spareBuffer, _spareBufferCount, count);
+                        _spareBufferCount += count;
+                        offset += count;
+                        count = 0;
+                    }
+                }
+
+                else
+                {
+                    if (count >= 4) //fast path can at least read lentgth
+                    {
+                        var messageLength = BitConverter.ToInt32(buffer, offset);
+                        count -= 4;
+                        offset += 4;
+                        GetFullMessageOrCopyToSpareBuffer(buffer, ref count, messageLength, ref offset);
+                    }
+
+                    else //cant read full length
+                    {
+                        //copy to buffer
+                        Array.Copy(buffer, offset , _spareLengthBuffer, _spareLengthBufferCount, count);
+                        _spareLengthBufferCount += count;
+                        offset = +count;
+                        count = 0;
+                    }
+                }
+
+
+
+                //var readFromFrame = _currentPartialMessage.AddFrame(new Frame(frame.Buffer, offset, count, frame.BufferPool));
+                //if (_currentPartialMessage.Ready)
+                //{
+                //    MessageReceived(_currentPartialMessage.GetMessage()); 
+                //    _currentPartialMessage.Clear();
+                //}
+                //offset += readFromFrame;
+                //count -= readFromFrame;
 
             }
 
 
         }
 
+        private void GetFullMessageOrCopyToSpareBuffer(byte[] buffer, ref int count, int messageLength, ref int offset)
+        {
+            if (count >= messageLength - _spareBufferCount) //fast path
+            {
+                _stream.SetBuffer(buffer, offset, messageLength);
+                MessageReceived(_stream);
+      //        MessageReceived(new MemoryStream(buffer, offset, messageLength));
+                _copiedMessageLength = -1;
+                offset += messageLength;
+                count -= messageLength;
+            }
+            else //end of fast path
+            {
+                _copiedMessageLength = messageLength;
+                if (messageLength > _spareBuffer.Length)
+                    _spareBuffer = new byte[messageLength];
+
+                Array.Copy(buffer, offset, _spareBuffer, _spareBufferCount, count);
+                _spareBufferCount += count;
+                offset += count;
+                count = 0;
+            }
+        }
     }
 }

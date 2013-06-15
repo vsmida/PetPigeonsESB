@@ -16,7 +16,7 @@ namespace PgmTransport
         private readonly Thread _thread;
         private readonly List<TransportPipe> _transportPipes = new List<TransportPipe>();
         private readonly Dictionary<TransportPipe, Socket> _endPointToSockets = new Dictionary<TransportPipe, Socket>();
-        private readonly Dictionary<IPEndPoint, PreAllocatedArray<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, PreAllocatedArray<ArraySegment<byte>>>();
+        private readonly Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private readonly Stopwatch _watch = new Stopwatch();
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
         private readonly ConcurrentBag<Action> _commands = new ConcurrentBag<Action>();
@@ -48,7 +48,7 @@ namespace PgmTransport
             }
         }
 
-        private int AddFrameDataToAggregatedSocketData(PreAllocatedArray<ArraySegment<byte>> stuffToSendForFrameEndpoint, ArraySegment<byte> frameToSend)
+        private int AddFrameDataToAggregatedSocketData(IList<ArraySegment<byte>> stuffToSendForFrameEndpoint, ArraySegment<byte> frameToSend)
         {
             var arraySegment = new ArraySegment<byte>(BitConverter.GetBytes(frameToSend.Count), 0, 4);
             stuffToSendForFrameEndpoint.Add(arraySegment);//header
@@ -68,7 +68,7 @@ namespace PgmTransport
                     {
                         foreach (var pipe in _transportPipes)
                         {
-                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint, () => new PreAllocatedArray<ArraySegment<byte>>(5002));
+                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint, () => new List<ArraySegment<byte>>(5002));
 
                             var messageCount = pipe.MessageContainerConcurrentQueue.Count;
                             if (messageCount == 0)
@@ -80,7 +80,7 @@ namespace PgmTransport
                                 pipe.MessageContainerConcurrentQueue.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
 
-                                if (sizeToSend >= pipe.MaximumBatchSize || stuffToSendForFrameEndpoint.OccuppiedLength > 5000)
+                                if (sizeToSend >= pipe.MaximumBatchSize || stuffToSendForFrameEndpoint.Count > 5000)
                                 {
                                     SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
                                     stuffToSendForFrameEndpoint.Clear();
@@ -151,7 +151,7 @@ namespace PgmTransport
         }
 
 
-        private void SendData(TransportPipe pipe, PreAllocatedArray<ArraySegment<byte>> data, int dataSize)
+        private void SendData(TransportPipe pipe, IList<ArraySegment<byte>> data, int dataSize)
         {
             int sentBytes = 0;
             Socket socket = null;
@@ -211,7 +211,7 @@ namespace PgmTransport
         }
 
 
-        private static void SaveUnsentData(TransportPipe pipe, PreAllocatedArray<ArraySegment<byte>> data)
+        private static void SaveUnsentData(TransportPipe pipe, IList<ArraySegment<byte>> data)
         {
             for (int i = 0; i < data.Count; i++)
             {

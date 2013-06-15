@@ -189,7 +189,7 @@ namespace Tests.Integration
             watch.Start();
 
             IBlockableUntilCompletion resetEvent = null;
-            var messagesInBatch = 20000;
+            var messagesInBatch = 40000;
             var fakeCommand = new TestData.FakeCommand();
             LatencyMessageHandler.Watch = watch;
             for (int i = 0; i < messagesInBatch; i++)

@@ -91,6 +91,7 @@
     <Compile Include="ExtendDictionary.cs" />
     <Compile Include="ExtendEnumerable.cs" />
     <Compile Include="ExtendSocket.cs" />
+    <Compile Include="MutableMemoryStream.cs" />
     <Compile Include="NetworkUtils.cs" />
     <Compile Include="PerformanceMeasure.cs" />
     <Compile Include="Pool.cs" />
