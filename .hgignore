@@ -6,6 +6,7 @@ _ReSharper.*
 .git/.*
 .*.vsp
 .*.psess
+.*/packages/.*
 syntax: glob
 .*/Release/.*
 .*_ReSharper.*
