@@ -55,20 +55,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BufferManager.cs" />
-    <Compile Include="Frame.cs" />
     <Compile Include="FrameAccumulator.cs" />
-    <Compile Include="FrameStream.cs" />
+    <Compile Include="HighWaterMarkBehavior.cs" />
     <Compile Include="MessageContainerConcurrentQueue.cs" />
     <Compile Include="SendingTransport.cs" />
     <Compile Include="SendingThread.cs" />
     <Compile Include="PgmConstants.cs" />
-    <Compile Include="PgmReceiver.cs" />
+    <Compile Include="SocketReceiver.cs" />
     <Compile Include="PgmSender.cs" />
-    <Compile Include="SocketSender.cs" />
     <Compile Include="PgmSocket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TcpSender.cs" />
+    <Compile Include="TcpTransportPipeMultiThread.cs" />
     <Compile Include="TransportPipe.cs" />
   </ItemGroup>
   <ItemGroup>

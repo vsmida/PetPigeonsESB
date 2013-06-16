@@ -10,7 +10,7 @@ namespace PgmTransport
         private readonly ConcurrentDictionary<TransportPipe, int> _pipesToThreadNumber = new ConcurrentDictionary<TransportPipe, int>();
         public SendingTransport(int numberOfSendingThreads = 1)
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < numberOfSendingThreads; i++)
             {
                 _sendingThreads.Add(new SendingThread());
             }

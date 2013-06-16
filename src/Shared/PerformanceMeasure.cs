@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using MathNet.Numerics.Statistics;
 
 namespace Shared
 {
@@ -24,8 +25,6 @@ namespace Shared
                 codeToTest();
             }
         }
-
-
 
         public void Dispose()
         {

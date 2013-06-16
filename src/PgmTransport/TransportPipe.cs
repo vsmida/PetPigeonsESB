@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using log4net;
 
 namespace PgmTransport
 {
@@ -47,6 +46,7 @@ namespace PgmTransport
                                 {
                                     wait.SpinOnce();
                                 }
+                                MessageContainerConcurrentQueue.InsertMessage(data); 
                             }
                             else
                             {
@@ -67,37 +67,4 @@ namespace PgmTransport
             _transport.DetachFromIoThread(this);
         }
     }
-
-    public class TcpTransportPipeMultiThread : TransportPipe
-    {
-        private readonly ILog _logger = LogManager.GetLogger(typeof(TcpTransportPipeMultiThread));
-
-
-        public TcpTransportPipeMultiThread(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
-            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport,new MessageContainerConcurrentQueue(), sendingThreadNumber)
-        {
-        }
-
-        public override int MaximumBatchSize
-        {
-            get { return 1024* 1024 ; }
-        }
-
-        public override Socket CreateSocket()
-        {
-            try
-            {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SendBufferSize = 1024 * 1024 ;
-                socket.Connect(EndPoint);
-                return socket;
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e);
-                return null;
-            }
-        }
-    }
-
 }

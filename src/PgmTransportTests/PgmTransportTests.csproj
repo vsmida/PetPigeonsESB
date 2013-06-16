@@ -67,13 +67,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BufferManagerTests.cs" />
     <Compile Include="FrameAccumulatorTest.cs" />
-    <Compile Include="FrameStreamTests.cs" />
     <Compile Include="PlayTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QueueTests.cs" />
     <Compile Include="SenderReceiverIntegrationTests.cs" />
     <Compile Include="SocketTests.cs" />
   </ItemGroup>

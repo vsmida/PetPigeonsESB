@@ -45,7 +45,7 @@ namespace Bus.Transport.Network
             var customEndpoint = (CustomTcpEndpoint) endpoint;
             if (!_endpointToPipe.TryGetValue(customEndpoint, out pipe))
             {
-                pipe = new TcpTransportPipeMultiThread(30000,
+                pipe = new TcpTransportPipeMultiThread(3000000,
                                                            HighWaterMarkBehavior.Block,
                                                            customEndpoint.EndPoint,
                                                            _transport);
@@ -66,6 +66,7 @@ namespace Bus.Transport.Network
 
             if (!sent) //peer is disconnected (or underwater from too many message), raise some event?
             {
+                Console.WriteLine("AAAAG");
                 _logger.Info(string.Format("disconnect of endpoint {0}", customEndpoint.EndPoint));
                 EndpointDisconnected(endpoint);
                 pipe.Dispose();

@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using Bus.Serializer;
 using Bus.Transport.ReceptionPipe;
+using Bus.Transport.SendingPipe;
 using Disruptor;
 using PgmTransport;
 using Shared;
@@ -19,12 +20,13 @@ namespace Bus.Transport.Network
         private readonly TcpReceiver _receiver = new TcpReceiver();
         private IPEndPoint _ipEndPoint;
         private CustomTcpEndpoint _endpoint;
+        private readonly MessageWireData _messageWireData = new MessageWireData();
 
         public CustomTcpTransportWireDataReceiver(ICustomTcpTransportConfiguration configuration, ISerializationHelper helper)
         {
             _configuration = configuration;
             _serializer = new MessageWireDataSerializer(helper);
-            _endpoint = new CustomTcpEndpoint(new IPEndPoint(NetworkUtils.GetOwnIp(), _configuration.Port));
+            _endpoint = new CustomTcpEndpoint(new IPEndPoint(IPAddress.Loopback, _configuration.Port));
         }
 
 
@@ -44,25 +46,25 @@ namespace Bus.Transport.Network
 
         private void DoReceive(Stream stream)
         {
-            var messagedata = _serializer.Deserialize(stream);
+            _serializer.Deserialize(stream, _messageWireData);
 
             var sequence = _ringBuffer.Next();
             var entry = _ringBuffer[sequence];
             if (entry.InitialTransportMessage != null)
-                entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
-                                                           messagedata.SendingPeerId,
-                                                           messagedata.MessageIdentity,
+                entry.InitialTransportMessage.Reinitialize(_messageWireData.MessageType,
+                                                           _messageWireData.SendingPeerId,
+                                                           _messageWireData.MessageIdentity,
                                                            _endpoint,
-                                                           messagedata.Data,
-                                                           messagedata.SequenceNumber);
+                                                           _messageWireData.Data,
+                                                           _messageWireData.SequenceNumber);
             else
             {
-                entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
-                                                                             messagedata.SendingPeerId,
-                                                                             messagedata.MessageIdentity,
+                entry.InitialTransportMessage = new ReceivedTransportMessage(_messageWireData.MessageType,
+                                                                             _messageWireData.SendingPeerId,
+                                                                             _messageWireData.MessageIdentity,
                                                                              _endpoint,
-                                                                             messagedata.Data,
-                                                                             messagedata.SequenceNumber);
+                                                                             _messageWireData.Data,
+                                                                             _messageWireData.SequenceNumber);
             }
 
             //    entry.InitialTransportMessage = receivedTransportMessage;

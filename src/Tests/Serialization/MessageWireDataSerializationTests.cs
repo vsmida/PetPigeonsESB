@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Bus;
 using Bus.Dispatch;
@@ -27,8 +28,9 @@ namespace Tests.Serialization
             var message = new MessageWireData(typeof(TestData.FakeCommand).FullName, Guid.NewGuid(), new PeerId(3), Encoding.ASCII.GetBytes("data"))
                               {SequenceNumber = 1234567};
             var buffer = _serializer.Serialize(message);
-            var stream = new FrameStream(new List<Frame>{new Frame(buffer,0, buffer.Length)});
-            var deserializedMessage =_serializer.Deserialize(stream);
+            var stream = new MemoryStream(buffer,0, buffer.Length);
+            var deserializedMessage = new MessageWireData();
+            _serializer.Deserialize(stream, deserializedMessage);
 
             Assert.AreEqual(message.Data, deserializedMessage.Data);
             Assert.AreEqual(message.MessageIdentity, deserializedMessage.MessageIdentity);

@@ -25,6 +25,7 @@ namespace Bus.Transport.Network
         private ZmqEndpoint _endpoint;
         private readonly MessageWireDataSerializer _serializer;
         private readonly MutableMemoryStream _stream = new MutableMemoryStream();
+        private readonly MessageWireData _messageWireData = new MessageWireData();
 
         public ZmqPullWireDataReceiver(ZmqContext context, ZmqTransportConfiguration configuration, ISerializationHelper helper)
         {
@@ -65,26 +66,26 @@ namespace Bus.Transport.Network
                 _stream.SetBuffer(receive,0,receive.Length);
                 //using (var stream = new MutableMemoryStream(receive))
                 //{
-                    var messagedata = _serializer.Deserialize(_stream);
+                     _serializer.Deserialize(_stream, _messageWireData);
 
 
                     var sequence = _ringBuffer.Next();
                     var entry = _ringBuffer[sequence];
                     if (entry.InitialTransportMessage != null)
-                        entry.InitialTransportMessage.Reinitialize(messagedata.MessageType,
-                                                                   messagedata.SendingPeerId,
-                                                                   messagedata.MessageIdentity,
+                        entry.InitialTransportMessage.Reinitialize(_messageWireData.MessageType,
+                                                                   _messageWireData.SendingPeerId,
+                                                                   _messageWireData.MessageIdentity,
                                                                    _endpoint,
-                                                                   messagedata.Data,
-                                                                   messagedata.SequenceNumber);
+                                                                   _messageWireData.Data,
+                                                                   _messageWireData.SequenceNumber);
                     else
                     {
-                        entry.InitialTransportMessage = new ReceivedTransportMessage(messagedata.MessageType,
-                                                                                     messagedata.SendingPeerId,
-                                                                                     messagedata.MessageIdentity,
+                        entry.InitialTransportMessage = new ReceivedTransportMessage(_messageWireData.MessageType,
+                                                                                     _messageWireData.SendingPeerId,
+                                                                                     _messageWireData.MessageIdentity,
                                                                                      _endpoint,
-                                                                                     messagedata.Data,
-                                                                                     messagedata.SequenceNumber);
+                                                                                     _messageWireData.Data,
+                                                                                     _messageWireData.SequenceNumber);
                     }
 
                     //    entry.InitialTransportMessage = receivedTransportMessage;

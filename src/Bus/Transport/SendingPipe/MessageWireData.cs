@@ -7,13 +7,13 @@ namespace Bus.Transport.SendingPipe
     public class MessageWireData
     {
         [ProtoMember(1, IsRequired = true)]
-        public string MessageType { get; private set; }
+        public string MessageType { get;  set; }
         [ProtoMember(2, IsRequired = true)]
-        public Guid MessageIdentity { get; private set; }
+        public Guid MessageIdentity { get;  set; }
         [ProtoMember(3, IsRequired = true)]
-        public PeerId SendingPeerId { get; private set; }
+        public PeerId SendingPeerId { get;  set; }
         [ProtoMember(4, IsRequired = true)]
-        public byte[] Data { get; private set; }
+        public byte[] Data { get;  set; }
         [ProtoMember(5, IsRequired = true)]
         public int? SequenceNumber { get; set; }
 
@@ -25,7 +25,7 @@ namespace Bus.Transport.SendingPipe
             SendingPeerId = sendingPeer;
         }
 
-        private MessageWireData()
+        internal MessageWireData()
         {
         }
     }

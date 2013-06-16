@@ -36,16 +36,16 @@ namespace PgmTransport
 
         private void ExecuteElapsedTimers()
         {
-            if(_timers.Count > 0 )
-            foreach (var ticks in _timers.Keys.ToList())
-            {
-                if (_watch.ElapsedTicks >= ticks)
+            if (_timers.Count > 0)
+                foreach (var ticks in _timers.Keys.ToList())
                 {
-                    _timers[ticks]();
-                    _timers.Remove(ticks);
-                }
+                    if (_watch.ElapsedTicks >= ticks)
+                    {
+                        _timers[ticks]();
+                        _timers.Remove(ticks);
+                    }
 
-            }
+                }
         }
 
         private int AddFrameDataToAggregatedSocketData(IList<ArraySegment<byte>> stuffToSendForFrameEndpoint, ArraySegment<byte> frameToSend)
@@ -68,7 +68,7 @@ namespace PgmTransport
                     {
                         foreach (var pipe in _transportPipes)
                         {
-                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint, () => new List<ArraySegment<byte>>(5002));
+                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint, () => new List<ArraySegment<byte>>(6002));
 
                             var messageCount = pipe.MessageContainerConcurrentQueue.Count;
                             if (messageCount == 0)
@@ -80,7 +80,7 @@ namespace PgmTransport
                                 pipe.MessageContainerConcurrentQueue.TryGetNextMessage(out message); // should always work, only one dequeuer
                                 sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
 
-                                if (sizeToSend >= pipe.MaximumBatchSize || stuffToSendForFrameEndpoint.Count > 5000)
+                                if (sizeToSend >= pipe.MaximumBatchSize || stuffToSendForFrameEndpoint.Count > 4000)
                                 {
                                     SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
                                     stuffToSendForFrameEndpoint.Clear();

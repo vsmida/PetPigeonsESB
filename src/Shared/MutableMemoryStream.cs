@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Shared
@@ -203,7 +204,8 @@ namespace Shared
 
             return n;
         }
-
+       
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int ReadByte()
         {
             if (!_isOpen)

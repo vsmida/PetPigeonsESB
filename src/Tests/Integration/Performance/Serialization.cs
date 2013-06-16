@@ -34,10 +34,11 @@ namespace Tests.Integration.Performance
         {
             var serializer = new MessageWireDataSerializer(new SerializationHelper(new AssemblyScanner()));
             using (var perfMeasure = new PerformanceMeasure(() =>
-                                                               {
+                                                                {
+                                                                    var instance = new MessageWireData();
                                                                    var ser = serializer.Serialize(_testData);
                                                                    using (var stream = new MemoryStream(ser))
-                                                                       serializer.Deserialize(stream);
+                                                                       serializer.Deserialize(stream, instance);
 
                                                                }, 1000000)) ;
         }

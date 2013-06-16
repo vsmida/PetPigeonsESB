@@ -13,6 +13,8 @@ namespace Bus.Serializer
     public class MessageWireDataSerializer
     {
         private readonly ISerializationHelper _serializationHelper;
+        private byte[] _guidArray = new byte[16];
+
         public MessageWireDataSerializer(ISerializationHelper serializationHelper)
         {
             _serializationHelper = serializationHelper;
@@ -44,20 +46,23 @@ namespace Bus.Serializer
             return finalArray;
         }
 
-        public MessageWireData Deserialize(Stream data)
+        public void Deserialize(Stream data, MessageWireData instance)
         {
-            var idArray = new byte[16];
-            data.Read(idArray, 0, 16);
-            var id = new Guid(idArray);
-            var messageTypeId = ByteUtils.ReadIntFromStream(data);
-            var sendingPeer = ByteUtils.ReadIntFromStream(data);
+            data.Read(_guidArray, 0, 16);
+           instance.MessageIdentity = new Guid(_guidArray);
+           var messageTypeId = ByteUtils.ReadIntFromStream(data);
+
+            instance.SendingPeerId = new PeerId(ByteUtils.ReadIntFromStream(data));
             var dataLength = ByteUtils.ReadIntFromStream(data);
             var binaryData = new byte[dataLength];
             data.Read(binaryData, 0, dataLength);
+            instance.Data = binaryData;
             int? sequenceNumber = null;
                 sequenceNumber = ByteUtils.ReadIntFromStream(data);
+            instance.SequenceNumber = sequenceNumber;
 
-            return new MessageWireData(_serializationHelper.GetMessageTypeFromId(messageTypeId), id, new PeerId(sendingPeer), binaryData) { SequenceNumber = sequenceNumber == -1 ? null : sequenceNumber };
+            instance.MessageType = _serializationHelper.GetMessageTypeFromId(messageTypeId);
+           // return new MessageWireData(messageTypeFromId, id, new PeerId(sendingPeer), binaryData) { SequenceNumber = sequenceNumber == -1 ? null : sequenceNumber };
 
         }
     }

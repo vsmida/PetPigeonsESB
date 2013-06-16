@@ -12,6 +12,7 @@ namespace Bus
         {
             Id = peerId;
         }
+
         private PeerId(){}
 
         public bool Equals(PeerId other)

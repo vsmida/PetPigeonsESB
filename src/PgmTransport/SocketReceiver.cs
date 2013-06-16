@@ -12,12 +12,6 @@ using log4net;
 
 namespace PgmTransport
 {
-    public interface IPgmReceiver : IDisposable
-    {
-        void ListenToEndpoint(IPEndPoint endpoint);
-        void StopListeningTo(IPEndPoint endpoint);
-    }
-
     public abstract class SocketReceiver : IDisposable
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
@@ -26,10 +20,10 @@ namespace PgmTransport
         private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketReceiver));
         private readonly Pool<byte[]> _bufferPool;
-        public readonly ConcurrentDictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new ConcurrentDictionary<IPEndPoint, Action<Stream>>();//todo : better
+        public readonly Dictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new Dictionary<IPEndPoint, Action<Stream>>();//todo : better
         private bool _disposing = false;
-        private object _disposeLock = new object();
-        private int _bufferLength = 1024 * 1024 / 3;
+        private readonly object _disposeLock = new object();
+        private const int _bufferLength = 1024*1024/3;
 
 
         public SocketReceiver()
@@ -56,18 +50,29 @@ namespace PgmTransport
 
         public void RegisterCallback(IPEndPoint endpoint, Action<Stream> action)
         {
-            Action<Stream> previousaction;
-            if (!EventsForMessagesReceived.TryGetValue(endpoint, out previousaction))
+            lock (EventsForMessagesReceived)
             {
-                EventsForMessagesReceived[endpoint] = action;
+                Action<Stream> previousaction;
+                if (!EventsForMessagesReceived.TryGetValue(endpoint, out previousaction))
+                {
+                    EventsForMessagesReceived[endpoint] = action;
+                }
+                else
+                {
+                    EventsForMessagesReceived[endpoint] += action;
+                    EventsForMessagesReceived[endpoint] -= DummyEvent; //remove from list;
+
+                }
             }
-            else
-                EventsForMessagesReceived[endpoint] += action;
+
         }
 
         public void UnRegisterCallback(IPEndPoint endpoint, Action<Stream> action)
         {
-            EventsForMessagesReceived[endpoint] -= action;
+            lock (EventsForMessagesReceived)
+            {
+                EventsForMessagesReceived[endpoint] -= action;
+            }
         }
         public void StopListeningTo(IPEndPoint endpoint)
         {
@@ -90,8 +95,8 @@ namespace PgmTransport
                 return;
             socket.Close();
             _endPointToAcceptSockets.TryRemove(endpoint, out socket);
-            Action<Stream> callback;
-            EventsForMessagesReceived.TryRemove(endpoint, out callback);
+            lock (EventsForMessagesReceived)
+                EventsForMessagesReceived.Remove(endpoint);
         }
 
         protected abstract Socket CreateAcceptSocket(IPEndPoint endpoint);
@@ -147,12 +152,14 @@ namespace PgmTransport
             }
             var frameAccumulator = new FrameAccumulator(_bufferLength);
             var localEndPoint = (IPEndPoint)socket.LocalEndPoint;
-            frameAccumulator.MessageReceived += (s) =>
-                                                    {
-                                                        Action<Stream> action;
-                                                        if (EventsForMessagesReceived.TryGetValue(localEndPoint, out action))
-                                                            action(s);
-                                                    };
+            Action<Stream> act;
+            lock (EventsForMessagesReceived)
+            {
+                if (!EventsForMessagesReceived.ContainsKey(localEndPoint))
+                    EventsForMessagesReceived[localEndPoint] = DummyEvent;
+                act = EventsForMessagesReceived[localEndPoint];
+            }
+            frameAccumulator.MessageReceived += (s) => act(s);
             _receivingSockets[receiveSocket] = frameAccumulator;
             var receiveEventArgs = _eventArgsPool.GetItem();
             receiveEventArgs.UserToken = socket.LocalEndPoint;
@@ -173,6 +180,11 @@ namespace PgmTransport
                 _eventArgsPool.PutBackItem(e);
 
             }
+
+        }
+
+        private void DummyEvent(Stream obj)
+        {
 
         }
 
@@ -202,13 +214,7 @@ namespace PgmTransport
 
         private void DoReceive(Socket socket, SocketAsyncEventArgs e)
         {
-            //var buff = new byte[e.Count];
-            //Buffer.BlockCopy(e.Buffer,e.Offset,buff,0,e.BytesTransferred);
-            //_receivingSockets[socket].AddFrame(new Frame(buff, 0, e.BytesTransferred, _bufferPool));
             _receivingSockets[socket].AddFrame(e.Buffer, e.Offset, e.BytesTransferred);
-
-            byte[] buffer = _bufferPool.GetItem();
-            e.SetBuffer(buffer, 0, buffer.Length);
         }
 
         private bool CheckError(Socket socket, SocketAsyncEventArgs e)
@@ -222,12 +228,13 @@ namespace PgmTransport
             if (e.SocketError != SocketError.Success || e.BytesTransferred == 0)
             {
                 _logger.ErrorFormat("Error : {0}", e.SocketError);
-                                 lock (_endpointToReceiveSockets)
-                 {
-                socket.Dispose();
+                lock (_endpointToReceiveSockets)
+                {
+                    socket.Dispose();
 
-                     _endpointToReceiveSockets[e.UserToken as IPEndPoint].Remove(socket);
-                 }
+                    _endpointToReceiveSockets[e.UserToken as IPEndPoint].Remove(socket);
+                    _bufferPool.PutBackItem(e.Buffer); //put back buffer in pool
+                }
                 return true;
             }
 

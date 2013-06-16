@@ -5,11 +5,16 @@ using log4net;
 
 namespace PgmTransport
 {
-    public class PgmSender : SocketSender
+    class PgmSender : TransportPipe
     {
         private readonly ILog _logger = LogManager.GetLogger(typeof(PgmSender));
 
-        protected override Socket CreateSocket(IPEndPoint endpoint)
+        public PgmSender(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, IMessageContainer messageContainer, int sendingThreadNumber = 0)
+            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, messageContainer, sendingThreadNumber)
+        {
+        }
+
+        public override Socket CreateSocket()
         {
             try
             {
@@ -25,9 +30,9 @@ namespace PgmTransport
 
                 sendingSocket.EnableGigabit();
                 var tt2 = sendingSocket.GetSendWindow();
-                _logger.Info(string.Format("connecting socket to {0}", endpoint));
-                sendingSocket.Connect(endpoint);
-                _logger.Info(string.Format("finished connecting socket to {0}", endpoint));
+                _logger.Info(string.Format("connecting socket to {0}", EndPoint));
+                sendingSocket.Connect(EndPoint);
+                _logger.Info(string.Format("finished connecting socket to {0}", EndPoint));
 
                 return sendingSocket;
             }
@@ -39,5 +44,9 @@ namespace PgmTransport
 
         }
 
+        public override int MaximumBatchSize
+        {
+            get { return 1024 * 1024; }
+        }
     }
 }

@@ -25,7 +25,7 @@ namespace Tests.Integration.Performance
         private class EventProcessorInterlockedIncrement : IEventHandler<InboundMessageProcessingEntry>
         {
             public static int MessageCount;
-            public static List<decimal> latenciesInMicrosec = new List<decimal>(260000);
+            public static List<double> latenciesInMicrosec = new List<double>(260000);
             public static Stopwatch Watch;
 
             private static readonly PerformanceTests.LatencyMessageSerializer _serializer = new PerformanceTests.LatencyMessageSerializer();
@@ -36,7 +36,7 @@ namespace Tests.Integration.Performance
                 MessageCount++;
                 Watch.Stop();
                 var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
-                     latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (decimal)(Stopwatch.Frequency) * 1000000);
+                     latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (double)(Stopwatch.Frequency) * 1000000);
                      Watch.Start();
 
 
@@ -49,13 +49,13 @@ namespace Tests.Integration.Performance
         {
 
             var fakeCOnfig = new DummyCustomTcpTransportConfig {Port = NetworkUtils.GetRandomUnusedPort()};
-            var endpoint = new CustomTcpEndpoint(new IPEndPoint(NetworkUtils.GetOwnIp(), fakeCOnfig.Port));
+            var endpoint = new CustomTcpEndpoint(new IPEndPoint(IPAddress.Loopback, fakeCOnfig.Port));
             var transportReceive = new CustomTcpTransportWireDataReceiver(fakeCOnfig,
                                                                           new SerializationHelper(new AssemblyScanner()));
 
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                             new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)),
-                                                             new SleepingWaitStrategy(),
+                                                             new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)), 
+                                                             new SleepingWaitStrategy(), 
                                                              TaskScheduler.Default);
 
             disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement());
@@ -105,6 +105,8 @@ namespace Tests.Integration.Performance
                 }
                 performanceMeasure.Dispose();
                 EventProcessorInterlockedIncrement.MessageCount = 0;
+                var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();
+                Console.WriteLine(statistics);
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();
@@ -167,6 +169,8 @@ namespace Tests.Integration.Performance
                 }
                performanceMeasure.Dispose();
                EventProcessorInterlockedIncrement.MessageCount = 0;
+               var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();
+               Console.WriteLine(statistics);
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();
