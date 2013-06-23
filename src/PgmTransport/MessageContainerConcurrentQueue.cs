@@ -70,7 +70,7 @@ namespace PgmTransport
                 _currentWritingChunk.Size += message.Count + 4;
                 if (_currentWritingChunk.List.Count == _maxNumberOfElementsPerChunk || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
                 {
-                    _currentWritingChunk.Node = new ChunkNode(_chunkPool.GetItem(), _chunkPool);
+                    _currentWritingChunk.Node = new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), _chunkPool);
                     _currentWritingChunk = _currentWritingChunk.Node;
                     //       _chunkWrittenCount++;
                 }
