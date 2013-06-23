@@ -22,13 +22,13 @@ namespace PgmTransport
 
         public class ChunkNode : IDisposable
         {
-            private readonly Pool<IList<ArraySegment<byte>>> _pool; 
+            private readonly Pool<ChunkNode> _pool;
             public readonly IList<ArraySegment<byte>> List;
             public int Size;
             public ChunkNode Node;
 
 
-            public ChunkNode(IList<ArraySegment<byte>> list, Pool<IList<ArraySegment<byte>>> pool)
+            public ChunkNode(IList<ArraySegment<byte>> list, Pool<ChunkNode> pool)
             {
                 List = list;
                 _pool = pool;
@@ -37,7 +37,9 @@ namespace PgmTransport
             public void Dispose()
             {
                 List.Clear();
-                _pool.PutBackItem(List);
+                Size = 0;
+                Node = null;
+                _pool.PutBackItem(this);
             }
         }
 
@@ -45,17 +47,22 @@ namespace PgmTransport
         private List<ArraySegment<byte>> _failedFrames = new List<ArraySegment<byte>>();
         private readonly int _maxNumberOfElementsPerChunk;
         private readonly int _maxTotalSizePerChunk;
-        private readonly Pool<IList<ArraySegment<byte>>> _chunkPool;
+        private readonly Pool<ChunkNode> _chunkPool;
         private ChunkNode _currentWritingChunk;
         private ChunkNode _currentReadingChunk;
+        //private volatile int _chunkWrittenCount = 0; // one writer for now
+        //private volatile int _chunkReadCount; //one reader
+        //private int _canSteal = 1;  //0 cant , 1 can
+        //private volatile bool _isEmpty = true;
         private SpinLock _spinLock = new SpinLock();
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
             _maxNumberOfElementsPerChunk = 2 * maxNumberOfElementsPerChunk;
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
-            _chunkPool = new Pool<IList<ArraySegment<byte>>>(() => new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), 100);
-            _currentReadingChunk = new ChunkNode(_chunkPool.GetItem(), _chunkPool);
+            _chunkPool = new Pool<ChunkNode>(() => new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), _chunkPool), 0);
+            _chunkPool.AddCapacity(100);
+            _currentReadingChunk = _chunkPool.GetItem();
             _currentWritingChunk = _currentReadingChunk;
         }
 
@@ -70,9 +77,8 @@ namespace PgmTransport
                 _currentWritingChunk.Size += message.Count + 4;
                 if (_currentWritingChunk.List.Count == _maxNumberOfElementsPerChunk || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
                 {
-                    _currentWritingChunk.Node = new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), _chunkPool);
+                    _currentWritingChunk.Node = _chunkPool.GetItem();
                     _currentWritingChunk = _currentWritingChunk.Node;
-                    //       _chunkWrittenCount++;
                 }
             }
             _spinLock.Exit(false);
@@ -81,9 +87,9 @@ namespace PgmTransport
 
         public bool GetNextSegments(out ChunkNode data)
         {
-            if(_failedFrames.Count > 0) //single threaded access to failed frames
+            if (_failedFrames.Count > 0) //single threaded access to failed frames
             {
-                data = new ChunkNode(_failedFrames, _chunkPool){Size = _failedFrames.Sum(x => x.Count)};
+                data = new ChunkNode(_failedFrames, _chunkPool) { Size = _failedFrames.Sum(x => x.Count) };
                 _failedFrames = new List<ArraySegment<byte>>();
                 return true;
             }
@@ -110,7 +116,7 @@ namespace PgmTransport
                     else
                     {
                         data = _currentReadingChunk;
-                        _currentReadingChunk.Node = new ChunkNode(_chunkPool.GetItem(), _chunkPool);
+                        _currentReadingChunk.Node = _chunkPool.GetItem();
                         _currentReadingChunk = _currentReadingChunk.Node;
                         _currentWritingChunk = _currentReadingChunk;
                         _spinLock.Exit(false);
