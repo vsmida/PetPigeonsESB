@@ -14,14 +14,15 @@ namespace PgmTransport
         private readonly SendingTransport _transport;
 
         public abstract int MaximumBatchSize { get; }
+        public abstract int MaximumBatchCount { get; }
 
-        internal TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport,IMessageContainer messageContainer, int sendingThreadNumber = 0)
+        internal TransportPipe(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
         {
             _transport = transport;
             _highWaterMarkBehavior = highWaterMarkBehavior;
             EndPoint = endPoint;
             _highWaterMark = highWaterMark;
-            MessageContainerConcurrentQueue = messageContainer;
+            MessageContainerConcurrentQueue = new MessageContainerConcurrentQueue(MaximumBatchCount, MaximumBatchSize);
             transport.AttachToIoThread(this, sendingThreadNumber);
         }
 

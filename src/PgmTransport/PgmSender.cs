@@ -9,8 +9,8 @@ namespace PgmTransport
     {
         private readonly ILog _logger = LogManager.GetLogger(typeof(PgmSender));
 
-        public PgmSender(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, IMessageContainer messageContainer, int sendingThreadNumber = 0)
-            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, messageContainer, sendingThreadNumber)
+        public PgmSender(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
+            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
         {
         }
 
@@ -47,6 +47,11 @@ namespace PgmTransport
         public override int MaximumBatchSize
         {
             get { return 1024 * 1024; }
+        }
+
+        public override int MaximumBatchCount
+        {
+            get { return 6000; }
         }
     }
 }

@@ -11,7 +11,7 @@ namespace PgmTransport
 
 
         public TcpTransportPipeMultiThread(int highWaterMark, HighWaterMarkBehavior highWaterMarkBehavior, IPEndPoint endPoint, SendingTransport transport, int sendingThreadNumber = 0)
-            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport,new MessageContainerConcurrentQueue(), sendingThreadNumber)
+            : base(highWaterMark, highWaterMarkBehavior, endPoint, transport, sendingThreadNumber)
         {
         }
 
@@ -20,12 +20,17 @@ namespace PgmTransport
             get { return 1024* 1024 ; }
         }
 
+        public override int MaximumBatchCount
+        {
+            get { return 6000; }
+        }
+
         public override Socket CreateSocket()
         {
             try
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SendBufferSize = 1024 * 1024;
+                socket.SendBufferSize = 1024 * 16;
                 socket.Connect(EndPoint);
                 socket.NoDelay = true;
                 return socket;

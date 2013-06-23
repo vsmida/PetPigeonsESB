@@ -29,5 +29,13 @@ namespace Shared
         {
             _pool.Push(item);
         }
+
+        public void AddCapacity(int capacity)
+        {
+            for (int i = 0; i < capacity; i++)
+            {
+                _pool.Push(_itemFactory());
+            }
+        }
     }
 }

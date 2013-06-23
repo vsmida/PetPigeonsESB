@@ -48,14 +48,6 @@ namespace PgmTransport
                 }
         }
 
-        private int AddFrameDataToAggregatedSocketData(IList<ArraySegment<byte>> stuffToSendForFrameEndpoint, ArraySegment<byte> frameToSend)
-        {
-            var arraySegment = new ArraySegment<byte>(BitConverter.GetBytes(frameToSend.Count), 0, 4);
-            stuffToSendForFrameEndpoint.Add(arraySegment);//header
-            stuffToSendForFrameEndpoint.Add(frameToSend); //data
-            return frameToSend.Count + 4;
-        }
-
         private void SendingLoop()
         {
             try
@@ -68,31 +60,13 @@ namespace PgmTransport
                     {
                         foreach (var pipe in _transportPipes)
                         {
-                            var stuffToSendForFrameEndpoint = _stuffToSend.GetOrCreateNew(pipe.EndPoint, () => new List<ArraySegment<byte>>(6002));
-
-                            var messageCount = pipe.MessageContainerConcurrentQueue.Count;
-                            if (messageCount == 0)
-                                continue;
-                            var sizeToSend = 0; //todo : use for pgm or avoiding sending too much data at once.
-                            for (int i = 0; i < messageCount; i++)
+                            MessageContainerConcurrentQueue.ChunkNode data;
+                            var shouldSend = pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
+                            if (shouldSend)
                             {
-                                ArraySegment<byte> message;
-                                pipe.MessageContainerConcurrentQueue.TryGetNextMessage(out message); // should always work, only one dequeuer
-                                sizeToSend += AddFrameDataToAggregatedSocketData(stuffToSendForFrameEndpoint, message);
-
-                                if (sizeToSend >= pipe.MaximumBatchSize || stuffToSendForFrameEndpoint.Count > 4000)
-                                {
-                                    SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
-                                    stuffToSendForFrameEndpoint.Clear();
-                                    sizeToSend = 0;
-                                }
+                                SendData(pipe, data.List, data.Size);
+                                data.Dispose();
                             }
-                            if (stuffToSendForFrameEndpoint.Count > 0)
-                            {
-                                SendData(pipe, stuffToSendForFrameEndpoint, sizeToSend);
-                                stuffToSendForFrameEndpoint.Clear();
-                            }
-
                         }
                     }
                     spinWait.SpinOnce();
