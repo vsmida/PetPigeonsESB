@@ -16,7 +16,6 @@ namespace PgmTransport
         private readonly Thread _thread;
         private readonly List<TransportPipe> _transportPipes = new List<TransportPipe>();
         private readonly Dictionary<TransportPipe, Socket> _endPointToSockets = new Dictionary<TransportPipe, Socket>();
-        private readonly Dictionary<IPEndPoint, List<ArraySegment<byte>>> _stuffToSend = new Dictionary<IPEndPoint, List<ArraySegment<byte>>>();
         private readonly Stopwatch _watch = new Stopwatch();
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
         private readonly ConcurrentBag<Action> _commands = new ConcurrentBag<Action>();
@@ -57,18 +56,20 @@ namespace PgmTransport
                 {
                     ExecuteCommands();
                     ExecuteElapsedTimers();
+
+                    bool sentSomething = false;
+                    foreach (var pipe in _transportPipes)
                     {
-                        foreach (var pipe in _transportPipes)
+                        MessageContainerConcurrentQueue.ChunkNode data;
+                        var shouldSend = pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
+                        if (shouldSend)
                         {
-                            MessageContainerConcurrentQueue.ChunkNode data;
-                            var shouldSend = pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
-                            if (shouldSend)
-                            {
-                                SendData(pipe, data.List, data.Size);
-                                data.Dispose();
-                            }
+                            SendData(pipe, data.List, data.Size);
+                            data.Dispose();
+                            sentSomething = true;
                         }
                     }
+                    if(!sentSomething)
                     spinWait.SpinOnce();
                 }
             }

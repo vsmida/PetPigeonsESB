@@ -136,7 +136,8 @@ namespace PgmTransport
                     return;
                 }
             }
-            receiveSocket.ReceiveBufferSize = 1024 * 1024;
+            receiveSocket.ReceiveBufferSize = 1024 * 16;
+            receiveSocket.NoDelay = true;
             _logger.InfoFormat("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
             Console.WriteLine("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
 

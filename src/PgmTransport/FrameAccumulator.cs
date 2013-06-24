@@ -20,7 +20,7 @@ namespace PgmTransport
         public FrameAccumulator(int buffersSize)
         {
             _buffersSize = buffersSize;
-            _bufferPool = new Pool<byte[]>(() => new byte[_buffersSize]);
+            _bufferPool = new Pool<byte[]>(() => new byte[_buffersSize],10);
             _spareBuffer = _bufferPool.GetItem();
         }
 

@@ -18,8 +18,6 @@ namespace PgmTransport
 
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
-
-
         public class ChunkNode : IDisposable
         {
             private readonly Pool<ChunkNode> _pool;
@@ -45,22 +43,18 @@ namespace PgmTransport
 
         private readonly ConcurrentQueue<ArraySegment<byte>> _frames = new ConcurrentQueue<ArraySegment<byte>>();
         private List<ArraySegment<byte>> _failedFrames = new List<ArraySegment<byte>>();
-        private readonly int _maxNumberOfElementsPerChunk;
+        private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
         private readonly Pool<ChunkNode> _chunkPool;
         private ChunkNode _currentWritingChunk;
         private ChunkNode _currentReadingChunk;
-        //private volatile int _chunkWrittenCount = 0; // one writer for now
-        //private volatile int _chunkReadCount; //one reader
-        //private int _canSteal = 1;  //0 cant , 1 can
-        //private volatile bool _isEmpty = true;
         private SpinLock _spinLock = new SpinLock();
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
-            _maxNumberOfElementsPerChunk = 2 * maxNumberOfElementsPerChunk;
+            _maxNumberOfListElements = 2 * maxNumberOfElementsPerChunk;
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
-            _chunkPool = new Pool<ChunkNode>(() => new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), _chunkPool), 0);
+            _chunkPool = new Pool<ChunkNode>(() => new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfListElements), _chunkPool), 0);
             _chunkPool.AddCapacity(100);
             _currentReadingChunk = _chunkPool.GetItem();
             _currentWritingChunk = _currentReadingChunk;
@@ -75,7 +69,7 @@ namespace PgmTransport
                 _currentWritingChunk.List.Add(size);
                 _currentWritingChunk.List.Add(message);
                 _currentWritingChunk.Size += message.Count + 4;
-                if (_currentWritingChunk.List.Count == _maxNumberOfElementsPerChunk || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
+                if (_currentWritingChunk.List.Count >= _maxNumberOfListElements || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
                 {
                     _currentWritingChunk.Node = _chunkPool.GetItem();
                     _currentWritingChunk = _currentWritingChunk.Node;
@@ -125,11 +119,7 @@ namespace PgmTransport
                 }
 
             }
-
-
-
         }
-
 
         public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
         {
