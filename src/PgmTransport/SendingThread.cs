@@ -52,12 +52,12 @@ namespace PgmTransport
             try
             {
                 var spinWait = default(SpinWait);
+                bool sentSomething = false;
                 while (true)
                 {
                     ExecuteCommands();
                     ExecuteElapsedTimers();
 
-                    bool sentSomething = false;
                     foreach (var pipe in _transportPipes)
                     {
                         MessageContainerConcurrentQueue.ChunkNode data;
@@ -71,6 +71,8 @@ namespace PgmTransport
                     }
                     if(!sentSomething)
                     spinWait.SpinOnce();
+
+                    sentSomething = false;
                 }
             }
             catch (ThreadAbortException)
