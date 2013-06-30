@@ -103,6 +103,10 @@ namespace Tests.Integration.Performance
                 {
                     wait.SpinOnce();
                 }
+                Thread.Sleep(500);
+                if(EventProcessorInterlockedIncrement.MessageCount > messagesCountTotal)
+                   Assert.Fail("Too many messages");
+
                 performanceMeasure.Dispose();
                 EventProcessorInterlockedIncrement.MessageCount = 0;
                 var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();

@@ -17,12 +17,12 @@ namespace PgmTransport
 
         public override int MaximumBatchSize
         {
-            get { return 1024* 100 ; }
+            get { return 1024* 500 ; }
         }
 
         public override int MaximumBatchCount
         {
-            get { return 5000; }
+            get { return 1024; }
         }
 
         public override Socket CreateSocket()

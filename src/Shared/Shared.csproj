@@ -34,6 +34,7 @@
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -100,6 +101,8 @@
   <ItemGroup>
     <Compile Include="BackgroundThread.cs" />
     <Compile Include="ByteUtils.cs" />
+    <Compile Include="CustomSocket.cs" />
+    <Compile Include="PreAllocatedArray.cs" />
     <Compile Include="DisposableAction.cs" />
     <Compile Include="ExtendDictionary.cs" />
     <Compile Include="ExtendEnumerable.cs" />
@@ -116,6 +119,7 @@
     <Compile Include="StandardStatisticsResult.cs" />
     <Compile Include="StringUtils.cs" />
     <Compile Include="TypeUtils.cs" />
+    <Compile Include="UnsafeSocketCode.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

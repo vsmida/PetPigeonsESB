@@ -16,14 +16,14 @@ namespace PgmTransport
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
         private readonly Dictionary<IPEndPoint, List<Socket>> _endpointToReceiveSockets = new Dictionary<IPEndPoint, List<Socket>>();
-        private readonly ConcurrentDictionary<Socket, FrameAccumulator> _receivingSockets = new ConcurrentDictionary<Socket, FrameAccumulator>();
+        private readonly Dictionary<Socket, FrameAccumulator> _receivingSockets = new Dictionary<Socket, FrameAccumulator>();
         private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketReceiver));
         private readonly Pool<byte[]> _bufferPool;
         public readonly Dictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new Dictionary<IPEndPoint, Action<Stream>>();//todo : better
         private bool _disposing = false;
         private readonly object _disposeLock = new object();
-        private const int _bufferLength = 1024*1024/3;
+        private const int _bufferLength = 1024 * 500;
 
 
         public SocketReceiver()
@@ -136,7 +136,7 @@ namespace PgmTransport
                     return;
                 }
             }
-            receiveSocket.ReceiveBufferSize = 1024 * 16;
+            receiveSocket.ReceiveBufferSize = 1024 * 500;
             receiveSocket.NoDelay = true;
             _logger.InfoFormat("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
             Console.WriteLine("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);

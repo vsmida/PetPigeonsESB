@@ -9,6 +9,7 @@ using Bus.Transport.ReceptionPipe;
 using Bus.Transport.SendingPipe;
 using Disruptor;
 using Disruptor.Dsl;
+using Disruptor.Scheduler;
 
 namespace Bus
 {
@@ -39,8 +40,8 @@ namespace Bus
             _networkSender = networkSender;
             _heartbeatManager = heartbeatManager;
             _queueConfiguration = queueConfiguration;
-            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.InboundQueueSize), new SleepingWaitStrategy(), TaskScheduler.Default);
-            _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new SleepingWaitStrategy(), TaskScheduler.Default);
+            _networkInputDisruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),new MultiThreadedClaimStrategy(_queueConfiguration.InboundQueueSize), new SleepingWaitStrategy(), new RoundRobinThreadAffinedTaskScheduler(3));
+            _outputDisruptor = new Disruptor<OutboundDisruptorEntry>(() => new OutboundDisruptorEntry(), new MultiThreadedClaimStrategy(_queueConfiguration.OutboundQueueSize), new SleepingWaitStrategy(), new RoundRobinThreadAffinedTaskScheduler(2));
         }
 
         public IBlockableUntilCompletion Send(ICommand command)

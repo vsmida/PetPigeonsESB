@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Shared;
 
 namespace PgmTransport
@@ -98,6 +99,7 @@ namespace PgmTransport
 
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GetFullMessageOrCopyToSpareBuffer(byte[] buffer, ref int count, int messageLength, ref int offset)
         {
             if (count >= messageLength - _spareBufferCount) //fast path

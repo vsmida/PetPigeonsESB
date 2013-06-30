@@ -25,6 +25,8 @@ namespace PgmTransport
         internal SendingThread()
         {
             _thread = new Thread(SendingLoop) { IsBackground = true };
+            
+            _watch.Start();
             _thread.Start();
         }
 
@@ -60,17 +62,16 @@ namespace PgmTransport
 
                     foreach (var pipe in _transportPipes)
                     {
-                        MessageContainerConcurrentQueue.ChunkNode data;
+                        IList<ArraySegment<byte>> data;
                         var shouldSend = pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
                         if (shouldSend)
                         {
-                            SendData(pipe, data.List, data.Size);
-                            data.Dispose();
+                            SendData(pipe, data, 0);//todo: restore size
                             sentSomething = true;
                         }
                     }
-                    if(!sentSomething)
-                    spinWait.SpinOnce();
+                    if (!sentSomething)
+                        spinWait.SpinOnce();
 
                     sentSomething = false;
                 }
@@ -118,8 +119,8 @@ namespace PgmTransport
 
         private void CheckError(int sentBytes, int length, Socket socket)
         {
-            if (sentBytes != length)
-                _logger.Warn("Not all bytes sent");
+           // if (sentBytes != length)
+           //     _logger.Warn("Not all bytes sent");
             var socketError = (SocketError)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Error);
             if (socketError != SocketError.Success)
             {
@@ -137,13 +138,13 @@ namespace PgmTransport
                 socket = GetSocket(pipe);
                 if (socket == null) //socket has been previously disconnected or cannot be created somehow, circuit breaker dont do anything
                 {
-                    SaveUnsentData(pipe, data);
+                    //SaveUnsentData(pipe, data);
                     return;
                 }
 
                 sentBytes = socket.Send(data, SocketFlags.None);
                 CheckError(sentBytes, dataSize, socket);
-
+                pipe.MessageContainerConcurrentQueue.FlushMessages(data);
             }
 
             catch (SocketException e)
@@ -157,7 +158,7 @@ namespace PgmTransport
 
                 _endPointToSockets[pipe] = null;
                 _timers.Add(_watch.ElapsedTicks + TimeSpan.FromSeconds(1).Ticks, () => CreateSocketForEndpoint(pipe));
-                SaveUnsentData(pipe, data);
+               // SaveUnsentData(pipe, data);
             }
 
         }
@@ -168,7 +169,7 @@ namespace PgmTransport
             {
                 _logger.Info(string.Format("Creating send socket for endpoint {0}", pipe.EndPoint));
                 var socket = pipe.CreateSocket();
-                if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
+            //    if (!_endPointToSockets.ContainsKey(pipe)) //dont add again in case it was detached
                     _endPointToSockets[pipe] = socket;
 
                 if (socket == null)
@@ -188,14 +189,13 @@ namespace PgmTransport
         }
 
 
-        private static void SaveUnsentData(TransportPipe pipe, IList<ArraySegment<byte>> data)
-        {
-            for (int i = 0; i < data.Count; i++)
-            {
-                if (i % 2 == 1) //eliminate headers
-                    pipe.MessageContainerConcurrentQueue.PutBackFailedMessage(data[i]);
-            }
-        }
+        //private static void SaveUnsentData(TransportPipe pipe, IList<ArraySegment<byte>> data)
+        //{
+        //    for (int i = 0; i < data.Count; i++)
+        //    {
+        //        pipe.MessageContainerConcurrentQueue.PutBackFailedMessage(data[i]);
+        //    }
+        //}
 
         public void Dispose()
         {

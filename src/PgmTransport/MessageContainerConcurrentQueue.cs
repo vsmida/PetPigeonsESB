@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using Shared;
 using System.Linq;
@@ -10,125 +13,230 @@ namespace PgmTransport
     internal interface IMessageContainer
     {
         void InsertMessage(ArraySegment<byte> message);
-        bool GetNextSegments(out MessageContainerConcurrentQueue.ChunkNode data);
-        void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
+        bool GetNextSegments(out IList<ArraySegment<byte>> data);
+        //  void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
         int Count { get; }
+        void FlushMessages(IList<ArraySegment<byte>> data);
     }
 
 
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
-        public class ChunkNode : IDisposable
+
+        private struct MutableArraySegment
         {
-            private readonly Pool<ChunkNode> _pool;
-            public readonly IList<ArraySegment<byte>> List;
-            public int Size;
-            public ChunkNode Node;
+            public byte[] Array;
+            public int Offset;
+            public int Count;
 
+            public int Count1;
+            public int Count2;
+            public int Count3;
+            public int Count4;
+            public int Count5;
+            public int Count6;
+            public int Count7;
+            public int Count8;
+            public int Count9;
+            public int Count10;
+            public int Count11;
+            public int Count12; //60
+            public int Count13; //64
 
-            public ChunkNode(IList<ArraySegment<byte>> list, Pool<ChunkNode> pool)
+            //    public MutableArraySegment(){}
+
+            public MutableArraySegment(byte[] array, int offset, int count)
             {
-                List = list;
-                _pool = pool;
-            }
+                Array = array;
+                Offset = offset;
+                Count = count;
 
-            public void Dispose()
-            {
-                List.Clear();
-                Size = 0;
-                Node = null;
-                _pool.PutBackItem(this);
+                Count1 = 1;
+                Count2 = 1;
+                Count3 = 1;
+                Count4 = 1;
+                Count5 = 1;
+                Count6 = 1;
+                Count7 = 1;
+                Count8 = 1;
+                Count9 = 1;
+                Count10 = 1;
+                Count11 = 1;
+                Count12 = 1;
+                Count13 = 1;
+
             }
         }
 
-        private readonly ConcurrentQueue<ArraySegment<byte>> _frames = new ConcurrentQueue<ArraySegment<byte>>();
-        private List<ArraySegment<byte>> _failedFrames = new List<ArraySegment<byte>>();
+        private class MutableSegmentList : IList<ArraySegment<byte>>
+        {
+            public long Offset;
+            public long UnderlyingCount;
+            public MutableArraySegment[] Array;
+
+
+            public IEnumerator<ArraySegment<byte>> GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+            public void Add(ArraySegment<byte> item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Clear()
+            {
+                UnderlyingCount = 0;
+            }
+
+            public bool Contains(ArraySegment<byte> item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void CopyTo(ArraySegment<byte>[] array, int arrayIndex)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool Remove(ArraySegment<byte> item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Count { get { return (int)UnderlyingCount; } }
+            public bool IsReadOnly { get; private set; }
+            public int IndexOf(ArraySegment<byte> item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Insert(int index, ArraySegment<byte> item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void RemoveAt(int index)
+            {
+                throw new NotImplementedException();
+            }
+
+            public ArraySegment<byte> this[int index]
+            {
+                get
+                {
+                    var mutableArraySegment = Array[(Offset + index) & (Array.Length - 1)];
+                    return new ArraySegment<byte>(mutableArraySegment.Array, mutableArraySegment.Offset, mutableArraySegment.Count);
+                }
+                set { throw new NotImplementedException(); }
+            }
+        }
+
         private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
-        private readonly Pool<ChunkNode> _chunkPool;
-        private ChunkNode _currentWritingChunk;
-        private ChunkNode _currentReadingChunk;
-        private SpinLock _spinLock = new SpinLock();
+        private readonly MutableArraySegment[] _backingArray;
+        private long _currentReadingSequence = 0;
+        private long _nextWritingSequence;
+        private long _maxReadableSequence = 0;
+        private readonly MutableSegmentList _returnList = new MutableSegmentList();
+        private long _maxNumberOfElementsPerChunk;
+        private readonly SpinWait _spinWait = new SpinWait();
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
+            _maxNumberOfElementsPerChunk = maxNumberOfElementsPerChunk;
             _maxNumberOfListElements = 2 * maxNumberOfElementsPerChunk;
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
-            _chunkPool = new Pool<ChunkNode>(() => new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfListElements), _chunkPool), 0);
-            _chunkPool.AddCapacity(100);
-            _currentReadingChunk = _chunkPool.GetItem();
-            _currentWritingChunk = _currentReadingChunk;
+            _backingArray = new MutableArraySegment[_maxNumberOfListElements];
+            //for (int i = 0; i < _backingArray.Count(); i++)
+            //{
+            //    _backingArray[i] = new MutableArraySegment();
+            //}
+            _returnList.Array = _backingArray;
         }
+
 
         public void InsertMessage(ArraySegment<byte> message)
         {
-            bool lockTaken = false;
-            var size = new ArraySegment<byte>(BitConverter.GetBytes(message.Count));
-            _spinLock.Enter(ref lockTaken);
+            var previousSequence = (Interlocked.Add(ref _nextWritingSequence, 2) - 2);
+
+
+            //claiming strat? //dont wrap
+            var volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
+           // while ( (volatileRead & (_maxNumberOfListElements - 1)) <= ((previousSequence & (_maxNumberOfListElements - 1)))    && (previousSequence / _maxNumberOfListElements > volatileRead / _maxNumberOfListElements)) //wrong condition
+            while ( previousSequence - volatileRead >= _maxNumberOfListElements) //wrong condition
             {
-                _currentWritingChunk.List.Add(size);
-                _currentWritingChunk.List.Add(message);
-                _currentWritingChunk.Size += message.Count + 4;
-                if (_currentWritingChunk.List.Count >= _maxNumberOfListElements || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
-                {
-                    _currentWritingChunk.Node = _chunkPool.GetItem();
-                    _currentWritingChunk = _currentWritingChunk.Node;
-                }
+                _spinWait.SpinOnce();
+                volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
             }
-            _spinLock.Exit(false);
+
+
+            var indexToWrite = previousSequence & (_maxNumberOfListElements-1); //get next writable sequence
+            var size = BitConverter.GetBytes(message.Count);
+            //write
+            _backingArray[indexToWrite].Array = size;
+            _backingArray[indexToWrite].Count = 4;
+            _backingArray[indexToWrite].Offset = 0;
+
+            _backingArray[indexToWrite + 1].Array = message.Array;
+            _backingArray[indexToWrite + 1].Count = message.Count;
+            _backingArray[indexToWrite + 1].Offset = message.Offset;
+            //end write
+
+            //commit phase
+            while (Interlocked.CompareExchange(ref _maxReadableSequence, previousSequence + 2, previousSequence) != (previousSequence))//commit after all other writers before me have commited
+            {
+                default(SpinWait).SpinOnce();
+            }
 
         }
 
-        public bool GetNextSegments(out ChunkNode data)
+        public bool GetNextSegments(out IList<ArraySegment<byte>> data)
         {
-            if (_failedFrames.Count > 0) //single threaded access to failed frames
+            //only one reader.
+            var maxReadableSequence = Thread.VolatileRead(ref _maxReadableSequence); //this is shared state, try to get last value
+
+            if (maxReadableSequence <= _currentReadingSequence) //can only equal though
             {
-                data = new ChunkNode(_failedFrames, _chunkPool) { Size = _failedFrames.Sum(x => x.Count) };
-                _failedFrames = new List<ArraySegment<byte>>();
-                return true;
+                data = null;
+                return false;
             }
 
-            bool lockTaken = false;
-            _spinLock.Enter(ref lockTaken);
-            {
+            _returnList.Offset = (int)(_currentReadingSequence & (_maxNumberOfListElements - 1)); //_currentReading not modified from other thread
 
-                if (_currentReadingChunk != _currentWritingChunk)
-                {
-                    data = _currentReadingChunk;
-                    _currentReadingChunk = _currentReadingChunk.Node;
-                    _spinLock.Exit(false);
-                    return true;
-                }
-                else
-                {
-                    if (_currentReadingChunk.Size == 0)
-                    {
-                        _spinLock.Exit(false);
-                        data = null;
-                        return false;
-                    }
-                    else
-                    {
-                        data = _currentReadingChunk;
-                        _currentReadingChunk.Node = _chunkPool.GetItem();
-                        _currentReadingChunk = _currentReadingChunk.Node;
-                        _currentWritingChunk = _currentReadingChunk;
-                        _spinLock.Exit(false);
-                        return true;
-                    }
-                }
 
-            }
+            //if (_maxNumberOfElementsPerChunk < (maxReadableSequence - _currentReadingSequence))
+            //    _returnList.UnderlyingCount = _maxNumberOfElementsPerChunk;
+            //else
+            //{
+            _returnList.UnderlyingCount = (maxReadableSequence - _currentReadingSequence);
+            //    }
+
+            data = _returnList;
+            return true;
+
         }
 
-        public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
+        public void FlushMessages(IList<ArraySegment<byte>> data)
         {
-            _failedFrames.Add(unsentMessage);
+            Thread.VolatileWrite(ref _currentReadingSequence, _currentReadingSequence + data.Count); //to show other threads
         }
+
+
+        //public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
+        //{
+        //    _failedFrames.Add(unsentMessage);
+        //}
 
         public int Count
         {
-            get { return _failedFrames.Count + _frames.Count; }
+            get { return (int)(_nextWritingSequence - _currentReadingSequence); }
         }
     }
 }

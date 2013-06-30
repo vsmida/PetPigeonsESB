@@ -14,7 +14,7 @@ namespace Bus.Transport.Network
 {
 
 
-    class CustomTcpWireSendingTransport : IWireSendingTransport
+    class CustomTcpWireSendingTransport
     {
         public void Dispose()
         {

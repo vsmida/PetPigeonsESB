@@ -3,7 +3,7 @@ using Bus.Transport.SendingPipe;
 
 namespace Bus.Transport.Network
 {
-    public class CustomWireSendingTransport : IWireSendingTransport
+    public class CustomWireSendingTransport
     {
         public void Dispose()
         {

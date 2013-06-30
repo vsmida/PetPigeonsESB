@@ -45,7 +45,7 @@ namespace PgmTransportTests
             var receiver = new TcpReceiver();
 
             var waitHandle = new AutoResetEvent(false);
-            var batchSize = 2000000;
+            var batchSize = 20000;
             receiver.RegisterCallback(ipEndPoint, s => OnCheckErrorMessageReceived(s, waitHandle, batchSize));
 
 
