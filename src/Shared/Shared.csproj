@@ -102,7 +102,7 @@
     <Compile Include="BackgroundThread.cs" />
     <Compile Include="ByteUtils.cs" />
     <Compile Include="CustomSocket.cs" />
-    <Compile Include="PreAllocatedArray.cs" />
+    <Compile Include="WrappingArrayView.cs" />
     <Compile Include="DisposableAction.cs" />
     <Compile Include="ExtendDictionary.cs" />
     <Compile Include="ExtendEnumerable.cs" />

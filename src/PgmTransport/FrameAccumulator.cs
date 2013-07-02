@@ -109,6 +109,7 @@ namespace PgmTransport
                 _copiedMessageLength = -1;
                 offset += messageLength;
                 count -= messageLength;
+               
             }
             else //end of fast path
             {

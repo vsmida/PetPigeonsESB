@@ -4,20 +4,26 @@ using System.Collections.Generic;
 
 namespace Shared
 {
-    public class PreAllocatedArray<T> : IList<T>
+    public class WrappingArrayView<T> : IList<T>
     {
         public readonly T[] Array;
+        public int Offset;
         public int OccuppiedLength;
-        private int _maxSize;
 
-        public PreAllocatedArray(int maxSize)
+        public WrappingArrayView(int maxSize)
         {
-            _maxSize = maxSize;
             Array = new T[maxSize];
             OccuppiedLength = 0;
         }
 
-        public PreAllocatedArray(List<T> failedFrames)
+        public WrappingArrayView(T[] array, int offset, int count)
+        {
+            Array = array;
+            OccuppiedLength = count;
+            Offset = offset;
+        }
+
+        public WrappingArrayView(List<T> failedFrames)
         {
             Array = failedFrames.ToArray();
             OccuppiedLength = failedFrames.Count;
@@ -41,7 +47,16 @@ namespace Shared
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            throw new System.NotImplementedException();
+            var elementsLeftUntilEndOfArray = Array.Length - Offset;
+            if (Count > elementsLeftUntilEndOfArray)
+            {
+                System.Array.Copy(Array, Offset, array, arrayIndex, elementsLeftUntilEndOfArray);
+                System.Array.Copy(Array, 0, array, arrayIndex + elementsLeftUntilEndOfArray, Count - elementsLeftUntilEndOfArray);
+            }
+            else
+            {
+                System.Array.Copy(Array, Offset, array, arrayIndex, Count);
+            }
         }
 
         public bool Remove(T item)
@@ -79,8 +94,8 @@ namespace Shared
 
         public T this[int index]
         {
-            get { return Array[index]; }
-            set { Array[index] = value; }
+            get { return Array[(Offset + index) % (Array.Length - 1)]; }
+            set { Array[index + Offset] = value; }
         }
     }
 }

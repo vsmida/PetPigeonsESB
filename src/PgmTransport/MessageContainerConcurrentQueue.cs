@@ -29,122 +29,21 @@ namespace PgmTransport
             public int Offset;
             public int Count;
 
-            public int Count1;
-            public int Count2;
-            public int Count3;
-            public int Count4;
-            public int Count5;
-            public int Count6;
-            public int Count7;
-            public int Count8;
-            public int Count9;
-            public int Count10;
-            public int Count11;
-            public int Count12; //60
-            public int Count13; //64
-
-            //    public MutableArraySegment(){}
-
             public MutableArraySegment(byte[] array, int offset, int count)
             {
                 Array = array;
                 Offset = offset;
                 Count = count;
-
-                Count1 = 1;
-                Count2 = 1;
-                Count3 = 1;
-                Count4 = 1;
-                Count5 = 1;
-                Count6 = 1;
-                Count7 = 1;
-                Count8 = 1;
-                Count9 = 1;
-                Count10 = 1;
-                Count11 = 1;
-                Count12 = 1;
-                Count13 = 1;
-
-            }
-        }
-
-        private class MutableSegmentList : IList<ArraySegment<byte>>
-        {
-            public long Offset;
-            public long UnderlyingCount;
-            public MutableArraySegment[] Array;
-
-
-            public IEnumerator<ArraySegment<byte>> GetEnumerator()
-            {
-                throw new NotImplementedException();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-
-            public void Add(ArraySegment<byte> item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Clear()
-            {
-                UnderlyingCount = 0;
-            }
-
-            public bool Contains(ArraySegment<byte> item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void CopyTo(ArraySegment<byte>[] array, int arrayIndex)
-            {
-                throw new NotImplementedException();
-            }
-
-            public bool Remove(ArraySegment<byte> item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public int Count { get { return (int)UnderlyingCount; } }
-            public bool IsReadOnly { get; private set; }
-            public int IndexOf(ArraySegment<byte> item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Insert(int index, ArraySegment<byte> item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void RemoveAt(int index)
-            {
-                throw new NotImplementedException();
-            }
-
-            public ArraySegment<byte> this[int index]
-            {
-                get
-                {
-                    var mutableArraySegment = Array[(Offset + index) & (Array.Length - 1)];
-                    return new ArraySegment<byte>(mutableArraySegment.Array, mutableArraySegment.Offset, mutableArraySegment.Count);
-                }
-                set { throw new NotImplementedException(); }
             }
         }
 
         private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
-        private readonly MutableArraySegment[] _backingArray;
+        private readonly ArraySegment<byte>[] _backingArray;
         private long _currentReadingSequence = 0;
         private long _nextWritingSequence;
         private long _maxReadableSequence = 0;
-        private readonly MutableSegmentList _returnList = new MutableSegmentList();
+        private readonly WrappingArrayView<ArraySegment<byte>> _returnList;
         private long _maxNumberOfElementsPerChunk;
         private readonly SpinWait _spinWait = new SpinWait();
 
@@ -153,12 +52,8 @@ namespace PgmTransport
             _maxNumberOfElementsPerChunk = maxNumberOfElementsPerChunk;
             _maxNumberOfListElements = 2 * maxNumberOfElementsPerChunk;
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
-            _backingArray = new MutableArraySegment[_maxNumberOfListElements];
-            //for (int i = 0; i < _backingArray.Count(); i++)
-            //{
-            //    _backingArray[i] = new MutableArraySegment();
-            //}
-            _returnList.Array = _backingArray;
+            _backingArray = new ArraySegment<byte>[_maxNumberOfListElements];
+            _returnList = new WrappingArrayView<ArraySegment<byte>>(_backingArray, 0, 0);
         }
 
 
@@ -169,8 +64,7 @@ namespace PgmTransport
 
             //claiming strat? //dont wrap
             var volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
-           // while ( (volatileRead & (_maxNumberOfListElements - 1)) <= ((previousSequence & (_maxNumberOfListElements - 1)))    && (previousSequence / _maxNumberOfListElements > volatileRead / _maxNumberOfListElements)) //wrong condition
-            while ( previousSequence - volatileRead >= _maxNumberOfListElements) //wrong condition
+            while ( previousSequence - volatileRead >= _maxNumberOfListElements) 
             {
                 _spinWait.SpinOnce();
                 volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
@@ -180,13 +74,15 @@ namespace PgmTransport
             var indexToWrite = previousSequence & (_maxNumberOfListElements-1); //get next writable sequence
             var size = BitConverter.GetBytes(message.Count);
             //write
-            _backingArray[indexToWrite].Array = size;
-            _backingArray[indexToWrite].Count = 4;
-            _backingArray[indexToWrite].Offset = 0;
+            _backingArray[indexToWrite] = new ArraySegment<byte>(size,0,4);
+            //_backingArray[indexToWrite].Array = size;
+            //_backingArray[indexToWrite].Count = 4;
+            //_backingArray[indexToWrite].Offset = 0;
 
-            _backingArray[indexToWrite + 1].Array = message.Array;
-            _backingArray[indexToWrite + 1].Count = message.Count;
-            _backingArray[indexToWrite + 1].Offset = message.Offset;
+            _backingArray[indexToWrite + 1] = message;
+            //_backingArray[indexToWrite + 1].Array = message.Array;
+            //_backingArray[indexToWrite + 1].Count = message.Count;
+            //_backingArray[indexToWrite + 1].Offset = message.Offset;
             //end write
 
             //commit phase
@@ -209,14 +105,7 @@ namespace PgmTransport
             }
 
             _returnList.Offset = (int)(_currentReadingSequence & (_maxNumberOfListElements - 1)); //_currentReading not modified from other thread
-
-
-            //if (_maxNumberOfElementsPerChunk < (maxReadableSequence - _currentReadingSequence))
-            //    _returnList.UnderlyingCount = _maxNumberOfElementsPerChunk;
-            //else
-            //{
-            _returnList.UnderlyingCount = (maxReadableSequence - _currentReadingSequence);
-            //    }
+            _returnList.OccuppiedLength = (int)(maxReadableSequence - _currentReadingSequence);
 
             data = _returnList;
             return true;
