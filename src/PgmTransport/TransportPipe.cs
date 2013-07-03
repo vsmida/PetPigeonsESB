@@ -28,36 +28,24 @@ namespace PgmTransport
 
         public bool Send(ArraySegment<byte> data, bool dontWait = false)
         {
-            if (MessageContainerConcurrentQueue.Count < _highWaterMark)
-                MessageContainerConcurrentQueue.InsertMessage(data);
-            else
+       
+            switch (_highWaterMarkBehavior)
             {
-                switch (_highWaterMarkBehavior)
-                {
-                    case HighWaterMarkBehavior.Drop:
+                case HighWaterMarkBehavior.Drop:
+                    if (MessageContainerConcurrentQueue.Count > _highWaterMark)
                         return false;
-                    case HighWaterMarkBehavior.Block:
-                        {
-                            if(MessageContainerConcurrentQueue.Count >= _highWaterMark)
-                            {
-                                if (dontWait)
-                                    return false;
-                                var wait = new SpinWait();
-                                while (MessageContainerConcurrentQueue.Count >= _highWaterMark)
-                                {
-                                    wait.SpinOnce();
-                                }
-                                MessageContainerConcurrentQueue.InsertMessage(data); 
-                            }
-                            else
-                            {
-                                MessageContainerConcurrentQueue.InsertMessage(data);                                
-                            }
-                            break;
-                        }
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+                    else
+                        MessageContainerConcurrentQueue.InsertMessage(data);
+                    break;
+
+                case HighWaterMarkBehavior.Block:
+                    {
+                        MessageContainerConcurrentQueue.InsertMessage(data);
+                        break;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+
             }
             return true;
         }

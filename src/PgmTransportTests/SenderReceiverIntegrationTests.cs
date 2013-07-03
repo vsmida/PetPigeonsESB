@@ -232,6 +232,7 @@ namespace PgmTransportTests
                 waitForMessage1.Set();
 
             }
+
           //  stream.Dispose();
         }
 
@@ -315,7 +316,6 @@ namespace PgmTransportTests
 
             }
             stream.Dispose();
-
         }
 
   

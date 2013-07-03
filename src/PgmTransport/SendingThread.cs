@@ -19,7 +19,7 @@ namespace PgmTransport
             public readonly TransportPipe Pipe;
             public readonly SocketAsyncEventArgs EventArgs;
 
-            public volatile bool HasSent;
+            public volatile bool IsSending;
             public Socket Socket;
 
             public SendingPipeInfo(TransportPipe pipe, SocketAsyncEventArgs eventArgs)
@@ -79,7 +79,7 @@ namespace PgmTransport
             }
             else
             {
-                sendingPipeInfo.HasSent = false;
+                sendingPipeInfo.IsSending = false;
             }
         }
 
@@ -110,7 +110,7 @@ namespace PgmTransport
 
                     foreach (var pipe in _transportPipes)
                     {
-                        if (pipe.HasSent)//wait for completion
+                        if (pipe.IsSending)//wait for completion
                             continue;
                         IList<ArraySegment<byte>> data;
                         var shouldSend = pipe.Pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
@@ -184,7 +184,7 @@ namespace PgmTransport
                     return;
                 }
                 pipe.EventArgs.BufferList = data;
-                pipe.HasSent = true;
+                pipe.IsSending = true;
                 if (!socket.SendAsync(pipe.EventArgs))
                     OnSendCompleted(null, pipe.EventArgs);
               //  CheckError(sentBytes, dataSize, socket);

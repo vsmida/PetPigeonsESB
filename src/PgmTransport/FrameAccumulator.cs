@@ -26,7 +26,7 @@ namespace PgmTransport
         }
 
 
-        public void AddFrame(byte[] buffer, int originalOffset, int originalCount)
+        public void  AddFrame(byte[] buffer, int originalOffset, int originalCount)
         {
             var offset = originalOffset;
             var count = originalCount;
