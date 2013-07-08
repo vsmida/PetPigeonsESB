@@ -6,27 +6,40 @@ using Shared;
 
 namespace PgmTransport
 {
+    public interface IMutableStreamProvider
+    {
+        MutableMemoryStream GetStream();
+    }
+
+
     class FrameAccumulator
     {
+
+        private class SimpleStreamProvider : IMutableStreamProvider
+        {
+            private readonly MutableMemoryStream _stream = new MutableMemoryStream();
+            public MutableMemoryStream GetStream()
+            {
+                return _stream;
+            }
+        }
+
         public event Action<Stream> MessageReceived;
-        private readonly Pool<byte[]> _bufferPool;
-        private readonly MutableMemoryStream _stream = new MutableMemoryStream();
+        private readonly IMutableStreamProvider _streamProvider;
         private byte[] _spareBuffer;
         private int _spareBufferCount;
         private int _spareLengthBufferCount;
         private readonly byte[] _spareLengthBuffer = new byte[4];
         private int _copiedMessageLength = -1;
-        private readonly int _buffersSize;
 
-        public FrameAccumulator(int buffersSize)
+        public FrameAccumulator(IMutableStreamProvider streamProvider = null)
         {
-            _buffersSize = buffersSize;
-            _bufferPool = new Pool<byte[]>(() => new byte[_buffersSize],10);
-            _spareBuffer = _bufferPool.GetItem();
+            _streamProvider = streamProvider ?? new SimpleStreamProvider();
+            _spareBuffer = new byte[1024 * 16];
         }
 
 
-        public void  AddFrame(byte[] buffer, int originalOffset, int originalCount)
+        public void AddFrame(byte[] buffer, int originalOffset, int originalCount)
         {
             var offset = originalOffset;
             var count = originalCount;
@@ -58,8 +71,9 @@ namespace PgmTransport
                     if (count >= lengthLeftToCopyForMessage)
                     {
                         Array.Copy(buffer, offset, _spareBuffer, _spareBufferCount, lengthLeftToCopyForMessage); //finish copying to spare buffer
-                        _stream.SetBuffer(_spareBuffer, 0, _copiedMessageLength);
-                        MessageReceived(_stream);
+                        var stream = _streamProvider.GetStream();
+                        stream.SetBuffer(_spareBuffer, 0, _copiedMessageLength);
+                        MessageReceived(stream);
                         offset += lengthLeftToCopyForMessage;
                         count -= lengthLeftToCopyForMessage;
                         _copiedMessageLength = -1;
@@ -104,12 +118,13 @@ namespace PgmTransport
         {
             if (count >= messageLength - _spareBufferCount) //fast path
             {
-                _stream.SetBuffer(buffer, offset, messageLength);
-                MessageReceived(_stream);
+                var stream = _streamProvider.GetStream();
+                stream.SetBuffer(buffer, offset, messageLength);
+                MessageReceived(stream);
                 _copiedMessageLength = -1;
                 offset += messageLength;
                 count -= messageLength;
-               
+
             }
             else //end of fast path
             {

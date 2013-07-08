@@ -7,19 +7,58 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Disruptor;
+using Disruptor.Dsl;
 using Shared;
 using log4net;
 
 namespace PgmTransport
 {
+
+
+    public class ReceivedStreamHandler :IEventHandler<Stream>
+    {
+        private readonly List<Action<Stream>> _subscribers;
+
+        public ReceivedStreamHandler(List<Action<Stream>> subscribers)
+        {
+            _subscribers = subscribers;
+        }
+
+        public void OnNext(Stream data, long sequence, bool endOfBatch)
+        {
+            for (int i = 0; i < _subscribers.Count; i++)
+            {
+                _subscribers[i](data);
+            }
+        }
+    }
+
+   public class SocketDataProcessingMachinery
+   {
+       public RingBuffer<Stream> WorkQueue;
+
+       public SocketDataProcessingMachinery(IEnumerable<Action<Stream>> actions, int highWaterMark, TaskScheduler taskScheduler = null)
+       {
+           if(!NumericUtils.IsPowerOfTwo(highWaterMark))
+               throw new ArgumentException("HWM must be a power of two");
+           var disruptor = new Disruptor<Stream>(() => new MutableMemoryStream(), new MultiThreadedClaimStrategy(1024),
+                                                 new SleepingWaitStrategy(), taskScheduler ?? TaskScheduler.Current);
+           disruptor.HandleEventsWith(new ReceivedStreamHandler(new List<Action<Stream>>(actions)));
+
+
+       }
+   }
     public abstract class SocketReceiver : IDisposable
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
         private readonly Dictionary<IPEndPoint, List<Socket>> _endpointToReceiveSockets = new Dictionary<IPEndPoint, List<Socket>>();
         private readonly Dictionary<Socket, FrameAccumulator> _receivingSockets = new Dictionary<Socket, FrameAccumulator>();
-        private readonly Pool<SocketAsyncEventArgs> _eventArgsPool = new Pool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
+        private readonly ConcurrentStackPool<SocketAsyncEventArgs> _eventArgsPool = new ConcurrentStackPool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketReceiver));
-        private readonly Pool<byte[]> _bufferPool;
+        private readonly ConcurrentStackPool<byte[]> _bufferPool;
         public readonly Dictionary<IPEndPoint, Action<Stream>> EventsForMessagesReceived = new Dictionary<IPEndPoint, Action<Stream>>();//todo : better
         private bool _disposing = false;
         private readonly object _disposeLock = new object();
@@ -28,7 +67,7 @@ namespace PgmTransport
 
         public SocketReceiver()
         {
-            _bufferPool = new Pool<byte[]>(() => new byte[_bufferLength], 100);
+            _bufferPool = new ConcurrentStackPool<byte[]>(() => new byte[_bufferLength], 100);
         }
 
         public void ListenToEndpoint(IPEndPoint endpoint)
@@ -151,7 +190,7 @@ namespace PgmTransport
                 }
                 socketsForEndpoint.Add(receiveSocket);
             }
-            var frameAccumulator = new FrameAccumulator(_bufferLength);
+            var frameAccumulator = new FrameAccumulator();
             var localEndPoint = (IPEndPoint)socket.LocalEndPoint;
             Action<Stream> act;
             lock (EventsForMessagesReceived)

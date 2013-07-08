@@ -23,26 +23,12 @@ namespace PgmTransport
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
 
-        private struct MutableArraySegment
-        {
-            public byte[] Array;
-            public int Offset;
-            public int Count;
-
-            public MutableArraySegment(byte[] array, int offset, int count)
-            {
-                Array = array;
-                Offset = offset;
-                Count = count;
-            }
-        }
-
-        private readonly int _maxNumberOfListElements;
+      private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
         private readonly ArraySegment<byte>[] _backingArray;
-        private long _currentReadingSequence = 0;
+        private long _currentReadingSequence;
         private long _nextWritingSequence;
-        private long _maxReadableSequence = 0;
+        private long _maxReadableSequence;
         private readonly WrappingArrayView<ArraySegment<byte>> _returnList;
         private long _maxNumberOfElementsPerChunk;
         private readonly SpinWait _spinWait = new SpinWait();
@@ -83,7 +69,7 @@ namespace PgmTransport
             //_backingArray[indexToWrite + 1].Array = message.Array;
             //_backingArray[indexToWrite + 1].Count = message.Count;
             //_backingArray[indexToWrite + 1].Offset = message.Offset;
-            //end write
+            ////end write
 
             //commit phase
             while (Interlocked.CompareExchange(ref _maxReadableSequence, previousSequence + 2, previousSequence) != (previousSequence))//commit after all other writers before me have commited

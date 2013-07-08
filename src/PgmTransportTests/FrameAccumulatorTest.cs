@@ -17,7 +17,7 @@ namespace PgmTransportTests
         [SetUp]
         public void setup()
         {
-            _frameAccumulator = new FrameAccumulator(1000);
+            _frameAccumulator = new FrameAccumulator();
             _messagesReceived = 0;
         }
 
@@ -179,17 +179,17 @@ namespace PgmTransportTests
         [Test]
         public void should_handle_getting_message_too_big_for_spare_buffer()
         {
-            _frameAccumulator = new FrameAccumulator(4);
+            _frameAccumulator = new FrameAccumulator();
 
             should_be_able_to_return_multiple_messages_perfect_delimitation();
             setup();
-            _frameAccumulator = new FrameAccumulator(5);
+            _frameAccumulator = new FrameAccumulator();
             should_handle_getting_length_then_message();
             setup();
-            _frameAccumulator = new FrameAccumulator(5);
+            _frameAccumulator = new FrameAccumulator();
             should_handle_getting_length_then_split_message();
             setup();
-            _frameAccumulator = new FrameAccumulator(5);
+            _frameAccumulator = new FrameAccumulator();
             should_handle_not_getting_full_length_2_buffers_with_offset_on_second();
         }
 

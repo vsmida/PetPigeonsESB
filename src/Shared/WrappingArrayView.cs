@@ -9,18 +9,16 @@ namespace Shared
         public readonly T[] Array;
         public int Offset;
         public int OccuppiedLength;
-
-        public WrappingArrayView(int maxSize)
-        {
-            Array = new T[maxSize];
-            OccuppiedLength = 0;
-        }
+        private readonly int _indexMask;
 
         public WrappingArrayView(T[] array, int offset, int count)
         {
             Array = array;
             OccuppiedLength = count;
             Offset = offset;
+            _indexMask = Array.Length - 1;
+            if(!NumericUtils.IsPowerOfTwo(array.Length))
+                throw new ArgumentException("array length must be a power of two");
         }
 
         public WrappingArrayView(List<T> failedFrames)
@@ -94,7 +92,10 @@ namespace Shared
 
         public T this[int index]
         {
-            get { return Array[(Offset + index) % (Array.Length - 1)]; }
+            get
+            {
+               return Array[(Offset + index) % (_indexMask)];
+            }
             set { Array[index + Offset] = value; }
         }
     }
