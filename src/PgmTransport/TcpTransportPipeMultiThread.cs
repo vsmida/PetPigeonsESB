@@ -22,7 +22,7 @@ namespace PgmTransport
 
         public override int MaximumBatchCount
         {
-            get { return 1024 * 2; }
+            get { return 1024 * 1; }
         }
 
         public override Socket CreateSocket()

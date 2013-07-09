@@ -197,7 +197,7 @@ namespace Shared
                     buffer[offset + byteCount] = _buffer[_position + byteCount];
             }
             else
-               // System.Buffer.BlockCopy(_buffer, _position, buffer, offset, n);
+              // System.Buffer.BlockCopy(_buffer, _position, buffer, offset, n);
                 Array.Copy(_buffer, _position, buffer, offset, n);
 
             _position += n;

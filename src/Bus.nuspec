@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>PetPigeons</id>
+    <version>0.0.1</version>
+    <authors>Jean-Jacques Bouzaglou</authors>
+    <owners>Jean-Jacques Bouzaglou</owners>
+    <licenseUrl>https://github.com/jbouzaglou/PetPigeonsESB/blob/master/COPYING.txt</licenseUrl>
+    <projectUrl>https://github.com/jbouzaglou/PetPigeonsESB</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>A peer to peer service bus</description>
+    <releaseNotes>Experimental release</releaseNotes>
+    <copyright>Copyright 2013</copyright>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>

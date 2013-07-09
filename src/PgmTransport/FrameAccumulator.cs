@@ -60,7 +60,8 @@ namespace PgmTransport
                     if (_spareLengthBufferCount != 4)//could not get full length again
                         return;
 
-                    _copiedMessageLength = BitConverter.ToInt32(_spareLengthBuffer, 0);
+                   // _copiedMessageLength = BitConverter.ToInt32(_spareLengthBuffer, 0);
+                    _copiedMessageLength = ByteUtils.ReadInt(_spareBuffer, 0);
                     _spareLengthBufferCount = 0;
 
                     GetFullMessageOrCopyToSpareBuffer(buffer, ref count, _copiedMessageLength, ref offset);
@@ -92,7 +93,8 @@ namespace PgmTransport
                 {
                     if (count >= 4) //fast path can at least read lentgth
                     {
-                        var messageLength = BitConverter.ToInt32(buffer, offset);
+                       // var messageLength = BitConverter.ToInt32(buffer, offset);
+                        var messageLength = ByteUtils.ReadInt(buffer, offset);
                         count -= 4;
                         offset += 4;
                         GetFullMessageOrCopyToSpareBuffer(buffer, ref count, messageLength, ref offset);

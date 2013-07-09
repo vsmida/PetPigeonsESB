@@ -67,7 +67,7 @@ namespace PgmTransport
                 _commands.Add(() => { CreateSocketForEndpoint(sendingPipeInfo); });
                 return;
             }
-            sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.FlushMessages(e.BufferList);
+          //  sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.FlushMessages(e.BufferList);
           //  sendingPipeInfo.HasSent = true;//commit
 
             IList<ArraySegment<byte>> data;
@@ -185,6 +185,7 @@ namespace PgmTransport
                 }
                 pipe.EventArgs.BufferList = data;
                 pipe.IsSending = true;
+                pipe.Pipe.MessageContainerConcurrentQueue.FlushMessages(data);
                 if (!socket.SendAsync(pipe.EventArgs))
                     OnSendCompleted(null, pipe.EventArgs);
               //  CheckError(sentBytes, dataSize, socket);
