@@ -61,7 +61,7 @@ namespace PgmTransport
                         return;
 
                    // _copiedMessageLength = BitConverter.ToInt32(_spareLengthBuffer, 0);
-                    _copiedMessageLength = ByteUtils.ReadInt(_spareBuffer, 0);
+                    _copiedMessageLength = ByteUtils.ReadInt(_spareLengthBuffer, 0);
                     _spareLengthBufferCount = 0;
 
                     GetFullMessageOrCopyToSpareBuffer(buffer, ref count, _copiedMessageLength, ref offset);

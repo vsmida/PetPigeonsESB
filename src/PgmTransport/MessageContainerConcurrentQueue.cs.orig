@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using Shared;
 using System.Linq;
@@ -10,135 +13,105 @@ namespace PgmTransport
     internal interface IMessageContainer
     {
         void InsertMessage(ArraySegment<byte> message);
-        bool GetNextSegments(out MessageContainerConcurrentQueue.ChunkNode data);
-        void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
+        bool GetNextSegments(out IList<ArraySegment<byte>> data);
+        //  void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
         int Count { get; }
+        void FlushMessages(IList<ArraySegment<byte>> data);
     }
 
 
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
 
-
-        public class ChunkNode : IDisposable
-        {
-            private readonly Pool<ChunkNode> _pool;
-            public readonly IList<ArraySegment<byte>> List;
-            public int Size;
-            public ChunkNode Node;
-
-
-            public ChunkNode(IList<ArraySegment<byte>> list, Pool<ChunkNode> pool)
-            {
-                List = list;
-                _pool = pool;
-            }
-
-            public void Dispose()
-            {
-                List.Clear();
-                Size = 0;
-                Node = null;
-                _pool.PutBackItem(this);
-            }
-        }
-
-        private readonly ConcurrentQueue<ArraySegment<byte>> _frames = new ConcurrentQueue<ArraySegment<byte>>();
-        private List<ArraySegment<byte>> _failedFrames = new List<ArraySegment<byte>>();
-        private readonly int _maxNumberOfElementsPerChunk;
+      private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
-        private readonly Pool<ChunkNode> _chunkPool;
-        private ChunkNode _currentWritingChunk;
-        private ChunkNode _currentReadingChunk;
-        //private volatile int _chunkWrittenCount = 0; // one writer for now
-        //private volatile int _chunkReadCount; //one reader
-        //private int _canSteal = 1;  //0 cant , 1 can
-        //private volatile bool _isEmpty = true;
-        private SpinLock _spinLock = new SpinLock();
+        private readonly ArraySegment<byte>[] _backingArray;
+        private long _currentReadingSequence;
+        private long _nextWritingSequence;
+        private long _maxReadableSequence;
+        private readonly WrappingArrayView<ArraySegment<byte>> _returnList;
+        private long _maxNumberOfElementsPerChunk;
+        private readonly SpinWait _spinWait = new SpinWait();
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
-            _maxNumberOfElementsPerChunk = 2 * maxNumberOfElementsPerChunk;
+            _maxNumberOfElementsPerChunk = maxNumberOfElementsPerChunk;
+            _maxNumberOfListElements = 2 * maxNumberOfElementsPerChunk;
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
-            _chunkPool = new Pool<ChunkNode>(() => new ChunkNode(new List<ArraySegment<byte>>(_maxNumberOfElementsPerChunk), _chunkPool), 0);
-            _chunkPool.AddCapacity(100);
-            _currentReadingChunk = _chunkPool.GetItem();
-            _currentWritingChunk = _currentReadingChunk;
+            _backingArray = new ArraySegment<byte>[_maxNumberOfListElements];
+            _returnList = new WrappingArrayView<ArraySegment<byte>>(_backingArray, 0, 0);
         }
+
 
         public void InsertMessage(ArraySegment<byte> message)
         {
-            bool lockTaken = false;
-            var size = new ArraySegment<byte>(BitConverter.GetBytes(message.Count));
-            _spinLock.Enter(ref lockTaken);
+            var previousSequence = (Interlocked.Add(ref _nextWritingSequence, 2) - 2);
+
+
+            //claiming strat? //dont wrap
+            var volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
+            while ( previousSequence - volatileRead >= _maxNumberOfListElements) 
             {
-                _currentWritingChunk.List.Add(size);
-                _currentWritingChunk.List.Add(message);
-                _currentWritingChunk.Size += message.Count + 4;
-                if (_currentWritingChunk.List.Count == _maxNumberOfElementsPerChunk || _currentWritingChunk.Size >= _maxTotalSizePerChunk) //need new chunk anyway
-                {
-                    _currentWritingChunk.Node = _chunkPool.GetItem();
-                    _currentWritingChunk = _currentWritingChunk.Node;
-                }
+                _spinWait.SpinOnce();
+                volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
             }
-            _spinLock.Exit(false);
+
+
+            var indexToWrite = previousSequence & (_maxNumberOfListElements-1); //get next writable sequence
+            var size = BitConverter.GetBytes(message.Count);
+            //write
+            _backingArray[indexToWrite] = new ArraySegment<byte>(size,0,4);
+            //_backingArray[indexToWrite].Array = size;
+            //_backingArray[indexToWrite].Count = 4;
+            //_backingArray[indexToWrite].Offset = 0;
+
+            _backingArray[indexToWrite + 1] = message;
+            //_backingArray[indexToWrite + 1].Array = message.Array;
+            //_backingArray[indexToWrite + 1].Count = message.Count;
+            //_backingArray[indexToWrite + 1].Offset = message.Offset;
+            ////end write
+
+            //commit phase
+            while (Interlocked.CompareExchange(ref _maxReadableSequence, previousSequence + 2, previousSequence) != (previousSequence))//commit after all other writers before me have commited
+            {
+                default(SpinWait).SpinOnce();
+            }
 
         }
 
-        public bool GetNextSegments(out ChunkNode data)
+        public bool GetNextSegments(out IList<ArraySegment<byte>> data)
         {
-            if (_failedFrames.Count > 0) //single threaded access to failed frames
+            //only one reader.
+            var maxReadableSequence = Thread.VolatileRead(ref _maxReadableSequence); //this is shared state, try to get last value
+
+            if (maxReadableSequence <= _currentReadingSequence) //can only equal though
             {
-                data = new ChunkNode(_failedFrames, _chunkPool) { Size = _failedFrames.Sum(x => x.Count) };
-                _failedFrames = new List<ArraySegment<byte>>();
-                return true;
+                data = null;
+                return false;
             }
 
-            bool lockTaken = false;
-            _spinLock.Enter(ref lockTaken);
-            {
+            _returnList.Offset = (int)(_currentReadingSequence & (_maxNumberOfListElements - 1)); //_currentReading not modified from other thread
+            _returnList.OccuppiedLength = (int)(maxReadableSequence - _currentReadingSequence);
 
-                if (_currentReadingChunk != _currentWritingChunk)
-                {
-                    data = _currentReadingChunk;
-                    _currentReadingChunk = _currentReadingChunk.Node;
-                    _spinLock.Exit(false);
-                    return true;
-                }
-                else
-                {
-                    if (_currentReadingChunk.Size == 0)
-                    {
-                        _spinLock.Exit(false);
-                        data = null;
-                        return false;
-                    }
-                    else
-                    {
-                        data = _currentReadingChunk;
-                        _currentReadingChunk.Node = _chunkPool.GetItem();
-                        _currentReadingChunk = _currentReadingChunk.Node;
-                        _currentWritingChunk = _currentReadingChunk;
-                        _spinLock.Exit(false);
-                        return true;
-                    }
-                }
-
-            }
-
-
+            data = _returnList;
+            return true;
 
         }
 
-
-        public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
+        public void FlushMessages(IList<ArraySegment<byte>> data)
         {
-            _failedFrames.Add(unsentMessage);
+            Thread.VolatileWrite(ref _currentReadingSequence, _currentReadingSequence + data.Count); //to show other threads
         }
+
+
+        //public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
+        //{
+        //    _failedFrames.Add(unsentMessage);
+        //}
 
         public int Count
         {
-            get { return _failedFrames.Count + _frames.Count; }
+            get { return (int)(_nextWritingSequence - _currentReadingSequence); }
         }
     }
 }

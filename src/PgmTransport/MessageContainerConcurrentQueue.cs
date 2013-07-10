@@ -37,15 +37,8 @@ namespace PgmTransport
         {
             _maxNumberOfElementsPerChunk = maxNumberOfElementsPerChunk;
             _maxNumberOfListElements = 2 * maxNumberOfElementsPerChunk;
-
-
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
             _backingArray = new ArraySegment<byte>[_maxNumberOfListElements];
-            for (int i = 0; i < maxNumberOfElementsPerChunk; i++)
-            {
-                _backingArray[2*i] = new ArraySegment<byte>(new byte[4],0,4);
-            }
-
             _returnList = new WrappingArrayView<ArraySegment<byte>>(_backingArray, 0, 0);
         }
 
@@ -57,18 +50,17 @@ namespace PgmTransport
 
             //claiming strat? //dont wrap
             var volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
-            while ( previousSequence - volatileRead >= _maxNumberOfListElements)
+            while ( previousSequence - volatileRead >= _maxNumberOfListElements) 
             {
-                Thread.Sleep(0);
-              //  _spinWait.SpinOnce();
+                _spinWait.SpinOnce();
                 volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
             }
 
 
             var indexToWrite = previousSequence & (_maxNumberOfListElements-1); //get next writable sequence
-         //   var size = BitConverter.GetBytes(message.Count);
+            var size = BitConverter.GetBytes(message.Count);
             //write
-            ByteUtils.WriteInt(_backingArray[indexToWrite].Array, 0, message.Count);
+            _backingArray[indexToWrite] = new ArraySegment<byte>(size,0,4);
             //_backingArray[indexToWrite].Array = size;
             //_backingArray[indexToWrite].Count = 4;
             //_backingArray[indexToWrite].Offset = 0;
@@ -82,7 +74,7 @@ namespace PgmTransport
             //commit phase
             while (Interlocked.CompareExchange(ref _maxReadableSequence, previousSequence + 2, previousSequence) != (previousSequence))//commit after all other writers before me have commited
             {
-                _spinWait.SpinOnce();
+                default(SpinWait).SpinOnce();
             }
 
         }

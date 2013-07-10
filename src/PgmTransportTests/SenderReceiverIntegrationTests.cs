@@ -45,7 +45,7 @@ namespace PgmTransportTests
             var receiver = new TcpReceiver();
 
             var waitHandle = new AutoResetEvent(false);
-            var batchSize = 20000;
+            var batchSize = 2000000;
             receiver.RegisterCallback(ipEndPoint, s => OnCheckErrorMessageReceived(s, waitHandle, batchSize));
 
 
@@ -254,7 +254,7 @@ namespace PgmTransportTests
 
             Thread senderThread = new Thread(() =>
             {
-                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 40).Select(x => x.ToString())));
+                _sentBuffer = Encoding.ASCII.GetBytes(String.Join("", Enumerable.Range(0, 35).Select(x => x.ToString())));
               //  sender.Send(ipEndPoint, Encoding.ASCII.GetBytes("stop"));
                 sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
                 _messSentNumber++;
