@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Bus.Dispatch;
 using Bus.Serializer;
 using Bus.Transport.SendingPipe;
@@ -26,17 +27,18 @@ namespace Bus.Transport.Network
         public WireTransportType TransportType { get { return WireTransportType.CustomTcpTransport; } }
         private readonly MessageWireDataSerializer _serializer;
         private SendingTransport _transport;
+        private readonly TaskScheduler _taskScheduler;
         private readonly Dictionary<CustomTcpEndpoint, TransportPipe> _endpointToPipe = new Dictionary<CustomTcpEndpoint, TransportPipe>();
 
-        public CustomTcpWireSendingTransport(ISerializationHelper helper)
+        public CustomTcpWireSendingTransport(ISerializationHelper helper, TaskScheduler taskScheduler)
         {
+            _taskScheduler = taskScheduler;
             _serializer = new MessageWireDataSerializer(helper);
-
         }
 
         public void Initialize()
         {
-            _transport = new SendingTransport(1);
+            _transport = new SendingTransport(1,_taskScheduler);
         }
 
         public void SendMessage(WireSendingMessage message, IEndpoint endpoint)

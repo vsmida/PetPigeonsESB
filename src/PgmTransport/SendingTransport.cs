@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PgmTransport
 {
@@ -8,11 +9,11 @@ namespace PgmTransport
     {
         private readonly List<SendingThread> _sendingThreads = new List<SendingThread>();
         private readonly ConcurrentDictionary<TransportPipe, int> _pipesToThreadNumber = new ConcurrentDictionary<TransportPipe, int>();
-        public SendingTransport(int numberOfSendingThreads = 1)
+        public SendingTransport(int numberOfSendingThreads = 1, TaskScheduler scheduler = null)
         {
             for (int i = 0; i < numberOfSendingThreads; i++)
             {
-                _sendingThreads.Add(new SendingThread());
+                _sendingThreads.Add(new SendingThread(scheduler ?? TaskScheduler.Current));
             }
         }
 

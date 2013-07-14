@@ -10,13 +10,15 @@ namespace Shared
         public int Offset;
         public int OccuppiedLength;
         private readonly int _indexMask;
+        private readonly int _arrayLength;
 
         public WrappingArrayView(T[] array, int offset, int count)
         {
             Array = array;
             OccuppiedLength = count;
             Offset = offset;
-            _indexMask = Array.Length - 1;
+            _arrayLength = Array.Length;
+            _indexMask = _arrayLength - 1;
             if(!NumericUtils.IsPowerOfTwo(array.Length))
                 throw new ArgumentException("array length must be a power of two");
         }
@@ -25,6 +27,7 @@ namespace Shared
         {
             Array = failedFrames.ToArray();
             OccuppiedLength = failedFrames.Count;
+            _arrayLength = Array.Length;
         }
 
         public void Add(T item)
@@ -45,7 +48,7 @@ namespace Shared
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            var elementsLeftUntilEndOfArray = Array.Length - Offset;
+            var elementsLeftUntilEndOfArray = _arrayLength - Offset;
             if (Count > elementsLeftUntilEndOfArray)
             {
                 System.Array.Copy(Array, Offset, array, arrayIndex, elementsLeftUntilEndOfArray);

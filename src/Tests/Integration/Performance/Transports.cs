@@ -25,19 +25,30 @@ namespace Tests.Integration.Performance
         private class EventProcessorInterlockedIncrement : IEventHandler<InboundMessageProcessingEntry>
         {
             public static int MessageCount;
-            public static List<double> latenciesInMicrosec = new List<double>(260000);
+            public static List<double> latenciesInMicrosec = new List<double>(2000000);
             public static Stopwatch Watch;
 
             private static readonly PerformanceTests.LatencyMessageSerializer _serializer = new PerformanceTests.LatencyMessageSerializer();
+            private AutoResetEvent _waitHandleForNumberOfMessages;
+            private int _messagesCountTotal;
+
+            public EventProcessorInterlockedIncrement(AutoResetEvent waitHandleForNumberOfMessages, int messagesCountTotal)
+            {
+                _messagesCountTotal = messagesCountTotal;
+                _waitHandleForNumberOfMessages = waitHandleForNumberOfMessages;
+            }
 
 
             public void OnNext(InboundMessageProcessingEntry data, long sequence, bool endOfBatch)
             {
                 MessageCount++;
                 Watch.Stop();
+             //   Thread.SpinWait(100);
                 var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
-                     latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (double)(Stopwatch.Frequency) * 1000000);
-                     Watch.Start();
+                latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (double)(Stopwatch.Frequency) * 1000000);
+                Watch.Start();
+                if (MessageCount == _messagesCountTotal)
+                    _waitHandleForNumberOfMessages.Set();
 
 
             }
@@ -47,28 +58,33 @@ namespace Tests.Integration.Performance
         [Test]
         public void custom_transport_test()
         {
-
-            var fakeCOnfig = new DummyCustomTcpTransportConfig {Port = NetworkUtils.GetRandomUnusedPort()};
+           // Thread.BeginThreadAffinity();
+           //ThreadUtils.CurrentProcessThread.ProcessorAffinity = new IntPtr(1 << 1);
+            var fakeCOnfig = new DummyCustomTcpTransportConfig { Port = NetworkUtils.GetRandomUnusedPort() };
             var endpoint = new CustomTcpEndpoint(new IPEndPoint(IPAddress.Loopback, fakeCOnfig.Port));
+        //    var taskScheduler = new RoundRobinThreadAffinedTaskScheduler(1, 1);
+       //     var taskScheduler2 = new RoundRobinThreadAffinedTaskScheduler(1, 0);
+            //     var taskScheduler = TaskScheduler.Current;
             var transportReceive = new CustomTcpTransportWireDataReceiver(fakeCOnfig,
                                                                           new SerializationHelper(new AssemblyScanner()));
 
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                             new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)), 
-                                                             new SleepingWaitStrategy(), 
-                                                             TaskScheduler.Default);
-
-            disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement());
+                                                             new MultiThreadedClaimStrategy((int)Math.Pow(2, 13)),
+                                                             new SleepingWaitStrategy(),
+                                                             TaskScheduler.Current);
+            AutoResetEvent waitHandleForNumberOfMessages = new AutoResetEvent(false);
+            var messagesCountTotal = 1000 * 1000 * 1;
+            disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement(waitHandleForNumberOfMessages, messagesCountTotal));
             disruptor.Start();
             transportReceive.Initialize(disruptor.RingBuffer);
-            var transportSend = new CustomTcpWireSendingTransport(new SerializationHelper(new AssemblyScanner()));
+            var transportSend = new CustomTcpWireSendingTransport(new SerializationHelper(new AssemblyScanner()), null);
             transportSend.Initialize();
 
-            for (int t = 0; t < 50; t++)
+            for (int t = 0; t < 10; t++)
             {
+                GC.Collect(2, GCCollectionMode.Forced, true);
                 Stopwatch watch = new Stopwatch();
                 Console.WriteLine("starting loop");
-                var messagesCountTotal = 1000000;
                 // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
@@ -83,7 +99,7 @@ namespace Tests.Integration.Performance
                                                                         var wireSendingMessage =
                                                                             new WireSendingMessage(
                                                                                 new MessageWireData(
-                                                                                    typeof (FakePersistingCommand).
+                                                                                    typeof(FakePersistingCommand).
                                                                                         FullName,
                                                                                     Guid.Empty,
                                                                                     new PeerId(11),
@@ -97,18 +113,16 @@ namespace Tests.Integration.Performance
 
                                                                     },
                                                                 messagesCountTotal);
-              
-                SpinWait wait = new SpinWait();
-                while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
-                {
-                    wait.SpinOnce();
-                }
-                Thread.Sleep(500);
-                if(EventProcessorInterlockedIncrement.MessageCount > messagesCountTotal)
-                   Assert.Fail("Too many messages");
+
+                waitHandleForNumberOfMessages.WaitOne();
+
 
                 performanceMeasure.Dispose();
+                Thread.Sleep(500);
+                if (EventProcessorInterlockedIncrement.MessageCount > messagesCountTotal)
+                    Assert.Fail("Too many messages");
                 EventProcessorInterlockedIncrement.MessageCount = 0;
+
                 var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();
                 Console.WriteLine(statistics);
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
@@ -127,19 +141,20 @@ namespace Tests.Integration.Performance
             var endpoint = new ZmqEndpoint(fakeTransportConfiguration.GetConnectEndpoint());
             var wireSendingMessage = new WireSendingMessage(new MessageWireData(typeof(FakePersistingCommand).FullName, Guid.NewGuid(), new PeerId(4), BusSerializer.Serialize(new FakePersistingCommand(1))), endpoint);
             var disruptor = new Disruptor<InboundMessageProcessingEntry>(() => new InboundMessageProcessingEntry(),
-                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 15)),
+                                                                         new MultiThreadedClaimStrategy((int)Math.Pow(2, 13)),
                                                                          new SleepingWaitStrategy(),
-                                                                         TaskScheduler.Default);
-            disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement());
+                                                                         TaskScheduler.Current);
+            AutoResetEvent waitHandleForNumberOfMessages = new AutoResetEvent(false);
+            var messagesCountTotal = 1000 * 1000 * 1;
+            disruptor.HandleEventsWith(new EventProcessorInterlockedIncrement(waitHandleForNumberOfMessages, messagesCountTotal));
             disruptor.Start();
             transportReceive.Initialize(disruptor.RingBuffer);
-           // transportSend.SendMessage(wireSendingMessage, endpoint);
-            for (int t = 0;t < 20; t++)
+            // transportSend.SendMessage(wireSendingMessage, endpoint);
+            for (int t = 0; t < 20; t++)
             {
-                
+                GC.Collect(2, GCCollectionMode.Forced, true);
                 Stopwatch watch = new Stopwatch();
-                var messagesCountTotal = 1000000;
-               // var messagesCountTotal = 10;
+                // var messagesCountTotal = 10;
                 var serializer = new PerformanceTests.LatencyMessageSerializer();
                 EventProcessorInterlockedIncrement.Watch = watch;
                 var performanceMeasure = new PerformanceMeasure(() =>
@@ -153,7 +168,7 @@ namespace Tests.Integration.Performance
                                                                         wireSendingMessage =
                                                                             new WireSendingMessage(
                                                                                 new MessageWireData(
-                                                                                    typeof (FakePersistingCommand).
+                                                                                    typeof(FakePersistingCommand).
                                                                                         FullName,
                                                                                     Guid.NewGuid(),
                                                                                     new PeerId(44),
@@ -165,16 +180,13 @@ namespace Tests.Integration.Performance
                                                                     },
                                                                 messagesCountTotal,
                                                                 watch);
-             
-                SpinWait wait = new SpinWait();
-                while (EventProcessorInterlockedIncrement.MessageCount < messagesCountTotal)
-                {
-                    wait.SpinOnce();
-                }
-               performanceMeasure.Dispose();
-               EventProcessorInterlockedIncrement.MessageCount = 0;
-               var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();
-               Console.WriteLine(statistics);
+
+                waitHandleForNumberOfMessages.WaitOne();
+
+                performanceMeasure.Dispose();
+                EventProcessorInterlockedIncrement.MessageCount = 0;
+                var statistics = EventProcessorInterlockedIncrement.latenciesInMicrosec.ComputeStatistics();
+                Console.WriteLine(statistics);
                 EventProcessorInterlockedIncrement.latenciesInMicrosec.Clear();
             }
             transportSend.Dispose();

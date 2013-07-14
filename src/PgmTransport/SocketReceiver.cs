@@ -1,16 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Disruptor;
-using Disruptor.Dsl;
 using Shared;
 using log4net;
 
@@ -18,39 +12,12 @@ namespace PgmTransport
 {
 
 
-    public class ReceivedStreamHandler :IEventHandler<Stream>
+   internal class SocketProcessingInfo
     {
-        private readonly List<Action<Stream>> _subscribers;
-
-        public ReceivedStreamHandler(List<Action<Stream>> subscribers)
-        {
-            _subscribers = subscribers;
-        }
-
-        public void OnNext(Stream data, long sequence, bool endOfBatch)
-        {
-            for (int i = 0; i < _subscribers.Count; i++)
-            {
-                _subscribers[i](data);
-            }
-        }
+        public IPEndPoint EndPoint;
+        public byte[] Buffer;
     }
 
-   public class SocketDataProcessingMachinery
-   {
-       public RingBuffer<Stream> WorkQueue;
-
-       public SocketDataProcessingMachinery(IEnumerable<Action<Stream>> actions, int highWaterMark, TaskScheduler taskScheduler = null)
-       {
-           if(!NumericUtils.IsPowerOfTwo(highWaterMark))
-               throw new ArgumentException("HWM must be a power of two");
-           var disruptor = new Disruptor<Stream>(() => new MutableMemoryStream(), new MultiThreadedClaimStrategy(1024),
-                                                 new SleepingWaitStrategy(), taskScheduler ?? TaskScheduler.Current);
-           disruptor.HandleEventsWith(new ReceivedStreamHandler(new List<Action<Stream>>(actions)));
-
-
-       }
-   }
     public abstract class SocketReceiver : IDisposable
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
@@ -180,13 +147,21 @@ namespace PgmTransport
             _logger.InfoFormat("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
             Console.WriteLine("AcceptingSocket from: {0}", e.AcceptSocket.RemoteEndPoint);
 
+
+            var socketProcessingInfo = new SocketProcessingInfo
+            {
+                EndPoint = (IPEndPoint)socket.LocalEndPoint,
+                Buffer = _bufferPool.GetItem(),
+            };
+
             lock (_endpointToReceiveSockets)
             {
                 List<Socket> socketsForEndpoint;
-                if (!_endpointToReceiveSockets.TryGetValue((IPEndPoint)e.UserToken, out socketsForEndpoint))
+                var ipEndPoint = socketProcessingInfo.EndPoint;
+                if (!_endpointToReceiveSockets.TryGetValue(ipEndPoint, out socketsForEndpoint))
                 {
                     socketsForEndpoint = new List<Socket>();
-                    _endpointToReceiveSockets[(IPEndPoint)e.UserToken] = socketsForEndpoint;
+                    _endpointToReceiveSockets[ipEndPoint] = socketsForEndpoint;
                 }
                 socketsForEndpoint.Add(receiveSocket);
             }
@@ -202,13 +177,10 @@ namespace PgmTransport
             frameAccumulator.MessageReceived += (s) => act(s);
             _receivingSockets[receiveSocket] = frameAccumulator;
             var receiveEventArgs = _eventArgsPool.GetItem();
-            receiveEventArgs.UserToken = socket.LocalEndPoint;
+
+            receiveEventArgs.UserToken = socketProcessingInfo;
             receiveEventArgs.Completed += OnReceive;
-            if (receiveEventArgs.Buffer == null)
-            {
-                byte[] buffer = _bufferPool.GetItem();
-                receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
-            }
+            receiveEventArgs.SetBuffer(socketProcessingInfo.Buffer, 0, socketProcessingInfo.Buffer.Length);
 
             if (!receiveSocket.ReceiveAsync(receiveEventArgs))
                 OnReceive(receiveSocket, receiveEventArgs);
@@ -272,7 +244,7 @@ namespace PgmTransport
                 {
                     socket.Dispose();
 
-                    _endpointToReceiveSockets[e.UserToken as IPEndPoint].Remove(socket);
+                    _endpointToReceiveSockets[((SocketProcessingInfo)e.UserToken).EndPoint].Remove(socket);
                     _bufferPool.PutBackItem(e.Buffer); //put back buffer in pool
                 }
                 return true;

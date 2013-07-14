@@ -67,6 +67,50 @@ new Type[]{typeof(byte*),typeof(byte*), typeof(int)},null));
 
 
         }
+
+        [Test]
+        public void is_copy_slower_for_big_arrays()
+        {
+
+            var gen2Gc = GC.CollectionCount(2);
+            var smallArray = new ArraySegment<byte>[1024];
+            var bigArray = new ArraySegment<byte>[1024*64];
+
+            var destinationArray = new ArraySegment<byte>[512];
+
+            //warmup
+            var batchSize = 100000;
+            for (int i = 0; i < batchSize; i++)
+            {
+                Array.Copy(smallArray, 512, destinationArray, 0, 512);
+                Array.Copy(bigArray, 512, destinationArray, 0, 512);
+            }
+
+            var watch = new Stopwatch();
+            watch.Start();
+            for (int i = 0; i < batchSize; i++)
+            {
+                Array.Copy(smallArray,512,destinationArray,0,512);
+            }
+            watch.Stop();
+
+            Console.WriteLine(string.Format("small copy us {0}", watch.ElapsedMicroseconds()) );
+
+
+            watch = new Stopwatch();
+            watch.Start();
+            for (int i = 0; i < batchSize; i++)
+            {
+                Array.Copy(bigArray, 2048, destinationArray, 0, 512);
+            }
+            watch.Stop();
+            Console.WriteLine(string.Format("big copy us {0}", watch.ElapsedMicroseconds()));
+
+            gen2Gc = GC.CollectionCount(2) - gen2Gc;
+            Console.WriteLine(gen2Gc);
+
+        }
+
         private void Test(string methodName, int repeatCount, int size, Action<byte[], byte[]> code, Func<Stopwatch, string> timeoutput)
         {
             var sourceArray = new byte[size];

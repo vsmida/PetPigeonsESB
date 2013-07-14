@@ -1,12 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using Shared;
-using System.Linq;
 
 namespace PgmTransport
 {
@@ -23,7 +18,7 @@ namespace PgmTransport
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
 
-      private readonly int _maxNumberOfListElements;
+        private readonly int _maxNumberOfListElements;
         private readonly int _maxTotalSizePerChunk;
         private readonly ArraySegment<byte>[] _backingArray;
         private long _currentReadingSequence;
@@ -32,6 +27,7 @@ namespace PgmTransport
         private readonly WrappingArrayView<ArraySegment<byte>> _returnList;
         private long _maxNumberOfElementsPerChunk;
         private readonly SpinWait _spinWait = new SpinWait();
+        private int _indexMask;
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
@@ -40,35 +36,32 @@ namespace PgmTransport
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
             _backingArray = new ArraySegment<byte>[_maxNumberOfListElements];
             _returnList = new WrappingArrayView<ArraySegment<byte>>(_backingArray, 0, 0);
+            // _indexMask = _maxNumberOfListElements-1;
+            _indexMask = 2 * maxNumberOfElementsPerChunk - 1;
+
+            for (int i = 0; i < maxNumberOfElementsPerChunk; i++)
+            {
+                _backingArray[2*i] = new ArraySegment<byte>(new byte[4],0,4);
+            }
         }
 
 
         public void InsertMessage(ArraySegment<byte> message)
         {
-            var previousSequence = (Interlocked.Add(ref _nextWritingSequence, 2) - 2);
+            //claim sequence
+             var previousSequence = (Interlocked.Add(ref _nextWritingSequence, 2) - 2);
 
-
-            //claiming strat? //dont wrap
-            var volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
-            while ( previousSequence - volatileRead >= _maxNumberOfListElements) 
+            //dont wrap
+            while (previousSequence - Interlocked.Read(ref _currentReadingSequence) >= 2 * _maxNumberOfElementsPerChunk)
             {
-                _spinWait.SpinOnce();
-                volatileRead = Thread.VolatileRead(ref _currentReadingSequence);
+                Thread.Sleep(0);
+              //    _spinWait.SpinOnce();
             }
 
-
-            var indexToWrite = previousSequence & (_maxNumberOfListElements-1); //get next writable sequence
-            var size = BitConverter.GetBytes(message.Count);
             //write
-            _backingArray[indexToWrite] = new ArraySegment<byte>(size,0,4);
-            //_backingArray[indexToWrite].Array = size;
-            //_backingArray[indexToWrite].Count = 4;
-            //_backingArray[indexToWrite].Offset = 0;
-
+            var indexToWrite = previousSequence & (_indexMask);
+            ByteUtils.WriteInt(_backingArray[indexToWrite].Array,0,message.Count);
             _backingArray[indexToWrite + 1] = message;
-            //_backingArray[indexToWrite + 1].Array = message.Array;
-            //_backingArray[indexToWrite + 1].Count = message.Count;
-            //_backingArray[indexToWrite + 1].Offset = message.Offset;
             ////end write
 
             //commit phase
@@ -82,7 +75,7 @@ namespace PgmTransport
         public bool GetNextSegments(out IList<ArraySegment<byte>> data)
         {
             //only one reader.
-            var maxReadableSequence = Thread.VolatileRead(ref _maxReadableSequence); //this is shared state, try to get last value
+            var maxReadableSequence = Interlocked.Read(ref _maxReadableSequence);
 
             if (maxReadableSequence <= _currentReadingSequence) //can only equal though
             {
@@ -90,9 +83,8 @@ namespace PgmTransport
                 return false;
             }
 
-            _returnList.Offset = (int)(_currentReadingSequence & (_maxNumberOfListElements - 1)); //_currentReading not modified from other thread
+            _returnList.Offset = (int)(_currentReadingSequence & (_indexMask)); //_currentReading not modified from other thread
             _returnList.OccuppiedLength = (int)(maxReadableSequence - _currentReadingSequence);
-
             data = _returnList;
             return true;
 
@@ -100,7 +92,7 @@ namespace PgmTransport
 
         public void FlushMessages(IList<ArraySegment<byte>> data)
         {
-            Thread.VolatileWrite(ref _currentReadingSequence, _currentReadingSequence + data.Count); //to show other threads
+            _currentReadingSequence += data.Count;
         }
 
 

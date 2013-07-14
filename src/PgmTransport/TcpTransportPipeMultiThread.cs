@@ -22,7 +22,7 @@ namespace PgmTransport
 
         public override int MaximumBatchCount
         {
-            get { return 1024 * 1/2; }
+            get { return 1024 * 1; }
         }
 
         public override Socket CreateSocket()
@@ -30,7 +30,7 @@ namespace PgmTransport
             try
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SendBufferSize = 1024 * 16;
+                socket.SendBufferSize = 1024 * 1024;
                 socket.Connect(EndPoint);
                 socket.NoDelay = true;
                 return socket;

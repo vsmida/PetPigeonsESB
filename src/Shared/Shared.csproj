@@ -107,8 +107,10 @@
     <Compile Include="IPool.cs" />
     <Compile Include="MutableArraySegment.cs" />
     <Compile Include="NumericUtils.cs" />
+    <Compile Include="RoundRobinTaskScheduler.cs" />
     <Compile Include="StackPool.cs" />
     <Compile Include="StopWatchExtensions.cs" />
+    <Compile Include="ThreadUtils.cs" />
     <Compile Include="WrappingArrayView.cs" />
     <Compile Include="DisposableAction.cs" />
     <Compile Include="ExtendDictionary.cs" />

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Shared;
 using log4net;
 
@@ -29,20 +30,24 @@ namespace PgmTransport
             }
         }
 
-        private readonly Thread _thread;
+       // private readonly Thread _thread;
         private readonly List<SendingPipeInfo> _transportPipes = new List<SendingPipeInfo>();
         private readonly Stopwatch _watch = new Stopwatch();
         private readonly Dictionary<long, Action> _timers = new Dictionary<long, Action>();
         private readonly ConcurrentBag<Action> _commands = new ConcurrentBag<Action>();
         private readonly ILog _logger = LogManager.GetLogger(typeof(SendingThread));
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _task;
 
 
-        internal SendingThread()
+        internal SendingThread(TaskScheduler scheduler)
         {
-            _thread = new Thread(SendingLoop) { IsBackground = true };
+            _cancellationTokenSource = new CancellationTokenSource();
+            _task = Task.Factory.StartNew(SendingLoop, _cancellationTokenSource.Token, TaskCreationOptions.None, scheduler);
+            //_thread = new Thread(SendingLoop) { IsBackground = true };
 
             _watch.Start();
-            _thread.Start();
+            //_thread.Start();
         }
 
         internal void Attach(TransportPipe pipe)
@@ -67,7 +72,7 @@ namespace PgmTransport
                 _commands.Add(() => { CreateSocketForEndpoint(sendingPipeInfo); });
                 return;
             }
-          //  sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.FlushMessages(e.BufferList);
+            sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.FlushMessages(e.BufferList);
           //  sendingPipeInfo.HasSent = true;//commit
 
             IList<ArraySegment<byte>> data;
@@ -122,7 +127,11 @@ namespace PgmTransport
                         }
                     }
                     if (!sentSomething)
-                        spinWait.SpinOnce();
+                    {
+                        if (_cancellationTokenSource.Token.IsCancellationRequested)
+                            return;
+                        spinWait.SpinOnce();                        
+                    }
 
                     sentSomething = false;
                 }
@@ -185,7 +194,6 @@ namespace PgmTransport
                 }
                 pipe.EventArgs.BufferList = data;
                 pipe.IsSending = true;
-                pipe.Pipe.MessageContainerConcurrentQueue.FlushMessages(data);
                 if (!socket.SendAsync(pipe.EventArgs))
                     OnSendCompleted(null, pipe.EventArgs);
               //  CheckError(sentBytes, dataSize, socket);
@@ -244,8 +252,10 @@ namespace PgmTransport
 
         public void Dispose()
         {
-            _thread.Abort();
-            _thread.Join();
+            _cancellationTokenSource.Cancel();
+            _task.Wait();
+            //_thread.Abort();
+            //_thread.Join();
 
             //foreach (var socket in _endPointToSockets.Values)
             //{

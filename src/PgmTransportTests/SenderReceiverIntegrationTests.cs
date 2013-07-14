@@ -147,7 +147,7 @@ namespace PgmTransportTests
 
             Thread.Sleep(1000);
             _running = true;
-            var rThread = new BackgroundThread(() =>
+            var rThread = new Thread(() =>
                                                             {
                                                                 while (_running)
                                                                 {
@@ -194,8 +194,8 @@ namespace PgmTransportTests
 
                     waitForMessage1.WaitOne();
                     waitForMessage1.Reset();
-                    Assert.AreEqual(_messSentNumber, _messNumber);
                     watch.Stop();
+                    Assert.AreEqual(_messSentNumber, _messNumber);
                     var fps = batchSize / (watch.ElapsedMilliseconds / 1000m);
                     Console.WriteLine(string.Format("FPS = : {0} mess/sec, elapsed : {1} ms, messages {2}", fps.ToString("N2"), watch.ElapsedMilliseconds, batchSize));
                 }
@@ -242,7 +242,7 @@ namespace PgmTransportTests
         {
             var waitForMessage1 = new ManualResetEvent(false);
             var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 2000);
-            var transport = new SendingTransport();
+            var transport = new SendingTransport(1);
             var sender = new TcpTransportPipeMultiThread(600000, HighWaterMarkBehavior.Block, ipEndPoint, transport);
             var receiver = new TcpReceiver();
 
@@ -264,8 +264,9 @@ namespace PgmTransportTests
                 waitForMessage1.Reset();
                 Thread.Sleep(1000);
 
-                for (int j = 0; j < 10; j++)
+                for (int j = 0; j < 20; j++)
                 {
+                    GC.Collect(2,GCCollectionMode.Forced,true);
                     Console.WriteLine("Entering loop");
                     var watch = new Stopwatch();
                     watch.Start();
@@ -274,6 +275,10 @@ namespace PgmTransportTests
                     {
                         _messSentNumber++;
                         sender.Send(new ArraySegment<byte>(_sentBuffer));
+                      //  Thread.SpinWait(200);
+                        Thread.Sleep(0);
+                        Thread.Sleep(0);
+                        Thread.Sleep(0);
 
                     }
                     sender.Send(new ArraySegment<byte>(Encoding.ASCII.GetBytes("stop")));
