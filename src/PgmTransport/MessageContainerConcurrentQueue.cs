@@ -25,9 +25,9 @@ namespace PgmTransport
         private long _nextWritingSequence;
         private long _maxReadableSequence;
         private readonly WrappingArrayView<ArraySegment<byte>> _returnList;
-        private long _maxNumberOfElementsPerChunk;
-        private readonly SpinWait _spinWait = new SpinWait();
-        private int _indexMask;
+        private readonly long _maxNumberOfElementsPerChunk;
+        private readonly int _indexMask;
+        private readonly byte[] _arrayForSizes;
 
         public MessageContainerConcurrentQueue(int maxNumberOfElementsPerChunk, int maxTotalSizePerChunk)
         {
@@ -36,12 +36,12 @@ namespace PgmTransport
             _maxTotalSizePerChunk = maxTotalSizePerChunk;
             _backingArray = new ArraySegment<byte>[_maxNumberOfListElements];
             _returnList = new WrappingArrayView<ArraySegment<byte>>(_backingArray, 0, 0);
-            // _indexMask = _maxNumberOfListElements-1;
             _indexMask = 2 * maxNumberOfElementsPerChunk - 1;
 
+            _arrayForSizes = new byte[maxNumberOfElementsPerChunk * 4];
             for (int i = 0; i < maxNumberOfElementsPerChunk; i++)
             {
-                _backingArray[2*i] = new ArraySegment<byte>(new byte[4],0,4);
+                _backingArray[2*i] = new ArraySegment<byte>(_arrayForSizes,i*4,4);
             }
         }
 
@@ -53,23 +53,24 @@ namespace PgmTransport
             
             
             //dont wrap
-            while (previousSequence - _currentReadingSequence >= 2 * _maxNumberOfElementsPerChunk) //could cause trouble if condition "optimized away"
-                // will update ue to flushmessage memory barrier.
+            while (previousSequence - _currentReadingSequence >= 2 * _maxNumberOfElementsPerChunk)
             {
                 Thread.Sleep(0);
+                Thread.MemoryBarrier(); //ensure value is read again
             }
 
             //write
             var indexToWrite = previousSequence & (_indexMask);
-            ByteUtils.WriteInt(_backingArray[indexToWrite].Array,0,message.Count);
+            ByteUtils.WriteInt(_arrayForSizes, (int)(indexToWrite/ 2 * 4), message.Count);
             _backingArray[indexToWrite + 1] = message;
             ////end write
 
             //commit phase
-            while (_maxReadableSequence != previousSequence) //could cause trouble if condition "optimized away"
+            while (_maxReadableSequence != previousSequence)
                 // will update due to last memory barrier
             {
                 default(SpinWait).SpinOnce();
+                Thread.MemoryBarrier();
             }
             _maxReadableSequence += 2;
             Thread.MemoryBarrier();
@@ -80,7 +81,6 @@ namespace PgmTransport
         {
             //only one reader.
             // last memory barrier in insert message insures some freshness
-
             if (_maxReadableSequence <= _currentReadingSequence) //can only equal though
             {
                 data = null;
