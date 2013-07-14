@@ -76,7 +76,7 @@ namespace PgmTransport
           //  sendingPipeInfo.HasSent = true;//commit
 
             IList<ArraySegment<byte>> data;
-            var shouldSend = sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
+            var shouldSend = sendingPipeInfo.Pipe.MessageContainerConcurrentQueue.TryGetNextSegments(out data);
             if (shouldSend)
             {
 
@@ -118,7 +118,7 @@ namespace PgmTransport
                         if (pipe.IsSending)//wait for completion
                             continue;
                         IList<ArraySegment<byte>> data;
-                        var shouldSend = pipe.Pipe.MessageContainerConcurrentQueue.GetNextSegments(out data);
+                        var shouldSend = pipe.Pipe.MessageContainerConcurrentQueue.TryGetNextSegments(out data);
                         if (shouldSend)
                         {
                         

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Shared;
 
@@ -8,8 +9,7 @@ namespace PgmTransport
     internal interface IMessageContainer
     {
         void InsertMessage(ArraySegment<byte> message);
-        bool GetNextSegments(out IList<ArraySegment<byte>> data);
-        //  void PutBackFailedMessage(ArraySegment<byte> unsentMessage);
+        bool TryGetNextSegments(out IList<ArraySegment<byte>> data);
         int Count { get; }
         void FlushMessages(IList<ArraySegment<byte>> data);
     }
@@ -45,17 +45,18 @@ namespace PgmTransport
             }
         }
 
-
         public void InsertMessage(ArraySegment<byte> message)
         {
             //claim sequence
              var previousSequence = (Interlocked.Add(ref _nextWritingSequence, 2) - 2);
-
+            //memory barrier here due to interlocked
+            
+            
             //dont wrap
-            while (previousSequence - Interlocked.Read(ref _currentReadingSequence) >= 2 * _maxNumberOfElementsPerChunk)
+            while (previousSequence - _currentReadingSequence >= 2 * _maxNumberOfElementsPerChunk) //could cause trouble if condition "optimized away"
+                // will update ue to flushmessage memory barrier.
             {
                 Thread.Sleep(0);
-              //    _spinWait.SpinOnce();
             }
 
             //write
@@ -65,26 +66,29 @@ namespace PgmTransport
             ////end write
 
             //commit phase
-            while (Interlocked.CompareExchange(ref _maxReadableSequence, previousSequence + 2, previousSequence) != (previousSequence))//commit after all other writers before me have commited
+            while (_maxReadableSequence != previousSequence) //could cause trouble if condition "optimized away"
+                // will update due to last memory barrier
             {
                 default(SpinWait).SpinOnce();
             }
+            _maxReadableSequence += 2;
+            Thread.MemoryBarrier();
 
         }
 
-        public bool GetNextSegments(out IList<ArraySegment<byte>> data)
+        public bool TryGetNextSegments(out IList<ArraySegment<byte>> data)
         {
             //only one reader.
-            var maxReadableSequence = Interlocked.Read(ref _maxReadableSequence);
+            // last memory barrier in insert message insures some freshness
 
-            if (maxReadableSequence <= _currentReadingSequence) //can only equal though
+            if (_maxReadableSequence <= _currentReadingSequence) //can only equal though
             {
                 data = null;
                 return false;
             }
 
             _returnList.Offset = (int)(_currentReadingSequence & (_indexMask)); //_currentReading not modified from other thread
-            _returnList.OccuppiedLength = (int)(maxReadableSequence - _currentReadingSequence);
+            _returnList.OccuppiedLength = (int)(_maxReadableSequence - _currentReadingSequence); //get the field, who knows we can get a few more items
             data = _returnList;
             return true;
 
@@ -93,17 +97,15 @@ namespace PgmTransport
         public void FlushMessages(IList<ArraySegment<byte>> data)
         {
             _currentReadingSequence += data.Count;
+            Thread.MemoryBarrier(); //"publish" change
         }
-
-
-        //public void PutBackFailedMessage(ArraySegment<byte> unsentMessage) //single threaded access
-        //{
-        //    _failedFrames.Add(unsentMessage);
-        //}
 
         public int Count
         {
-            get { return (int)(_nextWritingSequence - _currentReadingSequence); }
+            get
+            {
+                return (int)(_nextWritingSequence - _currentReadingSequence);
+            }
         }
     }
 }
