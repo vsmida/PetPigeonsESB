@@ -12,17 +12,18 @@ namespace PgmTransport
 {
 
 
-   internal class SocketProcessingInfo
+    internal class SocketProcessingInfo
     {
         public IPEndPoint EndPoint;
         public byte[] Buffer;
+        public FrameAccumulator FrameAccumulator;
     }
 
     public abstract class SocketReceiver : IDisposable
     {
         private readonly ConcurrentDictionary<IPEndPoint, Socket> _endPointToAcceptSockets = new ConcurrentDictionary<IPEndPoint, Socket>();
         private readonly Dictionary<IPEndPoint, List<Socket>> _endpointToReceiveSockets = new Dictionary<IPEndPoint, List<Socket>>();
-        private readonly Dictionary<Socket, FrameAccumulator> _receivingSockets = new Dictionary<Socket, FrameAccumulator>();
+        private readonly ConcurrentBag<Socket> _receivingSockets = new ConcurrentBag<Socket>();
         private readonly ConcurrentStackPool<SocketAsyncEventArgs> _eventArgsPool = new ConcurrentStackPool<SocketAsyncEventArgs>(() => new SocketAsyncEventArgs(), 10000);
         private readonly ILog _logger = LogManager.GetLogger(typeof(SocketReceiver));
         private readonly ConcurrentStackPool<byte[]> _bufferPool;
@@ -175,7 +176,8 @@ namespace PgmTransport
                 act = EventsForMessagesReceived[localEndPoint];
             }
             frameAccumulator.MessageReceived += (s) => act(s);
-            _receivingSockets[receiveSocket] = frameAccumulator;
+            socketProcessingInfo.FrameAccumulator = frameAccumulator;
+            _receivingSockets.Add(socket);
             var receiveEventArgs = _eventArgsPool.GetItem();
 
             receiveEventArgs.UserToken = socketProcessingInfo;
@@ -205,14 +207,14 @@ namespace PgmTransport
             var socket = (Socket)sender;
             if (CheckError(socket, e))
                 return;
-            DoReceive(socket, e);
+            DoReceive(e);
             try
             {
                 while (!socket.ReceiveAsync(e))
                 {
                     if (CheckError(socket, e))
                         return;
-                    DoReceive(socket, e);
+                    DoReceive(e);
 
                 }
             }
@@ -224,9 +226,9 @@ namespace PgmTransport
 
         }
 
-        private void DoReceive(Socket socket, SocketAsyncEventArgs e)
+        private void DoReceive(SocketAsyncEventArgs e)
         {
-            _receivingSockets[socket].AddFrame(e.Buffer, e.Offset, e.BytesTransferred);
+           ((SocketProcessingInfo)e.UserToken).FrameAccumulator.AddFrame(e.Buffer, e.Offset, e.BytesTransferred);
         }
 
         private bool CheckError(Socket socket, SocketAsyncEventArgs e)
@@ -259,7 +261,7 @@ namespace PgmTransport
             lock (_disposeLock)
             {
                 _disposing = true;
-                foreach (var socket in _receivingSockets.Keys.Concat(_endPointToAcceptSockets.Values))
+                foreach (var socket in _receivingSockets.Concat(_endPointToAcceptSockets.Values))//todo : check everything disposed
                 {
                     socket.Dispose();
                 }

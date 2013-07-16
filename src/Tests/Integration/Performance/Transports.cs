@@ -43,7 +43,10 @@ namespace Tests.Integration.Performance
             {
                 MessageCount++;
                 Watch.Stop();
-             //   Thread.SpinWait(100);
+              //  var x = 3;
+         //       while (x < 1000)
+       //             x++;
+               // Thread.SpinWait(100);
                 var deserialized = _serializer.Deserialize(data.InitialTransportMessage.Data);
                 latenciesInMicrosec.Add((Watch.ElapsedTicks - deserialized.TimeStamp) / (double)(Stopwatch.Frequency) * 1000000);
                 Watch.Start();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Shared;
@@ -15,6 +16,59 @@ namespace PgmTransport
     }
 
 
+    internal interface ICompletionWorkQueue
+    {
+    }
+
+    internal class CompletionWorkQueue : ICompletionWorkQueue
+    {
+        private readonly int _maxNumberOfListElements;
+        private readonly Stream[] _backingArray;
+        private long _currentReadingSequence;
+        private long _nextWritingSequence;
+        private long _maxReadableSequence;
+        private readonly int _indexMask;
+
+        public CompletionWorkQueue(int maxNumberOfListElements)
+        {
+            _maxNumberOfListElements = maxNumberOfListElements;
+            _indexMask = maxNumberOfListElements - 1;
+            _backingArray = new Stream[_maxNumberOfListElements];
+        }
+
+        public void InsertStream(Stream stream)
+        {
+            var sequenceToClaim = _nextWritingSequence;
+
+            while(_nextWritingSequence - _currentReadingSequence >= _maxNumberOfListElements)
+            {
+                Thread.Sleep(0);
+                Thread.MemoryBarrier();
+            }
+
+            _backingArray[sequenceToClaim & _indexMask] = stream;
+            _nextWritingSequence++;
+            _maxReadableSequence++;
+            Thread.MemoryBarrier();
+        }
+
+        public bool TryGetNextStream(out Stream stream)
+        {
+            //only one reader.
+            // last memory barrier in insert message insures some freshness
+            if (_maxReadableSequence <= _currentReadingSequence) //can only equal though
+            {
+                stream = null;
+                return false;
+            }
+
+            stream = _backingArray[_currentReadingSequence];
+            _currentReadingSequence++;
+            Thread.MemoryBarrier();
+            return true;
+        }
+
+    }
     internal class MessageContainerConcurrentQueue : IMessageContainer
     {
 
